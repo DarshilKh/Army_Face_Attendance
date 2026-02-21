@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee.full_name }} - Details{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <a href="{{ url_for('registration.list_employees') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Employee Info -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-user"></i> Employee Information
+            </div>
+            <div class="card-body text-center">
+                <img src="/{{ employee.photo_path }}" alt="{{ employee.full_name }}"
+                     class="img-thumbnail mb-3" style="width: 200px; height: 200px; object-fit: cover;">
+
+                <h4>{{ employee.full_name }}</h4>
+                <p class="text-muted">{{ employee.rank or 'N/A' }}</p>
+
+                <div class="mb-3">
+                    {% if employee.is_active %}
+                        <span class="badge bg-success fs-6">Active</span>
+                    {% else %}
+                        <span class="badge bg-danger fs-6">Inactive</span>
+                    {% endif %}
+                </div>
+
+                <table class="table table-borderless text-start">
+                    <tr>
+                        <th><i class="fas fa-id-card"></i> Army ID:</th>
+                        <td>{{ employee.army_id }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-flag"></i> Unit:</th>
+                        <td>{{ employee.unit or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-building"></i> Department:</th>
+                        <td>{{ employee.department or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-briefcase"></i> Designation:</th>
+                        <td>{{ employee.designation or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-phone"></i> Phone:</th>
+                        <td>{{ employee.phone or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-envelope"></i> Email:</th>
+                        <td>{{ employee.email or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-calendar"></i> Joined:</th>
+                        <td>{{ employee.date_of_joining.strftime('%d-%m-%Y') if employee.date_of_joining else 'N/A' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance History -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-history"></i> Attendance History (Last 30 Days)
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attendance in attendance_history %}
+                            <tr>
+                                <td>{{ attendance.date.strftime('%d-%m-%Y') }}</td>
+                                <td>{{ attendance.check_in_time.strftime('%I:%M %p') }}</td>
+                                <td>
+                                    {% if attendance.check_out_time %}
+                                        {{ attendance.check_out_time.strftime('%I:%M %p') }}
+                                    {% else %}
+                                        <span class="badge bg-warning">Not marked</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if attendance.check_out_time %}
+                                        {% set duration = (attendance.check_out_time - attendance.check_in_time).total_seconds() / 3600 %}
+                                        {{ '%dh %dm' | format(duration|int, ((duration % 1) * 60)|int) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if attendance.status == 'present' %}
+                                        <span class="badge bg-success">Present</span>
+                                    {% elif attendance.status == 'late' %}
+                                        <span class="badge bg-warning">Late</span>
+                                    {% else %}
+                                        <span class="badge bg-info">{{ attendance.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">No attendance records found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

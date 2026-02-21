@@ -1,0 +1,444 @@
+2026-01-24 16:54:49 - ArmyAttendance - INFO - ============================================================
+2026-01-24 16:54:49 - ArmyAttendance - INFO - Initializing Face Recognition Engine v2.0
+2026-01-24 16:54:49 - ArmyAttendance - INFO - ============================================================
+2026-01-24 16:54:49 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-24 16:54:49 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-24 16:54:49 - ArmyAttendance - INFO - ============================================================
+2026-01-24 16:54:49 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-24 16:54:49 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-24 16:54:50 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-24 16:54:50 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-24 16:54:50 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-24 16:54:50 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-24 16:54:50 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-24 16:54:50 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-24 16:54:50 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-24 16:54:50 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-24 16:54:50 - ArmyAttendance - INFO - ==================================================
+2026-01-24 16:54:50 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-24 16:54:50 - ArmyAttendance - INFO - ==================================================
+2026-01-24 16:54:50 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-24 16:54:50 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-24 16:54:50 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-24 16:54:50 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-24 16:54:50 - ArmyAttendance - INFO - ==================================================
+2026-01-24 16:54:50 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-24 16:54:50 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-24 16:54:54 - ArmyAttendance - INFO - ============================================================
+2026-01-24 16:54:54 - ArmyAttendance - INFO - Initializing Face Recognition Engine v2.0
+2026-01-24 16:54:54 - ArmyAttendance - INFO - ============================================================
+2026-01-24 16:54:54 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-24 16:54:54 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-24 16:54:54 - ArmyAttendance - INFO - ============================================================
+2026-01-24 16:54:54 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-24 16:54:55 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-24 16:54:55 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-24 16:54:55 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-24 16:54:55 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-24 16:54:55 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-24 16:54:55 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-24 16:54:55 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ==================================================
+2026-01-24 16:54:55 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ==================================================
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ==================================================
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-24 16:54:55 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-24 16:54:55 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-24 16:55:17 - ArmyAttendance - WARNING - Slow request: 3.43s - attendance.mark_attendance
+2026-01-24 16:55:20 - ArmyAttendance - WARNING - Slow request: 5.53s - attendance.mark_attendance
+2026-01-24 16:55:24 - ArmyAttendance - WARNING - Slow request: 6.13s - attendance.mark_attendance
+2026-01-24 16:55:28 - ArmyAttendance - WARNING - Slow request: 3.70s - attendance.mark_attendance
+2026-01-24 16:55:31 - ArmyAttendance - WARNING - Slow request: 3.86s - attendance.mark_attendance
+2026-01-24 16:55:35 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:55:35 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165535.jpg
+2026-01-24 16:55:35 - ArmyAttendance - WARNING - Slow request: 3.87s - attendance.mark_attendance
+2026-01-24 16:55:38 - ArmyAttendance - WARNING - Slow request: 22.47s - attendance.mark_attendance
+2026-01-24 16:55:40 - ArmyAttendance - WARNING - Slow request: 23.37s - attendance.mark_attendance
+2026-01-24 16:55:40 - ArmyAttendance - WARNING - Slow request: 4.79s - attendance.mark_attendance
+2026-01-24 16:55:42 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:55:42 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165542.jpg
+2026-01-24 16:55:42 - ArmyAttendance - WARNING - Slow request: 23.61s - attendance.mark_attendance
+2026-01-24 16:55:44 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 317, in mark_attendance
+    employee_id, confidence, face_obj, message = face_engine.recognize_face(frame)
+ValueError: too many values to unpack (expected 4)
+2026-01-24 16:55:44 - ArmyAttendance - WARNING - Slow request: 24.27s - attendance.mark_attendance
+2026-01-24 16:55:44 - ArmyAttendance - WARNING - Slow request: 4.08s - attendance.mark_attendance
+2026-01-24 16:55:45 - ArmyAttendance - WARNING - Slow request: 24.29s - attendance.mark_attendance
+2026-01-24 16:55:48 - ArmyAttendance - WARNING - Slow request: 3.94s - attendance.mark_attendance
+2026-01-24 16:55:52 - ArmyAttendance - WARNING - Slow request: 3.82s - attendance.mark_attendance
+2026-01-24 16:55:57 - ArmyAttendance - WARNING - Slow request: 5.14s - attendance.mark_attendance
+2026-01-24 16:55:59 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:55:59 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165559.jpg
+2026-01-24 16:55:59 - ArmyAttendance - WARNING - Slow request: 15.29s - attendance.mark_attendance
+2026-01-24 16:56:04 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:56:04 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165604.jpg
+2026-01-24 16:56:04 - ArmyAttendance - WARNING - Slow request: 4.24s - attendance.mark_attendance
+2026-01-24 16:56:04 - ArmyAttendance - WARNING - Slow request: 25.92s - attendance.mark_attendance
+2026-01-24 16:56:06 - ArmyAttendance - WARNING - Slow request: 25.67s - attendance.mark_attendance
+2026-01-24 16:56:08 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:56:08 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165608.jpg
+2026-01-24 16:56:08 - ArmyAttendance - WARNING - Slow request: 4.18s - attendance.mark_attendance
+2026-01-24 16:56:08 - ArmyAttendance - WARNING - Slow request: 25.59s - attendance.mark_attendance
+2026-01-24 16:56:11 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:56:11 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165611.jpg
+2026-01-24 16:56:11 - ArmyAttendance - WARNING - Slow request: 26.13s - attendance.mark_attendance
+2026-01-24 16:56:12 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 317, in mark_attendance
+    employee_id, confidence, face_obj, message = face_engine.recognize_face(frame)
+ValueError: too many values to unpack (expected 4)
+2026-01-24 16:56:12 - ArmyAttendance - WARNING - Slow request: 8.12s - attendance.mark_attendance
+2026-01-24 16:56:18 - ArmyAttendance - WARNING - Slow request: 5.46s - attendance.mark_attendance
+2026-01-24 16:56:22 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:56:22 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165622.jpg
+2026-01-24 16:56:22 - ArmyAttendance - WARNING - Slow request: 4.19s - attendance.mark_attendance
+2026-01-24 16:56:24 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 317, in mark_attendance
+    employee_id, confidence, face_obj, message = face_engine.recognize_face(frame)
+ValueError: too many values to unpack (expected 4)
+2026-01-24 16:56:24 - ArmyAttendance - WARNING - Slow request: 26.79s - attendance.mark_attendance
+2026-01-24 16:56:27 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:56:27 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165627.jpg
+2026-01-24 16:56:28 - ArmyAttendance - WARNING - Slow request: 5.36s - attendance.mark_attendance
+2026-01-24 16:56:29 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 317, in mark_attendance
+    employee_id, confidence, face_obj, message = face_engine.recognize_face(frame)
+ValueError: too many values to unpack (expected 4)
+2026-01-24 16:56:29 - ArmyAttendance - WARNING - Slow request: 20.78s - attendance.mark_attendance
+2026-01-24 16:56:34 - ArmyAttendance - INFO - Employee verified: Anurag yadav (545513)
+2026-01-24 16:56:34 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\545513_20260124_165634.jpg
+2026-01-24 16:56:34 - ArmyAttendance - INFO - ✓ Check-out: 545513 at 04:56 PM
+2026-01-24 16:56:34 - ArmyAttendance - WARNING - Slow request: 5.28s - attendance.mark_attendance
+2026-01-24 16:56:37 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:56:37 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165637.jpg
+2026-01-24 16:56:37 - ArmyAttendance - WARNING - Slow request: 31.32s - attendance.mark_attendance
+2026-01-24 16:56:37 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 317, in mark_attendance
+    employee_id, confidence, face_obj, message = face_engine.recognize_face(frame)
+ValueError: too many values to unpack (expected 4)
+2026-01-24 16:56:37 - ArmyAttendance - WARNING - Slow request: 29.55s - attendance.mark_attendance
+2026-01-24 16:56:40 - ArmyAttendance - WARNING - Slow request: 6.00s - attendance.mark_attendance
+2026-01-24 16:56:41 - ArmyAttendance - WARNING - Slow request: 29.47s - attendance.mark_attendance
+2026-01-24 16:56:45 - ArmyAttendance - WARNING - Slow request: 4.88s - attendance.mark_attendance
+2026-01-24 16:56:48 - ArmyAttendance - WARNING - Slow request: 7.31s - attendance.mark_attendance
+2026-01-24 16:56:53 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:56:53 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165653.jpg
+2026-01-24 16:56:53 - ArmyAttendance - WARNING - Slow request: 15.05s - attendance.mark_attendance
+2026-01-24 16:56:53 - ArmyAttendance - WARNING - Slow request: 28.93s - attendance.mark_attendance
+2026-01-24 16:56:56 - ArmyAttendance - WARNING - Slow request: 28.29s - attendance.mark_attendance
+2026-01-24 16:56:57 - ArmyAttendance - WARNING - Slow request: 4.53s - attendance.mark_attendance
+2026-01-24 16:57:02 - ArmyAttendance - WARNING - Slow request: 4.57s - attendance.mark_attendance
+2026-01-24 16:57:03 - ArmyAttendance - WARNING - Slow request: 15.01s - attendance.mark_attendance
+2026-01-24 16:57:04 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:57:04 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165704.jpg
+2026-01-24 16:57:04 - ArmyAttendance - WARNING - Slow request: 26.76s - attendance.mark_attendance
+2026-01-24 16:57:06 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 317, in mark_attendance
+    employee_id, confidence, face_obj, message = face_engine.recognize_face(frame)
+ValueError: too many values to unpack (expected 4)
+2026-01-24 16:57:06 - ArmyAttendance - WARNING - Slow request: 4.51s - attendance.mark_attendance
+2026-01-24 16:57:09 - ArmyAttendance - WARNING - Slow request: 15.40s - attendance.mark_attendance
+2026-01-24 16:57:11 - ArmyAttendance - WARNING - Slow request: 25.68s - attendance.mark_attendance
+2026-01-24 16:57:14 - ArmyAttendance - WARNING - Slow request: 4.79s - attendance.mark_attendance
+2026-01-24 16:57:18 - ArmyAttendance - WARNING - Slow request: 4.53s - attendance.mark_attendance
+2026-01-24 16:57:22 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:57:22 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165722.jpg
+2026-01-24 16:57:22 - ArmyAttendance - WARNING - Slow request: 25.59s - attendance.mark_attendance
+2026-01-24 16:57:22 - ArmyAttendance - WARNING - Slow request: 3.91s - attendance.mark_attendance
+2026-01-24 16:57:26 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:57:26 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165726.jpg
+2026-01-24 16:57:26 - ArmyAttendance - WARNING - Slow request: 3.98s - attendance.mark_attendance
+2026-01-24 16:57:30 - ArmyAttendance - WARNING - Slow request: 26.20s - attendance.mark_attendance
+2026-01-24 16:57:30 - ArmyAttendance - WARNING - Slow request: 26.28s - attendance.mark_attendance
+2026-01-24 16:57:31 - ArmyAttendance - WARNING - Slow request: 4.96s - attendance.mark_attendance
+2026-01-24 16:57:32 - ArmyAttendance - WARNING - Slow request: 25.79s - attendance.mark_attendance
+2026-01-24 16:57:35 - ArmyAttendance - WARNING - Slow request: 3.90s - attendance.mark_attendance
+2026-01-24 16:57:37 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:57:37 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165737.jpg
+2026-01-24 16:57:37 - ArmyAttendance - WARNING - Slow request: 26.29s - attendance.mark_attendance
+2026-01-24 16:57:39 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 317, in mark_attendance
+    employee_id, confidence, face_obj, message = face_engine.recognize_face(frame)
+ValueError: too many values to unpack (expected 4)
+2026-01-24 16:57:39 - ArmyAttendance - WARNING - Slow request: 3.85s - attendance.mark_attendance
+2026-01-24 16:57:43 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:57:43 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165743.jpg
+2026-01-24 16:57:43 - ArmyAttendance - WARNING - Slow request: 4.18s - attendance.mark_attendance
+2026-01-24 16:57:47 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:57:47 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165747.jpg
+2026-01-24 16:57:47 - ArmyAttendance - WARNING - Slow request: 25.40s - attendance.mark_attendance
+2026-01-24 16:57:48 - ArmyAttendance - WARNING - Slow request: 4.16s - attendance.mark_attendance
+2026-01-24 16:57:51 - ArmyAttendance - WARNING - Slow request: 14.00s - attendance.mark_attendance
+2026-01-24 16:57:53 - ArmyAttendance - WARNING - Slow request: 23.76s - attendance.mark_attendance
+2026-01-24 16:57:55 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:57:55 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165755.jpg
+2026-01-24 16:57:55 - ArmyAttendance - WARNING - Slow request: 24.13s - attendance.mark_attendance
+2026-01-24 16:57:55 - ArmyAttendance - WARNING - Slow request: 3.91s - attendance.mark_attendance
+2026-01-24 16:57:56 - ArmyAttendance - WARNING - Slow request: 23.72s - attendance.mark_attendance
+2026-01-24 16:58:00 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:58:00 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165800.jpg
+2026-01-24 16:58:00 - ArmyAttendance - WARNING - Slow request: 4.70s - attendance.mark_attendance
+2026-01-24 16:58:02 - ArmyAttendance - WARNING - Slow request: 14.83s - attendance.mark_attendance
+2026-01-24 16:58:04 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:58:04 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165804.jpg
+2026-01-24 16:58:04 - ArmyAttendance - WARNING - Slow request: 7.72s - attendance.mark_attendance
+2026-01-24 16:58:07 - ArmyAttendance - WARNING - Slow request: 3.63s - attendance.mark_attendance
+2026-01-24 16:58:11 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:58:11 - ArmyAttendance - WARNING - Slow request: 3.83s - attendance.mark_attendance
+2026-01-24 16:58:11 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165811.jpg
+2026-01-24 16:58:11 - ArmyAttendance - WARNING - Slow request: 23.88s - attendance.mark_attendance
+2026-01-24 16:58:14 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:58:14 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165814.jpg
+2026-01-24 16:58:14 - ArmyAttendance - WARNING - Slow request: 14.30s - attendance.mark_attendance
+2026-01-24 16:58:18 - ArmyAttendance - WARNING - Slow request: 24.08s - attendance.mark_attendance
+2026-01-24 16:58:18 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-24 16:58:18 - ArmyAttendance - WARNING - Slow request: 3.72s - attendance.mark_attendance
+2026-01-24 16:58:19 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-24 16:58:19 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-24\232d_20260124_165819.jpg
+2026-01-24 16:58:19 - ArmyAttendance - WARNING - Slow request: 24.46s - attendance.mark_attendance
+2026-01-24 16:58:21 - ArmyAttendance - WARNING - Slow request: 9.99s - attendance.mark_attendance
+2026-01-24 16:58:23 - ArmyAttendance - WARNING - Slow request: 12.24s - attendance.mark_attendance
+2026-01-24 16:58:24 - ArmyAttendance - WARNING - Slow request: 21.36s - attendance.mark_attendance
+2026-01-24 17:07:50 - ArmyAttendance - INFO - Employee deactivated: 545513
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:09:04 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:09:04 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:09:04 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-24 17:09:04 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-24 17:09:04 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-24 17:09:04 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-24 17:09:04 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-24 17:09:04 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-24 17:09:04 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-24 17:09:04 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:09:04 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-24 17:09:04 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:09:05 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-24 17:09:05 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-24 17:12:59 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:12:59 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-24 17:12:59 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:13:00 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:13:00 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-24 17:13:00 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-24 17:13:00 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-24 17:13:00 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-24 17:13:00 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-24 17:13:00 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-24 17:13:00 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-24 17:13:00 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:13:00 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-24 17:13:00 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:16:27 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:16:27 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:16:27 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-24 17:16:27 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-24 17:16:27 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-24 17:16:27 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-24 17:16:27 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-24 17:16:27 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-24 17:16:27 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-24 17:16:27 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:16:27 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-24 17:16:27 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-24 17:16:30 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:16:30 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-24 17:16:30 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:16:30 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-24 17:16:30 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-24 17:16:30 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-24 17:16:30 - ArmyAttendance - INFO - ============================================================
+2026-01-24 17:16:31 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-24 17:16:31 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-24 17:16:31 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-24 17:16:31 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-24 17:16:31 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-24 17:16:31 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-24 17:16:31 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-24 17:16:31 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:16:31 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ==================================================
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-24 17:16:31 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-24 17:17:02 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:03 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:05 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:06 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:08 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:09 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:11 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:12 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:14 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:16 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:17 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:19 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:20 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:22 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:23 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:25 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:26 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:28 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:29 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:31 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:32 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:34 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:35 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-24 17:17:36 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)

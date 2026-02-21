@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}View Attendance{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2 class="text-white">
+            <i class="fas fa-clipboard-list"></i> Attendance Records
+        </h2>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <h3>{{ stats.total_employees }}</h3>
+            <p><i class="fas fa-users"></i> Total Employees</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+            <h3>{{ stats.total_present }}</h3>
+            <p><i class="fas fa-check-circle"></i> Present</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h3>{{ stats.total_absent }}</h3>
+            <p><i class="fas fa-times-circle"></i> Absent</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+            <h3>{{ stats.attendance_rate }}%</h3>
+            <p><i class="fas fa-chart-pie"></i> Attendance Rate</p>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('attendance.view_attendance') }}" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" name="date"
+                               value="{{ filter_date.isoformat() }}" onchange="this.form.submit()">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Unit</label>
+                        <select class="form-select" name="unit" onchange="this.form.submit()">
+                            <option value="">All Units</option>
+                            {% for unit in units %}
+                            <option value="{{ unit }}" {% if request.args.get('unit') == unit %}selected{% endif %}>
+                                {{ unit }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status" onchange="this.form.submit()">
+                            <option value="">All Status</option>
+                            <option value="present" {% if request.args.get('status') == 'present' %}selected{% endif %}>Present</option>
+                            <option value="late" {% if request.args.get('status') == 'late' %}selected{% endif %}>Late</option>
+                            <option value="half_day" {% if request.args.get('status') == 'half_day' %}selected{% endif %}>Half Day</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Search</label>
+                        <input type="text" class="form-control" name="search"
+                               placeholder="Army ID / Name" value="{{ request.args.get('search', '') }}">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-table"></i> Attendance for {{ filter_date.strftime('%d %B %Y') }}
+                <button class="btn btn-sm btn-success float-end" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel"></i> Export to Excel
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="attendanceTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Photo</th>
+                                <th>Army ID</th>
+                                <th>Name</th>
+                                <th>Rank</th>
+                                <th>Unit</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                                <th>Confidence</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attendance, employee in attendance_records %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <img src="/{{ employee.photo_path }}" alt="{{ employee.full_name }}"
+                                         class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                </td>
+                                <td><strong>{{ employee.army_id }}</strong></td>
+                                <td>{{ employee.full_name }}</td>
+                                <td>{{ employee.rank or 'N/A' }}</td>
+                                <td>{{ employee.unit or 'N/A' }}</td>
+                                <td>{{ attendance.check_in_time.strftime('%I:%M %p') }}</td>
+                                <td>
+                                    {% if attendance.check_out_time %}
+                                        {{ attendance.check_out_time.strftime('%I:%M %p') }}
+                                    {% else %}
+                                        <span class="badge bg-warning">Not marked</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if attendance.check_out_time %}
+                                        {% set duration = (attendance.check_out_time - attendance.check_in_time).total_seconds() / 3600 %}
+                                        {{ '%dh %dm' | format(duration|int, ((duration % 1) * 60)|int) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if attendance.status == 'present' %}
+                                        <span class="badge bg-success">Present</span>
+                                    {% elif attendance.status == 'late' %}
+                                        <span class="badge bg-warning">Late</span>
+                                    {% elif attendance.status == 'half_day' %}
+                                        <span class="badge bg-info">Half Day</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ attendance.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if attendance.confidence_score %}
+                                        {{ '%.1f%%' | format(attendance.confidence_score * 100) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="viewDetails({{ attendance.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="12" class="text-center">
+                                    <i class="fas fa-info-circle"></i> No attendance records found
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+    function exportToExcel() {
+        const table = document.getElementById('attendanceTable');
+        const wb = XLSX.utils.table_to_book(table, {sheet: "Attendance"});
+        XLSX.writeFile(wb, 'Attendance_{{ filter_date.isoformat() }}.xlsx');
+    }
+
+    function viewDetails(attendanceId) {
+        alert('Attendance ID: ' + attendanceId + '\nDetailed view coming soon!');
+    }
+</script>
+{% endblock %}

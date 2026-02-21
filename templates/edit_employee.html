@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Employee - {{ employee.full_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-edit"></i> Edit Employee: {{ employee.full_name }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form id="editEmployeeForm" enctype="multipart/form-data">
+                        <!-- Basic Information -->
+                        <h5 class="border-bottom pb-2 mb-3">
+                            <i class="fas fa-info-circle"></i> Basic Information
+                        </h5>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Employee ID *</label>
+                                    <input type="text" class="form-control" name="army_id"
+                                           value="{{ employee.army_id }}" required>
+                                    <small class="form-text text-muted">Unique employee identifier</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Full Name *</label>
+                                    <input type="text" class="form-control" name="full_name"
+                                           value="{{ employee.full_name }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Rank</label>
+                                    <input type="text" class="form-control" name="rank"
+                                           value="{{ employee.rank or '' }}" list="rankList">
+                                    <datalist id="rankList">
+                                        {% for rank in ranks %}
+                                        <option value="{{ rank }}">
+                                        {% endfor %}
+                                    </datalist>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Unit</label>
+                                    <input type="text" class="form-control" name="unit"
+                                           value="{{ employee.unit or '' }}" list="unitList">
+                                    <datalist id="unitList">
+                                        {% for unit in units %}
+                                        <option value="{{ unit }}">
+                                        {% endfor %}
+                                    </datalist>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Department</label>
+                                    <input type="text" class="form-control" name="department"
+                                           value="{{ employee.department or '' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Designation</label>
+                                    <input type="text" class="form-control" name="designation"
+                                           value="{{ employee.designation or '' }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-address-book"></i> Contact Information
+                        </h5>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Phone</label>
+                                    <input type="tel" class="form-control" name="phone"
+                                           value="{{ employee.phone or '' }}"
+                                           placeholder="+91 9876543210">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label class="font-weight-bold">Email</label>
+                                    <input type="email" class="form-control" name="email"
+                                           value="{{ employee.email or '' }}"
+                                           placeholder="employee@example.com">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="font-weight-bold">Date of Joining</label>
+                            <input type="date" class="form-control" name="date_of_joining"
+                                   value="{{ employee.date_of_joining.isoformat() if employee.date_of_joining else '' }}">
+                        </div>
+
+                        <!-- Photo Update Section -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-camera"></i> Photo Update (Optional)
+                        </h5>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="updatePhotoCheck">
+                            <label class="form-check-label" for="updatePhotoCheck">
+                                <strong>Update face photo and re-register face recognition</strong>
+                            </label>
+                        </div>
+
+                        <div id="photoUpdateSection" style="display:none;">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Important:</strong> If you update the photo, the face recognition will be re-registered.
+                                Old photos will be backed up automatically.
+                            </div>
+
+                            <!-- Current Photo -->
+                            <div class="text-center mb-4 p-3 bg-light rounded">
+                                <h6 class="text-muted mb-3">Current Photo:</h6>
+                                <img src="/{{ employee.photo_path }}" alt="Current Photo"
+                                     class="img-thumbnail shadow" style="max-width: 250px;">
+                            </div>
+
+                            <!-- Upload New Photo -->
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold">
+                                    <i class="fas fa-upload"></i> Upload New Photo
+                                </label>
+                                <input type="file" class="form-control-file" id="newPhotoFile"
+                                       accept="image/png,image/jpeg,image/jpg">
+                                <small class="form-text text-muted">
+                                    Supported formats: JPG, JPEG, PNG (Max 5MB)
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <hr class="my-4">
+                        <div class="form-group text-right">
+                            <a href="{{ url_for('registration.view_employee', employee_id=employee.id) }}"
+                               class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Show/hide photo update section
+document.getElementById('updatePhotoCheck').addEventListener('change', function() {
+    const photoSection = document.getElementById('photoUpdateSection');
+    photoSection.style.display = this.checked ? 'block' : 'none';
+});
+
+// Form submission
+document.getElementById('editEmployeeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('submitBtn');
+    const originalText = submitBtn.innerHTML;
+
+    // Disable button
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+    const formData = new FormData(this);
+    const updatePhoto = document.getElementById('updatePhotoCheck').checked;
+    formData.append('update_face_photo', updatePhoto ? 'true' : 'false');
+
+    // Handle file upload if photo update is checked
+    if (updatePhoto) {
+        const fileInput = document.getElementById('newPhotoFile');
+        if (fileInput.files.length > 0) {
+            formData.append('photo', fileInput.files[0]);
+        }
+    }
+
+    try {
+        const response = await fetch('{{ url_for("registration.update_employee", employee_id=employee.id) }}', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Success
+            alert('✅ ' + data.message);
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            }
+        } else {
+            // Error
+            alert('❌ Error: ' + data.message);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Update failed: ' + error.message);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    }
+});
+</script>
+{% endblock %}

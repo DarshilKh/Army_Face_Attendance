@@ -1,0 +1,618 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Registration{% endblock %}
+{% block page_title %}Employee Registration{% endblock %}
+
+{% block extra_css %}
+<style>
+    .registration-wizard {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .wizard-steps {
+        background: linear-gradient(135deg, #4F46E5, #7C3AED);
+        padding: 20px;
+        display: flex;
+        justify-content: space-around;
+    }
+
+    .wizard-step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        color: rgba(255,255,255,0.5);
+        padding: 15px;
+    }
+
+    .wizard-step.active {
+        color: white;
+        font-weight: 700;
+    }
+
+    .wizard-step.completed {
+        color: #10B981;
+    }
+
+    .wizard-step-number {
+        width: 40px;
+        height: 40px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .wizard-step.active .wizard-step-number {
+        background: white;
+        color: #4F46E5;
+    }
+
+    .wizard-step.completed .wizard-step-number {
+        background: #10B981;
+        color: white;
+    }
+
+    .wizard-content {
+        padding: 40px;
+    }
+
+    .wizard-pane {
+        display: none;
+    }
+
+    .wizard-pane.active {
+        display: block;
+        animation: fadeIn 0.5s;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Camera Section */
+    .camera-section {
+        background: #F9FAFB;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+
+    #cameraFeed {
+        width: 100%;
+        max-width: 640px;
+        height: auto;
+        border-radius: 12px;
+        border: 3px solid #E5E7EB;
+        background: #000;
+    }
+
+    .camera-controls {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .angle-preview {
+        display: inline-block;
+        margin: 10px;
+        text-align: center;
+    }
+
+    .angle-preview img {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 3px solid #E5E7EB;
+    }
+
+    .angle-preview.captured img {
+        border-color: #10B981;
+    }
+
+    .angle-preview-label {
+        margin-top: 8px;
+        font-weight: 600;
+        color: #6B7280;
+    }
+
+    .angle-preview.captured .angle-preview-label {
+        color: #10B981;
+    }
+
+    .photo-instructions {
+        background: #FEF3C7;
+        border-left: 4px solid #F59E0B;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .capture-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(16, 185, 129, 0.9);
+        color: white;
+        padding: 20px 40px;
+        border-radius: 50px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: none;
+        animation: scaleIn 0.3s;
+    }
+
+    @keyframes scaleIn {
+        from { transform: translate(-50%, -50%) scale(0); }
+        to { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    .wizard-actions {
+        margin-top: 30px;
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #4F46E5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="registration-wizard">
+            <!-- Wizard Steps Header -->
+            <div class="wizard-steps">
+                <div class="wizard-step active" data-step="1">
+                    <div class="wizard-step-number">1</div>
+                    <div>Basic Info</div>
+                </div>
+                <div class="wizard-step" data-step="2">
+                    <div class="wizard-step-number">2</div>
+                    <div>Photo Capture</div>
+                </div>
+                <div class="wizard-step" data-step="3">
+                    <div class="wizard-step-number">3</div>
+                    <div>Additional Details</div>
+                </div>
+                <div class="wizard-step" data-step="4">
+                    <div class="wizard-step-number">4</div>
+                    <div>Review & Submit</div>
+                </div>
+            </div>
+
+            <!-- Wizard Content -->
+            <div class="wizard-content">
+                <form id="registrationForm">
+                    <!-- Step 1: Basic Information -->
+                    <div class="wizard-pane active" id="step1">
+                        <h4 class="mb-4">Basic Information</h4>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Employee ID *</label>
+                                <input type="text" class="form-control" name="army_id" id="army_id" required
+                                       placeholder="e.g., EMP12345">
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" name="full_name" id="full_name" required
+                                       placeholder="Enter full name">
+                            </div>
+                        </div>
+
+                        <div class="wizard-actions">
+                            <button type="button" class="btn btn-secondary" disabled>
+                                <i class="fas fa-arrow-left me-2"></i>Previous
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                                Next<i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Photo Capture (Multi-Angle) -->
+                    <div class="wizard-pane" id="step2">
+                        <h4 class="mb-4">Photo Capture - Multi-Angle</h4>
+
+                        <div class="photo-instructions">
+                            <strong><i class="fas fa-info-circle me-2"></i>Instructions:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Capture 3 photos: Front, Left Profile, Right Profile</li>
+                                <li>Good lighting is essential for quality photos</li>
+                                <li>Keep your face clearly visible in each shot</li>
+                                <li>Remove glasses and accessories if possible</li>
+                            </ul>
+                        </div>
+
+                        <div class="camera-section">
+                            <div class="position-relative text-center">
+                                <video id="cameraFeed" autoplay playsinline muted></video>
+                                <canvas id="photoCanvas" style="display:none;"></canvas>
+                                <div class="capture-indicator" id="captureFlash">✓ Captured!</div>
+                            </div>
+
+                            <div class="camera-controls">
+                                <button type="button" class="btn btn-success btn-lg" id="startCameraBtn" onclick="startCamera()">
+                                    <i class="fas fa-video me-2"></i>Start Camera
+                                </button>
+                                <button type="button" class="btn btn-primary btn-lg" id="captureFrontBtn"
+                                        onclick="capturePhoto('front')" style="display:none;">
+                                    <i class="fas fa-camera me-2"></i>Capture Front
+                                </button>
+                                <button type="button" class="btn btn-primary btn-lg" id="captureLeftBtn"
+                                        onclick="capturePhoto('left')" style="display:none;">
+                                    <i class="fas fa-camera me-2"></i>Capture Left
+                                </button>
+                                <button type="button" class="btn btn-primary btn-lg" id="captureRightBtn"
+                                        onclick="capturePhoto('right')" style="display:none;">
+                                    <i class="fas fa-camera me-2"></i>Capture Right
+                                </button>
+                                <button type="button" class="btn btn-danger btn-lg" id="stopCameraBtn"
+                                        onclick="stopCamera()" style="display:none;">
+                                    <i class="fas fa-stop me-2"></i>Stop Camera
+                                </button>
+                            </div>
+
+                            <!-- Photo Previews -->
+                            <div class="text-center mt-4">
+                                <div class="angle-preview" id="frontPreview">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect fill='%23E5E7EB' width='150' height='150'/%3E%3Ctext fill='%236B7280' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14'%3EFront%3C/text%3E%3C/svg%3E"
+                                         alt="Front" id="frontImg">
+                                    <div class="angle-preview-label">
+                                        <i class="fas fa-circle" style="font-size:8px;"></i> Front Face
+                                    </div>
+                                </div>
+
+                                <div class="angle-preview" id="leftPreview">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect fill='%23E5E7EB' width='150' height='150'/%3E%3Ctext fill='%236B7280' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14'%3ELeft%3C/text%3E%3C/svg%3E"
+                                         alt="Left" id="leftImg">
+                                    <div class="angle-preview-label">
+                                        <i class="fas fa-circle" style="font-size:8px;"></i> Left Profile
+                                    </div>
+                                </div>
+
+                                <div class="angle-preview" id="rightPreview">
+                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect fill='%23E5E7EB' width='150' height='150'/%3E%3Ctext fill='%236B7280' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14'%3ERight%3C/text%3E%3C/svg%3E"
+                                         alt="Right" id="rightImg">
+                                    <div class="angle-preview-label">
+                                        <i class="fas fa-circle" style="font-size:8px;"></i> Right Profile
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="wizard-actions">
+                            <button type="button" class="btn btn-secondary" onclick="prevStep(1)">
+                                <i class="fas fa-arrow-left me-2"></i>Previous
+                            </button>
+                            <button type="button" class="btn btn-primary" id="step2NextBtn" onclick="nextStep(3)" disabled>
+                                Next<i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Additional Details -->
+                    <div class="wizard-pane" id="step3">
+                        <h4 class="mb-4">Additional Details</h4>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Rank</label>
+                                <input type="text" class="form-control" name="rank" placeholder="e.g., Manager">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Unit/Team</label>
+                                <input type="text" class="form-control" name="unit" placeholder="e.g., Operations">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Department</label>
+                                <input type="text" class="form-control" name="department" placeholder="e.g., IT">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" class="form-control" name="phone" placeholder="+91 9876543210">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" placeholder="email@example.com">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date of Joining</label>
+                                <input type="date" class="form-control" name="date_of_joining">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Designation</label>
+                                <input type="text" class="form-control" name="designation" placeholder="e.g., Senior Developer">
+                            </div>
+                        </div>
+
+                        <div class="wizard-actions">
+                            <button type="button" class="btn btn-secondary" onclick="prevStep(2)">
+                                <i class="fas fa-arrow-left me-2"></i>Previous
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="nextStep(4)">
+                                Next<i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Review & Submit -->
+                    <div class="wizard-pane" id="step4">
+                        <h4 class="mb-4">Review & Submit</h4>
+
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Employee Information</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>ID:</strong> <span id="reviewArmyId">-</span></p>
+                                        <p><strong>Name:</strong> <span id="reviewName">-</span></p>
+                                        <p><strong>Rank:</strong> <span id="reviewRank">-</span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Unit:</strong> <span id="reviewUnit">-</span></p>
+                                        <p><strong>Phone:</strong> <span id="reviewPhone">-</span></p>
+                                        <p><strong>Email:</strong> <span id="reviewEmail">-</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">Captured Photos</h6>
+                                <div class="text-center">
+                                    <img id="reviewFront" src="" alt="Front" style="width:120px;height:120px;object-fit:cover;border-radius:8px;margin:5px;">
+                                    <img id="reviewLeft" src="" alt="Left" style="width:120px;height:120px;object-fit:cover;border-radius:8px;margin:5px;">
+                                    <img id="reviewRight" src="" alt="Right" style="width:120px;height:120px;object-fit:cover;border-radius:8px;margin:5px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="wizard-actions">
+                            <button type="button" class="btn btn-secondary" onclick="prevStep(3)">
+                                <i class="fas fa-arrow-left me-2"></i>Previous
+                            </button>
+                            <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                                <i class="fas fa-check me-2"></i>Register Employee
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStep = 1;
+let cameraStream = null;
+let capturedPhotos = {
+    front: null,
+    left: null,
+    right: null
+};
+
+// Navigation Functions
+function nextStep(step) {
+    // Validate current step
+    if (!validateStep(currentStep)) {
+        return;
+    }
+
+    // Hide current step
+    document.querySelector(`#step${currentStep}`).classList.remove('active');
+    document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.add('completed');
+    document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.remove('active');
+
+    // Show next step
+    currentStep = step;
+    document.querySelector(`#step${currentStep}`).classList.add('active');
+    document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.add('active');
+
+    // Special actions for specific steps
+    if (step === 4) {
+        populateReview();
+    }
+}
+
+function prevStep(step) {
+    // Hide current step
+    document.querySelector(`#step${currentStep}`).classList.remove('active');
+    document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.remove('active');
+
+    // Show previous step
+    currentStep = step;
+    document.querySelector(`#step${currentStep}`).classList.add('active');
+    document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.add('active');
+    document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.remove('completed');
+}
+
+function validateStep(step) {
+    if (step === 1) {
+        const armyId = document.getElementById('army_id').value.trim();
+        const fullName = document.getElementById('full_name').value.trim();
+
+        if (!armyId || !fullName) {
+            alert('Please fill in Employee ID and Full Name');
+            return false;
+        }
+    }
+
+    if (step === 2) {
+        if (!capturedPhotos.front || !capturedPhotos.left || !capturedPhotos.right) {
+            alert('Please capture all 3 photos (Front, Left, Right)');
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// Camera Functions
+async function startCamera() {
+    try {
+        showLoading('Starting camera...');
+
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: 'user'
+            }
+        });
+
+        const video = document.getElementById('cameraFeed');
+        video.srcObject = cameraStream;
+        await video.play();
+
+        // Show/hide buttons
+        document.getElementById('startCameraBtn').style.display = 'none';
+        document.getElementById('captureFrontBtn').style.display = 'inline-block';
+        document.getElementById('stopCameraBtn').style.display = 'inline-block';
+
+        hideLoading();
+    } catch (error) {
+        hideLoading();
+        alert('Camera access denied: ' + error.message);
+    }
+}
+
+function stopCamera() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        document.getElementById('cameraFeed').srcObject = null;
+    }
+
+    // Reset buttons
+    document.getElementById('startCameraBtn').style.display = 'inline-block';
+    document.getElementById('captureFrontBtn').style.display = 'none';
+    document.getElementById('captureLeftBtn').style.display = 'none';
+    document.getElementById('captureRightBtn').style.display = 'none';
+    document.getElementById('stopCameraBtn').style.display = 'none';
+}
+
+function capturePhoto(angle) {
+    const video = document.getElementById('cameraFeed');
+    const canvas = document.getElementById('photoCanvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0);
+
+    const photoData = canvas.toDataURL('image/jpeg', 0.95);
+    capturedPhotos[angle] = photoData;
+
+    // Update preview
+    document.getElementById(`${angle}Img`).src = photoData;
+    document.getElementById(`${angle}Preview`).classList.add('captured');
+
+    // Show flash effect
+    const flash = document.getElementById('captureFlash');
+    flash.style.display = 'block';
+    setTimeout(() => { flash.style.display = 'none'; }, 1000);
+
+    // Update buttons based on progress
+    if (angle === 'front') {
+        document.getElementById('captureFrontBtn').style.display = 'none';
+        document.getElementById('captureLeftBtn').style.display = 'inline-block';
+    } else if (angle === 'left') {
+        document.getElementById('captureLeftBtn').style.display = 'none';
+        document.getElementById('captureRightBtn').style.display = 'inline-block';
+    } else if (angle === 'right') {
+        document.getElementById('captureRightBtn').style.display = 'none';
+        document.getElementById('step2NextBtn').disabled = false;
+    }
+
+    // Check if all photos captured
+    if (capturedPhotos.front && capturedPhotos.left && capturedPhotos.right) {
+        setTimeout(stopCamera, 1500);
+    }
+}
+
+function populateReview() {
+    // Populate review data
+    const formData = new FormData(document.getElementById('registrationForm'));
+
+    document.getElementById('reviewArmyId').textContent = formData.get('army_id') || '-';
+    document.getElementById('reviewName').textContent = formData.get('full_name') || '-';
+    document.getElementById('reviewRank').textContent = formData.get('rank') || '-';
+    document.getElementById('reviewUnit').textContent = formData.get('unit') || '-';
+    document.getElementById('reviewPhone').textContent = formData.get('phone') || '-';
+    document.getElementById('reviewEmail').textContent = formData.get('email') || '-';
+
+    // Show photos
+    document.getElementById('reviewFront').src = capturedPhotos.front;
+    document.getElementById('reviewLeft').src = capturedPhotos.left;
+    document.getElementById('reviewRight').src = capturedPhotos.right;
+}
+
+// Form Submission
+document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    showLoading('Registering employee...');
+
+    const formData = new FormData(this);
+
+    // Add photos
+    formData.append('photo_front', capturedPhotos.front);
+    formData.append('photo_left', capturedPhotos.left);
+    formData.append('photo_right', capturedPhotos.right);
+
+    try {
+        const response = await fetch('{{ url_for("registration.register_employee") }}', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        hideLoading();
+
+        if (result.success) {
+            alert('✓ Employee registered successfully!\n\n' + result.message);
+            window.location.href = '{{ url_for("registration.list_employees") }}';
+        } else {
+            alert('✗ Registration failed!\n\n' + result.message);
+        }
+    } catch (error) {
+        hideLoading();
+        alert('✗ Error: ' + error.message);
+    }
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+    }
+});
+</script>
+{% endblock %}

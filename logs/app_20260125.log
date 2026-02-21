@@ -1,0 +1,477 @@
+2026-01-25 06:37:25 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:37:25 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 06:37:25 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:37:25 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 06:37:25 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 06:37:25 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 06:37:25 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:37:25 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-25 06:37:25 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 06:37:26 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 06:37:26 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 06:37:26 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 06:37:26 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 06:37:26 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 06:37:26 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 06:37:26 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 06:37:26 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 06:37:26 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:37:26 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 06:37:26 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:37:26 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 06:37:26 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 06:37:26 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 06:37:26 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 06:37:26 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:37:26 - ArmyAttendance - ERROR - ✗ Database error: 'cryptography' package is required for sha256_password or caching_sha2_password auth methods
+2026-01-25 06:37:26 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 06:37:28 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:37:28 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 06:37:28 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:37:29 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:37:29 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 06:37:29 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 06:37:29 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 06:37:29 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 06:37:29 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 06:37:29 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 06:37:29 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 06:37:29 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:37:29 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:37:29 - ArmyAttendance - ERROR - ✗ Database error: 'cryptography' package is required for sha256_password or caching_sha2_password auth methods
+2026-01-25 06:37:29 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 06:37:53 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 06:38:01 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:38:08 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:38:52 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:39:30 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:39:30 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 06:39:30 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:39:33 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:39:33 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 06:39:33 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:40:30 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:40:30 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:40:30 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 06:40:30 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 06:40:30 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 06:40:30 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 06:40:30 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 06:40:30 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 06:40:30 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 06:40:30 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:40:30 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:40:30 - ArmyAttendance - ERROR - ✗ Database error: 'cryptography' package is required for sha256_password or caching_sha2_password auth methods
+2026-01-25 06:40:30 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 06:40:33 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:40:33 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 06:40:33 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:40:33 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 06:40:33 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 06:40:33 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 06:40:33 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:40:33 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-25 06:40:33 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 06:40:34 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 06:40:34 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 06:40:34 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 06:40:34 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 06:40:34 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 06:40:34 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 06:40:34 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 06:40:34 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 06:40:34 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:40:34 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 06:40:34 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:40:34 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 06:40:34 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 06:40:34 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 06:40:34 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 06:40:34 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:40:34 - ArmyAttendance - ERROR - ✗ Database error: 'cryptography' package is required for sha256_password or caching_sha2_password auth methods
+2026-01-25 06:40:34 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 06:40:41 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:40:41 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 06:40:41 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:40:46 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:53:47 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:53:47 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 06:53:47 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:53:48 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:53:48 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 06:53:48 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 06:53:48 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 06:53:48 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 06:53:48 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 06:53:48 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 06:53:48 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 06:53:48 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:53:48 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:53:48 - ArmyAttendance - ERROR - ✗ Database error: 'cryptography' package is required for sha256_password or caching_sha2_password auth methods
+2026-01-25 06:53:48 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 06:53:51 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:53:51 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 06:53:51 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:53:51 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 06:53:51 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 06:53:51 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 06:53:51 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:53:51 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-25 06:53:51 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 06:53:52 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 06:53:52 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 06:53:52 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 06:53:52 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 06:53:52 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 06:53:52 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 06:53:52 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 06:53:52 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 06:53:52 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:53:52 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 06:53:52 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:53:52 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 06:53:52 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 06:53:52 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 06:53:52 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 06:53:52 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:53:52 - ArmyAttendance - ERROR - ✗ Database error: 'cryptography' package is required for sha256_password or caching_sha2_password auth methods
+2026-01-25 06:53:52 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 06:54:05 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:54:05 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 06:54:05 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:54:06 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:54:06 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 06:54:06 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:54:06 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:54:06 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 06:54:06 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:54:06 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:54:06 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 06:54:06 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:54:24 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-01-25 06:55:58 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:55:58 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 06:55:58 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:55:58 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 06:55:58 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 06:55:58 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 06:55:58 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 06:56:00 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 06:56:00 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 06:56:00 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 06:56:00 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 06:56:00 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 06:56:00 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 06:56:00 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:56:00 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-25 06:56:00 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 06:56:03 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:56:03 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 06:56:03 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:56:04 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ============================================================
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 06:56:04 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 06:56:04 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 06:56:04 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 06:56:04 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 06:56:04 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 06:56:04 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 06:56:04 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:56:04 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ==================================================
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-25 06:56:04 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 06:56:05 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 06:56:29 - ArmyAttendance - INFO - User logged in: admin
+2026-01-25 06:56:38 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-25 06:56:40 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-25 06:56:41 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-25 06:56:43 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-25 06:56:44 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-25 06:56:46 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-25 06:56:47 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-25 06:56:49 - ArmyAttendance - ERROR - Attendance marking error: too many values to unpack (expected 4)
+Traceback (most recent call last):
+  File "C:\Users\dell\army_face_attendance\routes\attendance.py", line 284, in mark_attendance
+    employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
+ValueError: too many values to unpack (expected 4)
+2026-01-25 07:10:50 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:10:50 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 07:10:50 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:10:50 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 07:10:50 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 07:10:50 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 07:10:50 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:10:50 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 07:10:51 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 07:10:51 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 07:10:51 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 07:10:51 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 07:10:51 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 07:10:51 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 07:10:51 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 07:10:51 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 07:10:51 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:10:51 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 07:10:51 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:10:51 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 07:10:51 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 07:10:51 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 07:10:51 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 07:10:51 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:10:51 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-25 07:10:51 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 07:11:57 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:11:57 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 07:11:57 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:11:57 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 07:11:57 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 07:11:57 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 07:11:57 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:11:57 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 07:11:58 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 07:11:58 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 07:11:58 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 07:11:58 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 07:11:58 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 07:11:58 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 07:11:58 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 07:11:58 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 07:11:58 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:11:58 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 07:11:58 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:11:58 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 07:11:58 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 07:11:58 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 07:11:58 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 07:11:58 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:11:58 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-25 07:11:58 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 07:14:57 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:14:57 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 07:14:57 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:14:57 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 07:14:57 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 07:14:57 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 07:14:57 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:14:57 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 07:14:58 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 07:14:58 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 07:14:58 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 07:14:58 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 07:14:58 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 07:14:58 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 07:14:58 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 07:14:58 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 07:14:58 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:14:58 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 07:14:58 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:14:58 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 07:14:58 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 07:14:58 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 07:14:58 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 07:14:58 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:14:58 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-25 07:14:58 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 07:15:24 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:15:24 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 07:15:24 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:15:24 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 07:15:24 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 07:15:24 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 07:15:24 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 07:15:25 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 07:15:25 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 07:15:25 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 07:15:25 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 07:15:25 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 07:15:25 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 07:15:25 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:15:25 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-25 07:15:25 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:15:28 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:15:28 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 07:15:28 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 07:15:28 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 07:15:28 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 07:15:28 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 07:15:28 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 07:15:28 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 07:15:28 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:15:28 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-25 07:15:28 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 07:15:48 - ArmyAttendance - ERROR - Employee not found: 545513
+2026-01-25 07:15:49 - ArmyAttendance - ERROR - Employee not found: 545513
+2026-01-25 07:15:51 - ArmyAttendance - ERROR - Employee not found: 545513
+2026-01-25 07:16:51 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-25 07:16:51 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-25\232d_20260125_071651.jpg
+2026-01-25 07:16:51 - ArmyAttendance - INFO - ✓ Check-in: 232d at 07:16 AM (present)
+2026-01-25 07:16:52 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 07:16:52 - ArmyAttendance - INFO - Employee verified: shivam (232d)
+2026-01-25 07:16:52 - ArmyAttendance - INFO - Attendance photo saved: static\uploads\attendance\2026-01-25\232d_20260125_071652.jpg
+2026-01-25 07:53:01 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:53:01 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 07:53:01 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:53:01 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 07:53:01 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 07:53:01 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 07:53:01 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 07:53:02 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 07:53:02 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 07:53:02 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 07:53:02 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 07:53:02 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 07:53:02 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 07:53:02 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:53:02 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-25 07:53:02 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 07:53:05 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:53:05 - ArmyAttendance - INFO - Initializing Face Recognition Engine v3.0 - ULTRA FAST
+2026-01-25 07:53:05 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:53:06 - ArmyAttendance - INFO - Loaded 6 face embeddings from disk
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ✓ Engine initialized with 6 faces
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ✓ Fast mode: True, Frame skip: every 3 frames
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ============================================================
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-25 07:53:06 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-25 07:53:06 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-25 07:53:06 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-25 07:53:06 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-25 07:53:06 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-25 07:53:06 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-25 07:53:06 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:53:06 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ==================================================
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-25 07:53:06 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-25 07:53:41 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-25 07:53:47 - ArmyAttendance - INFO - User logged out: admin
+2026-01-25 07:53:51 - ArmyAttendance - INFO - User logged in: admin

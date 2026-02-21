@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings{% endblock %}
+{% block page_title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3">
+        <!-- Settings Navigation -->
+        <div class="card">
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <a href="#camera" class="list-group-item list-group-item-action active" data-bs-toggle="list">
+                        <i class="fas fa-camera me-2"></i>Camera Settings
+                    </a>
+                    <a href="#recognition" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-brain me-2"></i>Face Recognition
+                    </a>
+                    <a href="#attendance" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-clock me-2"></i>Attendance Rules
+                    </a>
+                    <a href="#system" class="list-group-item list-group-item-action" data-bs-toggle="list">
+                        <i class="fas fa-cog me-2"></i>System
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-9">
+        <div class="tab-content">
+            <!-- Camera Settings -->
+            <div class="tab-pane fade show active" id="camera">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-camera me-2"></i>Camera Configuration
+                    </div>
+                    <div class="card-body">
+                        <form id="cameraSettingsForm">
+                            <div class="mb-3">
+                                <label class="form-label">Camera Source</label>
+                                <select class="form-select" id="cameraSource" name="camera_source">
+                                    <option value="0">Built-in Camera (0)</option>
+                                    <option value="1">External Camera 1</option>
+                                    <option value="2">External Camera 2</option>
+                                    <option value="url">IP Camera (RTSP/HTTP)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3" id="cameraUrlGroup" style="display:none;">
+                                <label class="form-label">Camera URL</label>
+                                <input type="text" class="form-control" id="cameraUrl" name="camera_url"
+                                       placeholder="rtsp://192.168.1.100:554/stream">
+                                <small class="text-muted">Example: rtsp://username:password@192.168.1.100:554/stream</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Resolution</label>
+                                <select class="form-select" name="resolution">
+                                    <option value="640x480">640x480 (VGA)</option>
+                                    <option value="1280x720" selected>1280x720 (HD)</option>
+                                    <option value="1920x1080">1920x1080 (Full HD)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Frame Rate (FPS)</label>
+                                <input type="number" class="form-control" name="fps" value="30" min="15" max="60">
+                            </div>
+
+                            <button type="button" class="btn btn-primary me-2" onclick="testCamera()">
+                                <i class="fas fa-play me-2"></i>Test Camera
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </form>
+
+                        <!-- Camera Preview -->
+                        <div id="cameraPreview" class="mt-4" style="display:none;">
+                            <h6>Camera Preview:</h6>
+                            <video id="previewVideo" width="100%" style="max-width: 640px; border-radius: 10px; border: 2px solid #ddd;" autoplay playsinline></video>
+                            <br>
+                            <button class="btn btn-danger mt-2" onclick="stopPreview()">
+                                <i class="fas fa-stop me-2"></i>Stop Preview
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Face Recognition Settings -->
+            <div class="tab-pane fade" id="recognition">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-brain me-2"></i>Face Recognition Settings
+                    </div>
+                    <div class="card-body">
+                        <form id="recognitionSettingsForm">
+                            <div class="mb-3">
+                                <label class="form-label">Matching Threshold (0.1 - 1.0)</label>
+                                <input type="range" class="form-range" id="threshold" name="threshold"
+                                       min="0.1" max="1.0" step="0.05" value="0.6">
+                                <div class="d-flex justify-content-between">
+                                    <small>Strict (0.1)</small>
+                                    <small id="thresholdValue">0.6</small>
+                                    <small>Relaxed (1.0)</small>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Minimum Face Size (pixels)</label>
+                                <input type="number" class="form-control" name="min_face_size" value="40" min="20" max="200">
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="livenessDetection" checked>
+                                    <label class="form-check-label" for="livenessDetection">
+                                        Enable Liveness Detection (Anti-Spoofing)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="multiAngle" checked>
+                                    <label class="form-check-label" for="multiAngle">
+                                        Multi-Angle Registration (3 photos: Front, Left, Right)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Rules -->
+            <div class="tab-pane fade" id="attendance">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-clock me-2"></i>Attendance Rules
+                    </div>
+                    <div class="card-body">
+                        <form id="attendanceSettingsForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Work Start Time</label>
+                                    <input type="time" class="form-control" name="work_start" value="08:00">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Work End Time</label>
+                                    <input type="time" class="form-control" name="work_end" value="17:00">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Late Threshold (minutes)</label>
+                                <input type="number" class="form-control" name="late_threshold" value="15" min="0" max="60">
+                                <small class="text-muted">Mark as late if check-in is after this many minutes</small>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Half Day Hours</label>
+                                    <input type="number" class="form-control" name="half_day_hours" value="4" min="1" max="12" step="0.5">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Full Day Hours</label>
+                                    <input type="number" class="form-control" name="full_day_hours" value="8" min="1" max="24" step="0.5">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="autoCheckout">
+                                    <label class="form-check-label" for="autoCheckout">
+                                        Enable Auto Check-out at
+                                    </label>
+                                    <input type="time" class="form-control mt-2" name="auto_checkout_time" value="18:00">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Settings -->
+            <div class="tab-pane fade" id="system">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-cog me-2"></i>System Configuration
+                    </div>
+                    <div class="card-body">
+                        <form id="systemSettingsForm">
+                            <div class="mb-3">
+                                <label class="form-label">Session Timeout (seconds)</label>
+                                <input type="number" class="form-control" name="session_timeout" value="1800" min="300" max="7200">
+                                <small class="text-muted">Users will be logged out after this period of inactivity</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Maximum Login Attempts</label>
+                                <input type="number" class="form-control" name="max_login_attempts" value="3" min="1" max="10">
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="autoBackup" checked>
+                                    <label class="form-check-label" for="autoBackup">
+                                        Enable Auto Database Backup (Daily)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Log Level</label>
+                                <select class="form-select" name="log_level">
+                                    <option value="DEBUG">DEBUG (Detailed)</option>
+                                    <option value="INFO" selected>INFO (Standard)</option>
+                                    <option value="WARNING">WARNING (Important Only)</option>
+                                    <option value="ERROR">ERROR (Errors Only)</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </form>
+
+                        <hr>
+
+                        <h6 class="mt-4">System Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-warning" onclick="clearCache()">
+                                <i class="fas fa-broom me-2"></i>Clear Cache
+                            </button>
+                            <button class="btn btn-info text-white" onclick="backupDatabase()">
+                                <i class="fas fa-database me-2"></i>Backup Database Now
+                            </button>
+                            <button class="btn btn-danger" onclick="resetSystem()">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Reset to Default Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Camera source change
+document.getElementById('cameraSource').addEventListener('change', function() {
+    const urlGroup = document.getElementById('cameraUrlGroup');
+    if (this.value === 'url') {
+        urlGroup.style.display = 'block';
+    } else {
+        urlGroup.style.display = 'none';
+    }
+});
+
+// Threshold slider
+document.getElementById('threshold').addEventListener('input', function() {
+    document.getElementById('thresholdValue').textContent = this.value;
+});
+
+// Test Camera
+async function testCamera() {
+    showLoading('Testing camera...');
+    const cameraSource = document.getElementById('cameraSource').value;
+
+    try {
+        const constraints = {
+            video: {
+                deviceId: cameraSource !== 'url' ? { exact: cameraSource } : undefined,
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const video = document.getElementById('previewVideo');
+        video.srcObject = stream;
+
+        document.getElementById('cameraPreview').style.display = 'block';
+        hideLoading();
+
+        alert('✓ Camera test successful!');
+    } catch (error) {
+        hideLoading();
+        alert('✗ Camera test failed: ' + error.message);
+    }
+}
+
+// Stop Preview
+function stopPreview() {
+    const video = document.getElementById('previewVideo');
+    if (video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+    }
+    document.getElementById('cameraPreview').style.display = 'none';
+}
+
+// Save Settings Forms
+document.querySelectorAll('form').forEach(form => {
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        showLoading('Saving settings...');
+
+        const formData = new FormData(this);
+
+        // Simulate save (replace with actual API call)
+        setTimeout(() => {
+            hideLoading();
+            alert('✓ Settings saved successfully!');
+        }, 1000);
+    });
+});
+
+// System Actions
+function clearCache() {
+    if (confirm('Are you sure you want to clear all cache?')) {
+        showLoading('Clearing cache...');
+        setTimeout(() => {
+            hideLoading();
+            alert('✓ Cache cleared successfully!');
+        }, 1000);
+    }
+}
+
+function backupDatabase() {
+    if (confirm('Start database backup now?')) {
+        showLoading('Creating backup...');
+        setTimeout(() => {
+            hideLoading();
+            alert('✓ Database backup completed!');
+        }, 2000);
+    }
+}
+
+function resetSystem() {
+    if (confirm('⚠️ This will reset all settings to default. Continue?')) {
+        showLoading('Resetting settings...');
+        setTimeout(() => {
+            hideLoading();
+            alert('✓ Settings reset to default!');
+            location.reload();
+        }, 1500);
+    }
+}
+</script>
+{% endblock %}

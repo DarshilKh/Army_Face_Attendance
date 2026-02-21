@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2 class="text-white">
+            <i class="fas fa-chart-line"></i> Advanced Analytics
+        </h2>
+    </div>
+</div>
+
+<!-- Date Range -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <p><strong>Analysis Period:</strong> {{ start_date.strftime('%d %B %Y') }} to {{ end_date.strftime('%d %B %Y') }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Daily Trend Chart -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-area"></i> Daily Attendance Trend
+            </div>
+            <div class="card-body">
+                <canvas id="dailyTrendChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Unit-wise Statistics -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-pie"></i> Unit-wise Attendance
+            </div>
+            <div class="card-body">
+                <canvas id="unitChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-trophy"></i> Top Performers
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Name</th>
+                                <th>Days Present</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for employee, days in top_performers[:10] %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ employee.full_name }}</td>
+                                <td><span class="badge bg-success">{{ days }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Daily Trend Chart
+    const dailyCtx = document.getElementById('dailyTrendChart').getContext('2d');
+    new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: [{% for stat in daily_stats %}'{{ stat.date.strftime("%d-%m") }}',{% endfor %}],
+            datasets: [{
+                label: 'Total Attendance',
+                data: [{% for stat in daily_stats %}{{ stat.total }},{% endfor %}],
+                borderColor: 'rgb(31, 71, 136)',
+                backgroundColor: 'rgba(31, 71, 136, 0.1)',
+                tension: 0.4
+            }]
+        }
+    });
+
+    // Unit Chart
+    const unitCtx = document.getElementById('unitChart').getContext('2d');
+    new Chart(unitCtx, {
+        type: 'doughnut',
+        data: {
+            labels: [{% for unit, count in unit_stats %}'{{ unit }}',{% endfor %}],
+            datasets: [{
+                data: [{% for unit, count in unit_stats %}{{ count }},{% endfor %}],
+                backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe']
+            }]
+        }
+    });
+</script>
+{% endblock %}

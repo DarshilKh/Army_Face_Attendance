@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2 class="text-white">
+            <i class="fas fa-chart-bar"></i> Reports & Analytics
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Generate Report -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-file-download"></i> Generate Attendance Report
+            </div>
+            <div class="card-body">
+                <form id="reportForm">
+                    <div class="mb-3">
+                        <label class="form-label">Report Type</label>
+                        <select class="form-select" name="report_type">
+                            <option value="daily">Daily Report</option>
+                            <option value="weekly">Weekly Report</option>
+                            <option value="monthly" selected>Monthly Report</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Start Date</label>
+                                <input type="date" class="form-control" name="start_date"
+                                       value="{{ (get_current_date() - timedelta(days=30)).isoformat() }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">End Date</label>
+                                <input type="date" class="form-control" name="end_date"
+                                       value="{{ get_current_date().isoformat() }}" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Unit (Optional)</label>
+                        <select class="form-select" name="unit">
+                            <option value="">All Units</option>
+                            <!-- Units will be loaded dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Format</label>
+                        <select class="form-select" name="format">
+                            <option value="excel">Excel (.xlsx)</option>
+                            <option value="pdf">PDF</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-download"></i> Generate & Download Report
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-tachometer-alt"></i> Quick Statistics
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{{ url_for('reports.analytics') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-line"></i> Advanced Analytics
+                        <span class="float-end"><i class="fas fa-arrow-right"></i></span>
+                    </a>
+                    <a href="{{ url_for('attendance.view_attendance') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-calendar-day"></i> Today's Attendance
+                        <span class="float-end"><i class="fas fa-arrow-right"></i></span>
+                    </a>
+                    {% if current_user.role == 'admin' %}
+                    <a href="{{ url_for('reports.audit_logs') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-history"></i> Audit Logs
+                        <span class="float-end"><i class="fas fa-arrow-right"></i></span>
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="mt-4">
+                    <h6>Report Templates</h6>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="quickReport('today')">
+                            <i class="fas fa-file-alt"></i> Today's Report
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="quickReport('week')">
+                            <i class="fas fa-file-alt"></i> This Week
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="quickReport('month')">
+                            <i class="fas fa-file-alt"></i> This Month
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData);
+
+        showLoading();
+
+        fetch('{{ url_for("reports.generate_report") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.blob();
+            }
+            throw new Error('Failed to generate report');
+        })
+        .then(blob => {
+            hideLoading();
+
+            // Download file
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Attendance_Report.' + data.format;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            alert('Report downloaded successfully!');
+        })
+        .catch(error => {
+            hideLoading();
+            alert('Error: ' + error.message);
+        });
+    });
+
+    function quickReport(type) {
+        const today = new Date();
+        let startDate, endDate;
+
+        if (type === 'today') {
+            startDate = endDate = today.toISOString().split('T')[0];
+        } else if (type === 'week') {
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            startDate = weekAgo.toISOString().split('T')[0];
+            endDate = today.toISOString().split('T')[0];
+        } else if (type === 'month') {
+            const monthAgo = new Date(today);
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            startDate = monthAgo.toISOString().split('T')[0];
+            endDate = today.toISOString().split('T')[0];
+        }
+
+        document.querySelector('[name="start_date"]').value = startDate;
+        document.querySelector('[name="end_date"]').value = endDate;
+    }
+</script>
+{% endblock %}

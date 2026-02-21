@@ -1,0 +1,54 @@
+2026-01-16 16:03:37 - ArmyAttendance - INFO - Initializing InsightFace Model...
+2026-01-16 16:03:38 - ArmyAttendance - INFO - Loaded 2 face embeddings
+2026-01-16 16:03:38 - ArmyAttendance - INFO - Face Recognition Engine initialized successfully
+2026-01-16 16:03:38 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-16 16:03:38 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-16 16:03:38 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-16 16:03:38 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-16 16:03:38 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-16 16:03:38 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-16 16:03:38 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-16 16:03:38 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ==================================================
+2026-01-16 16:03:38 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ==================================================
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ==================================================
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-16 16:03:38 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-16 16:03:42 - ArmyAttendance - INFO - Initializing InsightFace Model...
+2026-01-16 16:03:42 - ArmyAttendance - INFO - Loaded 2 face embeddings
+2026-01-16 16:03:42 - ArmyAttendance - INFO - Face Recognition Engine initialized successfully
+2026-01-16 16:03:42 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-16 16:03:42 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-16 16:03:43 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-16 16:03:43 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-16 16:03:43 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-16 16:03:43 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-16 16:03:43 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-16 16:03:43 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-16 16:03:43 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-16 16:03:43 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-16 16:03:43 - ArmyAttendance - INFO - ==================================================
+2026-01-16 16:03:43 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-16 16:03:43 - ArmyAttendance - INFO - ==================================================
+2026-01-16 16:03:43 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-16 16:03:43 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-16 16:03:43 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-16 16:03:43 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-16 16:03:43 - ArmyAttendance - INFO - ==================================================
+2026-01-16 16:03:43 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-16 16:03:43 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-16 16:03:44 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-16 16:04:30 - ArmyAttendance - INFO - User logged in: admin
+2026-01-16 16:05:20 - ArmyAttendance - INFO - Liveness check: 19.32% - FAILED
+2026-01-16 16:05:20 - ArmyAttendance - WARNING - Slow request: 2.50s - attendance.mark_attendance
+2026-01-16 16:05:20 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-16 16:05:28 - ArmyAttendance - INFO - Liveness check: 19.29% - FAILED
+2026-01-16 16:05:28 - ArmyAttendance - WARNING - Slow request: 1.48s - attendance.mark_attendance
+2026-01-16 16:06:46 - ArmyAttendance - ERROR - Error loading reports page: Could not build url for endpoint 'reports.audit_logs'. Did you mean 'reports.daily_report' instead?

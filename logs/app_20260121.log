@@ -1,0 +1,48 @@
+2026-01-21 14:04:41 - ArmyAttendance - INFO - Initializing InsightFace Model...
+2026-01-21 14:04:41 - ArmyAttendance - INFO - Loaded 2 face embeddings
+2026-01-21 14:04:41 - ArmyAttendance - INFO - Face Recognition Engine initialized successfully
+2026-01-21 14:04:41 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-21 14:04:41 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-21 14:04:42 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-21 14:04:42 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-21 14:04:42 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-21 14:04:42 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-21 14:04:42 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-21 14:04:42 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-21 14:04:42 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-21 14:04:42 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-21 14:04:42 - ArmyAttendance - INFO - ==================================================
+2026-01-21 14:04:42 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-21 14:04:42 - ArmyAttendance - INFO - ==================================================
+2026-01-21 14:04:42 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-21 14:04:42 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-21 14:04:42 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-21 14:04:42 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-21 14:04:42 - ArmyAttendance - INFO - ==================================================
+2026-01-21 14:04:42 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-21 14:04:42 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-21 14:04:48 - ArmyAttendance - INFO - Initializing InsightFace Model...
+2026-01-21 14:04:48 - ArmyAttendance - INFO - Loaded 2 face embeddings
+2026-01-21 14:04:48 - ArmyAttendance - INFO - Face Recognition Engine initialized successfully
+2026-01-21 14:04:48 - ArmyAttendance - WARNING - MediaPipe not available, using OpenCV fallback
+2026-01-21 14:04:48 - ArmyAttendance - INFO - ✓ Liveness Detector initialized successfully
+2026-01-21 14:04:49 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-01-21 14:04:49 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-01-21 14:04:49 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-01-21 14:04:49 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-01-21 14:04:49 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-01-21 14:04:49 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-01-21 14:04:49 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-01-21 14:04:49 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-01-21 14:04:49 - ArmyAttendance - INFO - ==================================================
+2026-01-21 14:04:49 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-01-21 14:04:49 - ArmyAttendance - INFO - ==================================================
+2026-01-21 14:04:49 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-01-21 14:04:49 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-01-21 14:04:49 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-01-21 14:04:49 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-01-21 14:04:49 - ArmyAttendance - INFO - ==================================================
+2026-01-21 14:04:49 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-01-21 14:04:49 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-01-21 14:04:51 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-01-21 14:05:04 - ArmyAttendance - INFO - User logged in: admin

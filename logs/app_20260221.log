@@ -1,0 +1,279 @@
+2026-02-21 18:35:37 - ArmyAttendance - INFO - 🚀 Face Recognition Engine v5.0 - INSTANT DETECTION
+2026-02-21 18:35:39 - ArmyAttendance - INFO - Loaded 6 embeddings
+2026-02-21 18:35:39 - ArmyAttendance - INFO - ✓ Pre-computed 6 embeddings
+2026-02-21 18:35:39 - ArmyAttendance - INFO - ✓ Vectorized recognition ready: 6 faces
+2026-02-21 18:35:39 - ArmyAttendance - INFO - ✓ Engine ready | Detection: INSTANT | Recognition: ASYNC
+2026-02-21 18:35:40 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-02-21 18:35:40 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-02-21 18:35:40 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-02-21 18:35:40 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-02-21 18:35:40 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-02-21 18:35:40 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-02-21 18:35:40 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-02-21 18:35:40 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-02-21 18:35:40 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:35:40 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-02-21 18:35:40 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:35:40 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-02-21 18:35:40 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-02-21 18:35:40 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-02-21 18:35:40 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-02-21 18:35:40 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:35:40 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-02-21 18:35:40 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-02-21 18:35:42 - ArmyAttendance - INFO - 🚀 Face Recognition Engine v5.0 - INSTANT DETECTION
+2026-02-21 18:35:42 - ArmyAttendance - INFO - Loaded 6 embeddings
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ✓ Pre-computed 6 embeddings
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ✓ Vectorized recognition ready: 6 faces
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ✓ Engine ready | Detection: INSTANT | Recognition: ASYNC
+2026-02-21 18:35:42 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-02-21 18:35:42 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-02-21 18:35:42 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-02-21 18:35:42 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-02-21 18:35:42 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-02-21 18:35:42 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-02-21 18:35:42 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:35:42 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-02-21 18:35:42 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-02-21 18:36:04 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:36:27 - ArmyAttendance - WARNING - Login attempt for non-existent user: admin
+2026-02-21 18:36:27 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:37:56 - ArmyAttendance - WARNING - Login attempt for non-existent user: admin
+2026-02-21 18:37:56 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:38:10 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:38:24 - ArmyAttendance - WARNING - Login attempt for non-existent user: admin
+2026-02-21 18:38:24 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:43:52 - ArmyAttendance - INFO - 🚀 Face Recognition Engine v5.0 - INSTANT DETECTION
+2026-02-21 18:43:52 - ArmyAttendance - INFO - Loaded 6 embeddings
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ✓ Pre-computed 6 embeddings
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ✓ Vectorized recognition ready: 6 faces
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ✓ Engine ready | Detection: INSTANT | Recognition: ASYNC
+2026-02-21 18:43:52 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-02-21 18:43:52 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-02-21 18:43:52 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-02-21 18:43:52 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-02-21 18:43:52 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-02-21 18:43:52 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-02-21 18:43:52 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:43:52 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-02-21 18:43:52 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-02-21 18:43:54 - ArmyAttendance - INFO - 🚀 Face Recognition Engine v5.0 - INSTANT DETECTION
+2026-02-21 18:43:55 - ArmyAttendance - INFO - Loaded 6 embeddings
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ✓ Pre-computed 6 embeddings
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ✓ Vectorized recognition ready: 6 faces
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ✓ Engine ready | Detection: INSTANT | Recognition: ASYNC
+2026-02-21 18:43:55 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-02-21 18:43:55 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-02-21 18:43:55 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-02-21 18:43:55 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-02-21 18:43:55 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-02-21 18:43:55 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-02-21 18:43:55 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:43:55 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ✓ Debug mode: False
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-02-21 18:43:55 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-02-21 18:43:58 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:44:06 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-02-21 18:44:07 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:44:20 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:45:28 - ArmyAttendance - ERROR - 500 Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+2026-02-21 18:45:28 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:45:34 - ArmyAttendance - INFO - 🚀 Face Recognition Engine v5.0 - INSTANT DETECTION
+2026-02-21 18:45:34 - ArmyAttendance - INFO - Loaded 6 embeddings
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ✓ Pre-computed 6 embeddings
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ✓ Vectorized recognition ready: 6 faces
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ✓ Engine ready | Detection: INSTANT | Recognition: ASYNC
+2026-02-21 18:45:34 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-02-21 18:45:34 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-02-21 18:45:34 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-02-21 18:45:34 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-02-21 18:45:34 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-02-21 18:45:34 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-02-21 18:45:34 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:45:34 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ✓ Debug mode: True
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-02-21 18:45:34 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-02-21 18:45:36 - ArmyAttendance - INFO - 🚀 Face Recognition Engine v5.0 - INSTANT DETECTION
+2026-02-21 18:45:36 - ArmyAttendance - INFO - Loaded 6 embeddings
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ✓ Pre-computed 6 embeddings
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ✓ Vectorized recognition ready: 6 faces
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ✓ Engine ready | Detection: INSTANT | Recognition: ASYNC
+2026-02-21 18:45:36 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-02-21 18:45:36 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-02-21 18:45:36 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-02-21 18:45:36 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-02-21 18:45:36 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-02-21 18:45:36 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-02-21 18:45:36 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:45:36 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ✓ Debug mode: True
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-02-21 18:45:36 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-02-21 18:46:52 - ArmyAttendance - INFO - 🚀 Face Recognition Engine v5.0 - INSTANT DETECTION
+2026-02-21 18:46:53 - ArmyAttendance - INFO - Loaded 6 embeddings
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ✓ Pre-computed 6 embeddings
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ✓ Vectorized recognition ready: 6 faces
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ✓ Engine ready | Detection: INSTANT | Recognition: ASYNC
+2026-02-21 18:46:53 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-02-21 18:46:53 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-02-21 18:46:53 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-02-21 18:46:53 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-02-21 18:46:53 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-02-21 18:46:53 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-02-21 18:46:53 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:46:53 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ✓ Debug mode: True
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-02-21 18:46:53 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-02-21 18:46:58 - ArmyAttendance - INFO - User logged in: admin
+2026-02-21 18:46:59 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:47:04 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:47:38 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:47:41 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:48:59 - ArmyAttendance - INFO - === Employee Registration Started ===
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Registration request for: EMP12345 - Divyanshu Jain
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Upload folder created: static/uploads/employees\EMP12345
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Processing base64 multi-angle photos...
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Saved front photo: static/uploads/employees\EMP12345\EMP12345_front_20260221_184859.jpg
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Saved left photo: static/uploads/employees\EMP12345\EMP12345_left_20260221_184859.jpg
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Saved right photo: static/uploads/employees\EMP12345\EMP12345_right_20260221_184859.jpg
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Selecting best quality photo from multiple angles...
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Quality score for front: 0.89
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Quality score for left: 0.84
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Quality score for right: 0.87
+2026-02-21 18:48:59 - ArmyAttendance - INFO - Best photo: front with quality 0.89
+2026-02-21 18:49:00 - ArmyAttendance - INFO - Photo enhanced successfully
+2026-02-21 18:49:00 - ArmyAttendance - INFO - Registering face for: EMP12345
+2026-02-21 18:49:00 - ArmyAttendance - INFO - ✓ Pre-computed 7 embeddings
+2026-02-21 18:49:00 - ArmyAttendance - INFO - ✓ Registered: EMP12345 (confidence: 82.27%)
+2026-02-21 18:49:00 - ArmyAttendance - INFO - Face registered successfully. Embedding ID: EMB_EMP12345_1771679940266
+2026-02-21 18:49:00 - ArmyAttendance - INFO - ✓ Employee registered: EMP12345 - Divyanshu Jain by admin
+2026-02-21 18:49:00 - ArmyAttendance - WARNING - Slow request: 1.28s - registration.register_employee
+2026-02-21 18:49:01 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:49:05 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:49:10 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:49:11 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:49:13 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:49:14 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:49:16 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:49:18 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:49:36 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:50:22 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:50:26 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:50:27 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:50:29 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:50:30 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:50:32 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:50:33 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:50:35 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:50:36 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:50:38 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:50:39 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:53:12 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:54:48 - ArmyAttendance - INFO - 🚀 Face Recognition Engine v5.0 - INSTANT DETECTION
+2026-02-21 18:54:48 - ArmyAttendance - INFO - Loaded 7 embeddings
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ✓ Pre-computed 7 embeddings
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ✓ Vectorized recognition ready: 7 faces
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ✓ Engine ready | Detection: INSTANT | Recognition: ASYNC
+2026-02-21 18:54:48 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-02-21 18:54:48 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-02-21 18:54:48 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-02-21 18:54:48 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-02-21 18:54:48 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-02-21 18:54:48 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-02-21 18:54:48 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:54:48 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ✓ Debug mode: True
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-02-21 18:54:48 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-02-21 18:54:56 - ArmyAttendance - INFO - 🚀 Face Recognition Engine v5.0 - INSTANT DETECTION
+2026-02-21 18:54:56 - ArmyAttendance - INFO - Loaded 7 embeddings
+2026-02-21 18:54:56 - ArmyAttendance - INFO - ✓ Pre-computed 7 embeddings
+2026-02-21 18:54:56 - ArmyAttendance - INFO - ✓ Vectorized recognition ready: 7 faces
+2026-02-21 18:54:56 - ArmyAttendance - INFO - ✓ Engine ready | Detection: INSTANT | Recognition: ASYNC
+2026-02-21 18:54:57 - ArmyAttendance - INFO - Directory created/verified: logs
+2026-02-21 18:54:57 - ArmyAttendance - INFO - Directory created/verified: face_embeddings
+2026-02-21 18:54:57 - ArmyAttendance - INFO - Directory created/verified: static/uploads/employees
+2026-02-21 18:54:57 - ArmyAttendance - INFO - Directory created/verified: static/uploads/attendance
+2026-02-21 18:54:57 - ArmyAttendance - INFO - Directory created/verified: static/css
+2026-02-21 18:54:57 - ArmyAttendance - INFO - Directory created/verified: static/js
+2026-02-21 18:54:57 - ArmyAttendance - INFO - Directory created/verified: static/images
+2026-02-21 18:54:57 - ArmyAttendance - INFO - ✓ Face recognition engine initialized successfully
+2026-02-21 18:54:57 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:54:57 - ArmyAttendance - INFO - 🎖️  ARMY FACE ATTENDANCE SYSTEM
+2026-02-21 18:54:57 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:54:57 - ArmyAttendance - INFO - ✓ Application initialized successfully
+2026-02-21 18:54:57 - ArmyAttendance - INFO - ✓ Debug mode: True
+2026-02-21 18:54:57 - ArmyAttendance - INFO - ✓ Database: army_attendance
+2026-02-21 18:54:57 - ArmyAttendance - INFO - ✓ Cache busting: ENABLED
+2026-02-21 18:54:57 - ArmyAttendance - INFO - ==================================================
+2026-02-21 18:54:57 - ArmyAttendance - INFO - ✓ Database tables created/verified
+2026-02-21 18:54:57 - ArmyAttendance - INFO - ✓ Python cache cleared
+2026-02-21 18:55:26 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:55:39 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:55:41 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:55:42 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:55:45 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:55:46 - ArmyAttendance - WARNING - 404 Error: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-02-21 18:55:54 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:55:56 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:55:57 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:55:59 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:56:00 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:56:02 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
+2026-02-21 18:56:03 - ArmyAttendance - ERROR - Attendance fetch error: 'Attendance' object has no attribute 'work_hours'
