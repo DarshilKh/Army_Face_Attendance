@@ -50,6 +50,17 @@ def create_app():
         except Exception as e:
             app_logger.error(f"✗ Failed to initialize face recognition engine: {e}")
 
+    # Initialize camera manager - test network camera availability
+    try:
+        from utils.camera import camera_manager
+        cam_status = camera_manager.get_camera_status()
+        if cam_status['source'] == 'network':
+            app_logger.info(f"✓ Camera: Network camera ACTIVE at {Config.CAMERA_URL}")
+        else:
+            app_logger.info(f"✓ Camera: System webcam ACTIVE (network camera at {Config.CAMERA_URL} unavailable)")
+    except Exception as e:
+        app_logger.error(f"✗ Camera initialization error: {e}")
+
     # ==================== CACHE BUSTING ====================
     # Prevent browser from caching old files
     @app.context_processor
@@ -278,9 +289,16 @@ if __name__ == '__main__':
     print(f"✓ Database: {Config.DB_NAME}")
     print(f"✓ Cache Control: ENABLED (Browser will always load fresh code)")
     print("=" * 60)
+    print("\n🎥 CAMERA CONFIGURATION:")
+    if Config.USE_IP_CAMERA:
+        print(f"   → Network Camera: {Config.CAMERA_URL} (PRIORITIZED)")
+        print(f"   → Fallback: System webcam (index {Config.DEFAULT_CAMERA_INDEX})")
+    else:
+        print(f"   → System webcam (index {Config.DEFAULT_CAMERA_INDEX})")
+        print("   → Network camera: Not configured")
     print("\n⚠️  DEFAULT LOGIN CREDENTIALS:")
     print("   Username: admin")
-    print("   Password: Admin@123")
+    print("   Password: admin123")
     print("\n⚠️  SECURITY WARNING:")
     print("   → Change password immediately after first login")
     print("   → This is a development server - use production WSGI for deployment")
@@ -304,6 +322,8 @@ if __name__ == '__main__':
             'routes/registration.py',
             'routes/attendance.py',
             'routes/auth.py',
-            'routes/reports.py'
+            'routes/reports.py',
+            'routes/camera.py',
+            'utils/camera.py'
         ]
     )

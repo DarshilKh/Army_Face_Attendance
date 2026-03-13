@@ -87,18 +87,39 @@
     }
 
     @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.7;
+        }
     }
 
     @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.9); }
-        to { opacity: 1; transform: scale(1); }
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
     }
 
     @keyframes fadeOut {
-        from { opacity: 1; transform: scale(1); }
-        to { opacity: 0; transform: scale(0.9); }
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        to {
+            opacity: 0;
+            transform: scale(0.9);
+        }
     }
 
     /* Live Stats Bar */
@@ -158,6 +179,7 @@
             opacity: 0;
             transform: translateX(50px);
         }
+
         to {
             opacity: 1;
             transform: translateX(0);
@@ -347,7 +369,9 @@
     }
 
     @keyframes spin {
-        to { transform: rotate(360deg); }
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     /* Responsive */
@@ -372,9 +396,17 @@
 
     /* Animation for face match */
     @keyframes faceMatch {
-        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-        70% { box-shadow: 0 0 0 30px rgba(16, 185, 129, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+        }
+
+        70% {
+            box-shadow: 0 0 0 30px rgba(16, 185, 129, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
     }
 
     .face-matched {
@@ -421,7 +453,8 @@
                         <button id="startBtn" class="btn btn-control btn-start" onclick="startLiveAttendance()">
                             <i class="fas fa-play-circle"></i> Start Live Attendance
                         </button>
-                        <button id="stopBtn" class="btn btn-control btn-stop" onclick="stopLiveAttendance()" style="display:none;">
+                        <button id="stopBtn" class="btn btn-control btn-stop" onclick="stopLiveAttendance()"
+                            style="display:none;">
                             <i class="fas fa-stop-circle"></i> Stop
                         </button>
                     </div>
@@ -431,6 +464,10 @@
             <!-- Video Container -->
             <div class="video-container">
                 <video id="videoFeed" autoplay playsinline muted></video>
+                <!-- Network camera feed (hidden by default, shown when network cam is active) -->
+                <img id="networkFeed"
+                    style="display:none; width:100%; height:100%; object-fit:cover; border-radius:15px; position:absolute; top:0; left:0; z-index:1;"
+                    alt="Network Camera Feed">
                 <canvas id="detectionCanvas"></canvas>
 
                 <!-- Status Indicator -->
@@ -490,384 +527,505 @@
 
 {% block extra_js %}
 <script>
-// ============================================
-// GLOBAL VARIABLES
-// ============================================
-let videoFeed = document.getElementById('videoFeed');
-let detectionCanvas = document.getElementById('detectionCanvas');
-let detectionCtx = detectionCanvas.getContext('2d');
-let mediaStream = null;
-let isRunning = false;
-let detectionInterval = null;
-let lastDisplayedEmployee = null; // Track currently displayed employee
-let currentEmployeeCard = null; // Current card element
+    // ============================================
+    // GLOBAL VARIABLES
+    // ============================================
+    let videoFeed = document.getElementById('videoFeed');
+    let detectionCanvas = document.getElementById('detectionCanvas');
+    let detectionCtx = detectionCanvas.getContext('2d');
+    let mediaStream = null;
+    let isRunning = false;
+    let detectionInterval = null;
+    let lastDisplayedEmployee = null; // Track currently displayed employee
+    let currentEmployeeCard = null; // Current card element
 
-// Configuration
-const CONFIG = {
-    DETECTION_INTERVAL: 1500,      // Check every 1.5 seconds (optimized for backend frame skipping)
-    DISPLAY_DURATION: 5000,        // Show employee card for 5 seconds
-    CONFIDENCE_THRESHOLD: 0.6,     // Minimum confidence for recognition
-    BOX_COLOR_DETECTED: '#3B82F6', // Blue for detected face
-    BOX_COLOR_MATCHED: '#10B981',  // Green for matched face
-    BOX_COLOR_UNKNOWN: '#EF4444',  // Red for unknown face
-    BOX_COLOR_WARNING: '#F59E0B'   // Orange for warnings
-};
+    // Configuration
+    const CONFIG = {
+        DETECTION_INTERVAL: 1500,      // Check every 1.5 seconds (optimized for backend frame skipping)
+        DISPLAY_DURATION: 5000,        // Show employee card for 5 seconds
+        CONFIDENCE_THRESHOLD: 0.6,     // Minimum confidence for recognition
+        BOX_COLOR_DETECTED: '#3B82F6', // Blue for detected face
+        BOX_COLOR_MATCHED: '#10B981',  // Green for matched face
+        BOX_COLOR_UNKNOWN: '#EF4444',  // Red for unknown face
+        BOX_COLOR_WARNING: '#F59E0B'   // Orange for warnings
+    };
 
-// ============================================
-// INITIALIZATION
-// ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    updateClock();
-    setInterval(updateClock, 1000);
-    loadTodayStats();
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function () {
+        updateClock();
+        setInterval(updateClock, 1000);
+        loadTodayStats();
 
-    // Refresh stats every 10 seconds
-    setInterval(loadTodayStats, 10000);
-});
-
-// ============================================
-// CLOCK FUNCTIONS
-// ============================================
-function updateClock() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+        // Refresh stats every 10 seconds
+        setInterval(loadTodayStats, 10000);
     });
-    document.getElementById('currentTime').textContent = timeString;
-}
 
-// ============================================
-// CAMERA FUNCTIONS
-// ============================================
-async function startLiveAttendance() {
-    try {
-        showStatus('Initializing camera...', 'detecting');
+    // ============================================
+    // CLOCK FUNCTIONS
+    // ============================================
+    function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        document.getElementById('currentTime').textContent = timeString;
+    }
 
-        // Request camera access with optimal settings
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                width: { ideal: 1280, max: 1920 },
-                height: { ideal: 720, max: 1080 },
-                facingMode: 'user',
-                frameRate: { ideal: 30, max: 60 }
+    // ============================================
+    // CAMERA FUNCTIONS - Network Camera Priority
+    // ============================================
+    let usingNetworkCamera = false;  // Track which camera source is active
+    let networkCameraImg = null;     // For network camera snapshot polling
+
+    async function startLiveAttendance() {
+        try {
+            showStatus('Checking camera sources...', 'detecting');
+
+            // Step 1: Check if network camera is available via backend API
+            let cameraStatus = null;
+            try {
+                const statusResponse = await fetch('/api/camera/status');
+                cameraStatus = await statusResponse.json();
+                console.log('Camera status:', cameraStatus);
+            } catch (e) {
+                console.warn('Could not check camera status API:', e);
             }
-        });
 
-        // Set video stream
-        videoFeed.srcObject = mediaStream;
+            // Step 2: Use network camera if available, otherwise fall back to system webcam
+            if (cameraStatus && cameraStatus.source === 'network' && !cameraStatus.use_browser_webcam) {
+                // === NETWORK CAMERA MODE ===
+                console.log('🎥 Using NETWORK camera feed');
+                usingNetworkCamera = true;
+                showStatus('Connecting to network camera...', 'detecting');
 
-        // Wait for video to be ready
-        await new Promise((resolve) => {
-            videoFeed.onloadedmetadata = () => {
-                videoFeed.play();
-                resolve();
-            };
-        });
+                // Test the snapshot endpoint first
+                try {
+                    const testResponse = await fetch('/api/camera/snapshot');
+                    if (!testResponse.ok) {
+                        throw new Error(`Snapshot endpoint returned ${testResponse.status}`);
+                    }
+                    console.log('✓ Network camera snapshot endpoint verified');
+                } catch (e) {
+                    console.warn('Network camera snapshot test failed, falling back to browser webcam:', e);
+                    usingNetworkCamera = false;
+                }
+            }
 
-        // Setup canvas
-        setupCanvas();
+            if (usingNetworkCamera) {
+                // === SHOW NETWORK CAMERA FEED ===
+                // Hide browser video element, show network camera img with MJPEG stream
+                videoFeed.style.display = 'none';
+                const networkFeed = document.getElementById('networkFeed');
+                networkFeed.style.display = 'block';
+                // Use the MJPEG stream endpoint for live display
+                networkFeed.src = '/api/camera/stream?' + Date.now(); // cache bust
+                console.log('✓ Network camera MJPEG stream started');
+            } else {
+                // === SYSTEM WEBCAM MODE (FALLBACK) ===
+                console.log('🎥 Using SYSTEM webcam (browser getUserMedia)');
+                showStatus('Initializing system webcam...', 'detecting');
+
+                // Hide network feed, show video element
+                document.getElementById('networkFeed').style.display = 'none';
+                videoFeed.style.display = 'block';
+
+                // Request camera access with optimal settings
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280, max: 1920 },
+                        height: { ideal: 720, max: 1080 },
+                        facingMode: 'user',
+                        frameRate: { ideal: 30, max: 60 }
+                    }
+                });
+
+                // Set video stream
+                videoFeed.srcObject = mediaStream;
+
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    videoFeed.onloadedmetadata = () => {
+                        videoFeed.play();
+                        resolve();
+                    };
+                });
+            }
+
+            // Setup canvas
+            setupCanvas();
+
+            // Update UI
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'inline-block';
+
+            const sourceLabel = usingNetworkCamera ? 'Network Camera' : 'System Webcam';
+            showStatus(`Live - ${sourceLabel} - Auto Detection Active`, 'live');
+            isRunning = true;
+
+            // Clear activity feed
+            clearActivityFeed();
+
+            // Reset tracking
+            lastDisplayedEmployee = null;
+            currentEmployeeCard = null;
+
+            // Start detection loop
+            startDetectionLoop();
+
+            console.log(`✓ Live attendance started (source: ${sourceLabel})`);
+
+        } catch (error) {
+            console.error('Camera error:', error);
+            alert('Camera access denied. Please allow camera permissions and try again.');
+            hideStatus();
+        }
+    }
+
+    function stopLiveAttendance() {
+        isRunning = false;
+
+        // Stop detection loop
+        if (detectionInterval) {
+            clearInterval(detectionInterval);
+            detectionInterval = null;
+        }
+
+        // Stop media stream (system webcam)
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(track => track.stop());
+            videoFeed.srcObject = null;
+        }
+
+        // Stop network camera feed
+        const networkFeed = document.getElementById('networkFeed');
+        networkFeed.src = '';
+        networkFeed.style.display = 'none';
+
+        // Restore video element visibility
+        videoFeed.style.display = 'block';
+
+        // Reset network camera state
+        usingNetworkCamera = false;
+        networkCameraImg = null;
+
+        // Clear canvas
+        detectionCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+
+        // Clear displayed employee
+        clearEmployeeDisplay();
 
         // Update UI
-        document.getElementById('startBtn').style.display = 'none';
-        document.getElementById('stopBtn').style.display = 'inline-block';
-
-        showStatus('Live - Auto Detection Active', 'live');
-        isRunning = true;
-
-        // Clear activity feed
-        clearActivityFeed();
-
-        // Reset tracking
-        lastDisplayedEmployee = null;
-        currentEmployeeCard = null;
-
-        // Start detection loop
-        startDetectionLoop();
-
-        console.log('✓ Live attendance started');
-
-    } catch (error) {
-        console.error('Camera error:', error);
-        alert('Camera access denied. Please allow camera permissions and try again.');
+        document.getElementById('startBtn').style.display = 'inline-block';
+        document.getElementById('stopBtn').style.display = 'none';
         hideStatus();
-    }
-}
 
-function stopLiveAttendance() {
-    isRunning = false;
-
-    // Stop detection loop
-    if (detectionInterval) {
-        clearInterval(detectionInterval);
-        detectionInterval = null;
+        console.log('✓ Live attendance stopped');
     }
 
-    // Stop media stream
-    if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        videoFeed.srcObject = null;
+    function setupCanvas() {
+        if (usingNetworkCamera) {
+            // For network camera, set default canvas size (will auto-adjust with first frame)
+            detectionCanvas.width = 1280;
+            detectionCanvas.height = 720;
+            const videoRect = videoFeed.getBoundingClientRect();
+            detectionCanvas.style.width = videoRect.width + 'px';
+            detectionCanvas.style.height = videoRect.height + 'px';
+        } else {
+            // Match canvas size to video with proper scaling
+            const videoRect = videoFeed.getBoundingClientRect();
+            detectionCanvas.width = videoFeed.videoWidth;
+            detectionCanvas.height = videoFeed.videoHeight;
+
+            // Resize canvas to match video display size
+            detectionCanvas.style.width = videoRect.width + 'px';
+            detectionCanvas.style.height = videoRect.height + 'px';
+        }
     }
 
-    // Clear canvas
-    detectionCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+    // ============================================
+    // DETECTION LOOP - OPTIMIZED
+    // ============================================
+    function startDetectionLoop() {
+        detectionInterval = setInterval(async () => {
+            if (!isRunning) return;
 
-    // Clear displayed employee
-    clearEmployeeDisplay();
+            try {
+                await detectAndRecognizeFaces();
+            } catch (error) {
+                console.error('Detection error:', error);
+            }
+        }, CONFIG.DETECTION_INTERVAL);
+    }
 
-    // Update UI
-    document.getElementById('startBtn').style.display = 'inline-block';
-    document.getElementById('stopBtn').style.display = 'none';
-    hideStatus();
+    async function detectAndRecognizeFaces() {
+        let imageData;
 
-    console.log('✓ Live attendance stopped');
-}
+        if (usingNetworkCamera) {
+            // === NETWORK CAMERA: Get frame from backend snapshot API ===
+            try {
+                const snapshotResponse = await fetch('/api/camera/snapshot');
+                if (!snapshotResponse.ok) {
+                    console.warn('Network camera snapshot failed, status:', snapshotResponse.status);
+                    return;
+                }
+                const blob = await snapshotResponse.blob();
 
-function setupCanvas() {
-    // Match canvas size to video with proper scaling
-    const videoRect = videoFeed.getBoundingClientRect();
-    detectionCanvas.width = videoFeed.videoWidth;
-    detectionCanvas.height = videoFeed.videoHeight;
+                // Convert blob to base64
+                imageData = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
 
-    // Resize canvas to match video display size
-    detectionCanvas.style.width = videoRect.width + 'px';
-    detectionCanvas.style.height = videoRect.height + 'px';
-}
+                // Display the snapshot in the video element area
+                const img = new Image();
+                img.onload = () => {
+                    // Draw snapshot onto the video canvas for display
+                    const displayCanvas = document.createElement('canvas');
+                    displayCanvas.width = img.width;
+                    displayCanvas.height = img.height;
+                    const displayCtx = displayCanvas.getContext('2d');
+                    displayCtx.drawImage(img, 0, 0);
 
-// ============================================
-// DETECTION LOOP - OPTIMIZED
-// ============================================
-function startDetectionLoop() {
-    detectionInterval = setInterval(async () => {
-        if (!isRunning) return;
+                    // Update detection canvas size to match network camera frame
+                    if (detectionCanvas.width !== img.width || detectionCanvas.height !== img.height) {
+                        detectionCanvas.width = img.width;
+                        detectionCanvas.height = img.height;
+                    }
+
+                    // Show the frame as a poster on the video element
+                    videoFeed.poster = imageData;
+                };
+                img.src = imageData;
+
+            } catch (e) {
+                console.error('Network camera frame capture failed:', e);
+                return;
+            }
+        } else {
+            // === SYSTEM WEBCAM: Capture from browser video element ===
+            const canvas = document.createElement('canvas');
+            canvas.width = videoFeed.videoWidth;
+            canvas.height = videoFeed.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoFeed, 0, 0);
+
+            // Convert to base64 with compression
+            imageData = canvas.toDataURL('image/jpeg', 0.8);
+        }
 
         try {
-            await detectAndRecognizeFaces();
+            // Send to server for recognition
+            const response = await fetch('{{ url_for("attendance.mark_attendance") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    image: imageData,
+                    auto_mode: true,
+                    camera_source: usingNetworkCamera ? 'network' : 'system'
+                })
+            });
+
+            const data = await response.json();
+
+            console.log('Response:', data.status || data.message);
+
+            // ============================================
+            // HANDLE CLEAR_FRAME - INSTANT FRAME UPDATE
+            // ============================================
+            if (data.clear_frame && data.is_new_face) {
+                console.log('🔄 New face detected - clearing old display');
+                clearEmployeeDisplay();
+            }
+
+            // ============================================
+            // HANDLE DIFFERENT STATUSES
+            // ============================================
+            if (data.success) {
+                // SUCCESS - Check-in or Checkout
+                handleSuccessfulRecognition(data);
+
+            } else {
+                // Handle non-success cases
+                handleRecognitionStatus(data);
+            }
+
+            // Update detected count
+            document.getElementById('liveDetectedCount').textContent = data.faces_count || 0;
+
         } catch (error) {
-            console.error('Detection error:', error);
-        }
-    }, CONFIG.DETECTION_INTERVAL);
-}
-
-async function detectAndRecognizeFaces() {
-    // Capture current frame with optimization
-    const canvas = document.createElement('canvas');
-    canvas.width = videoFeed.videoWidth;
-    canvas.height = videoFeed.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(videoFeed, 0, 0);
-
-    // Convert to base64 with compression
-    const imageData = canvas.toDataURL('image/jpeg', 0.8);
-
-    try {
-        // Send to server for recognition
-        const response = await fetch('{{ url_for("attendance.mark_attendance") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                image: imageData,
-                auto_mode: true
-            })
-        });
-
-        const data = await response.json();
-
-        console.log('Response:', data.status || data.message);
-
-        // ============================================
-        // HANDLE CLEAR_FRAME - INSTANT FRAME UPDATE
-        // ============================================
-        if (data.clear_frame && data.is_new_face) {
-            console.log('🔄 New face detected - clearing old display');
-            clearEmployeeDisplay();
-        }
-
-        // ============================================
-        // HANDLE DIFFERENT STATUSES
-        // ============================================
-        if (data.success) {
-            // SUCCESS - Check-in or Checkout
-            handleSuccessfulRecognition(data);
-
-        } else {
-            // Handle non-success cases
-            handleRecognitionStatus(data);
-        }
-
-        // Update detected count
-        document.getElementById('liveDetectedCount').textContent = data.faces_count || 0;
-
-    } catch (error) {
-        console.error('Recognition request failed:', error);
-        document.getElementById('liveDetectedCount').textContent = '0';
-        clearCanvas();
-    }
-}
-
-// ============================================
-// RECOGNITION HANDLERS - NEW
-// ============================================
-function handleSuccessfulRecognition(data) {
-    const employeeId = data.employee.army_id;
-
-    // Check if this is a different person
-    if (lastDisplayedEmployee !== employeeId) {
-        clearEmployeeDisplay();
-        lastDisplayedEmployee = employeeId;
-    }
-
-    // Display recognition result
-    displayRecognitionResult(data);
-
-    // Update stats
-    loadTodayStats();
-
-    // Draw green box
-    drawFaceBox(data, CONFIG.BOX_COLOR_MATCHED);
-
-    // Play success sound
-    playSound('success');
-
-    // Animate video
-    videoFeed.classList.add('face-matched');
-    setTimeout(() => videoFeed.classList.remove('face-matched'), 600);
-
-    // Show success status
-    if (data.type === 'checkin') {
-        showStatus(`✓ Check-in: ${data.employee.name}`, 'live');
-    } else {
-        showStatus(`✓ Check-out: ${data.employee.name}`, 'live');
-    }
-}
-
-function handleRecognitionStatus(data) {
-    const status = data.status || '';
-
-    switch(status) {
-        case 'COOLDOWN':
-            // UI cooldown - don't spam, just show box
-            if (data.face_detected && data.bbox) {
-                drawFaceBox(data, CONFIG.BOX_COLOR_DETECTED);
-            }
-            break;
-
-        case 'ALREADY_COMPLETED':
-            // Already done for today
-            if (data.employee) {
-                drawFaceBox(data, CONFIG.BOX_COLOR_WARNING);
-                displayWarningCard(data, 'Attendance already completed today');
-            }
-            break;
-
-        case 'TOO_EARLY_CHECKOUT':
-            // Too early for checkout
-            if (data.employee) {
-                drawFaceBox(data, CONFIG.BOX_COLOR_WARNING);
-                const msg = data.message || 'Too early for checkout';
-                displayWarningCard(data, msg);
-            }
-            break;
-
-        case 'NO_FACE':
-            // No face detected - clear everything
+            console.error('Recognition request failed:', error);
+            document.getElementById('liveDetectedCount').textContent = '0';
             clearCanvas();
-            if (lastDisplayedEmployee) {
-                // Clear after delay if no face detected
-                setTimeout(() => {
-                    if (!isRunning) return;
-                    clearEmployeeDisplay();
-                }, 2000);
-            }
-            break;
-
-        case 'NO_MATCH':
-            // Face detected but not recognized
-            if (data.face_detected && data.bbox) {
-                drawFaceBox(data, CONFIG.BOX_COLOR_UNKNOWN);
-                showStatus('Unknown face detected', 'warning');
-            }
-            break;
-
-        default:
-            // Unknown status
-            if (data.face_detected && data.bbox) {
-                drawFaceBox(data, CONFIG.BOX_COLOR_DETECTED);
-            }
-    }
-}
-
-// ============================================
-// DRAWING FUNCTIONS - OPTIMIZED
-// ============================================
-function drawFaceBox(data, color) {
-    // Clear previous drawings
-    clearCanvas();
-
-    if (!data.bbox) return;
-
-    const [x, y, width, height] = data.bbox;
-
-    // Scale coordinates to canvas size
-    const scaleX = detectionCanvas.width / videoFeed.videoWidth;
-    const scaleY = detectionCanvas.height / videoFeed.videoHeight;
-
-    const scaledX = x * scaleX;
-    const scaledY = y * scaleY;
-    const scaledWidth = width * scaleX;
-    const scaledHeight = height * scaleY;
-
-    // Draw rectangle
-    detectionCtx.strokeStyle = color;
-    detectionCtx.lineWidth = 4;
-    detectionCtx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
-
-    // Draw label if employee recognized
-    if (data.employee) {
-        const label = data.employee.name;
-        const confidence = Math.round(data.confidence || 0);
-
-        // Draw label background
-        detectionCtx.fillStyle = color;
-        const labelHeight = 30;
-        detectionCtx.fillRect(scaledX, scaledY - labelHeight, scaledWidth, labelHeight);
-
-        // Draw label text
-        detectionCtx.fillStyle = 'white';
-        detectionCtx.font = 'bold 16px Arial';
-        detectionCtx.textAlign = 'center';
-        detectionCtx.fillText(`${label} (${confidence}%)`, scaledX + scaledWidth/2, scaledY - 8);
-    }
-}
-
-function clearCanvas() {
-    detectionCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
-}
-
-// ============================================
-// UI UPDATE FUNCTIONS - OPTIMIZED
-// ============================================
-function displayRecognitionResult(data) {
-    const feed = document.getElementById('activityFeed');
-
-    // Clear placeholder if exists
-    if (feed.querySelector('.text-center')) {
-        feed.innerHTML = '';
+        }
     }
 
-    // Create employee card
-    const card = document.createElement('div');
-    card.className = `employee-card ${data.type === 'checkout' ? 'checkout' : ''}`;
-    card.dataset.employeeId = data.employee.army_id;
+    // ============================================
+    // RECOGNITION HANDLERS - NEW
+    // ============================================
+    function handleSuccessfulRecognition(data) {
+        const employeeId = data.employee.army_id;
 
-    const photoUrl = data.employee.photo || '/static/img/default-avatar.png';
-    const timeValue = data.attendance.check_in || data.attendance.check_out || 'Now';
-    const workHours = data.attendance.work_hours ? `${data.attendance.work_hours}h` : 'N/A';
+        // Check if this is a different person
+        if (lastDisplayedEmployee !== employeeId) {
+            clearEmployeeDisplay();
+            lastDisplayedEmployee = employeeId;
+        }
 
-    card.innerHTML = `
+        // Display recognition result
+        displayRecognitionResult(data);
+
+        // Update stats
+        loadTodayStats();
+
+        // Draw green box
+        drawFaceBox(data, CONFIG.BOX_COLOR_MATCHED);
+
+        // Play success sound
+        playSound('success');
+
+        // Animate video
+        videoFeed.classList.add('face-matched');
+        setTimeout(() => videoFeed.classList.remove('face-matched'), 600);
+
+        // Show success status
+        if (data.type === 'checkin') {
+            showStatus(`✓ Check-in: ${data.employee.name}`, 'live');
+        } else {
+            showStatus(`✓ Check-out: ${data.employee.name}`, 'live');
+        }
+    }
+
+    function handleRecognitionStatus(data) {
+        const status = data.status || '';
+
+        switch (status) {
+            case 'COOLDOWN':
+                // UI cooldown - don't spam, just show box
+                if (data.face_detected && data.bbox) {
+                    drawFaceBox(data, CONFIG.BOX_COLOR_DETECTED);
+                }
+                break;
+
+            case 'ALREADY_COMPLETED':
+                // Already done for today
+                if (data.employee) {
+                    drawFaceBox(data, CONFIG.BOX_COLOR_WARNING);
+                    displayWarningCard(data, 'Attendance already completed today');
+                }
+                break;
+
+            case 'TOO_EARLY_CHECKOUT':
+                // Too early for checkout
+                if (data.employee) {
+                    drawFaceBox(data, CONFIG.BOX_COLOR_WARNING);
+                    const msg = data.message || 'Too early for checkout';
+                    displayWarningCard(data, msg);
+                }
+                break;
+
+            case 'NO_FACE':
+                // No face detected - clear everything
+                clearCanvas();
+                if (lastDisplayedEmployee) {
+                    // Clear after delay if no face detected
+                    setTimeout(() => {
+                        if (!isRunning) return;
+                        clearEmployeeDisplay();
+                    }, 2000);
+                }
+                break;
+
+            case 'NO_MATCH':
+                // Face detected but not recognized
+                if (data.face_detected && data.bbox) {
+                    drawFaceBox(data, CONFIG.BOX_COLOR_UNKNOWN);
+                    showStatus('Unknown face detected', 'warning');
+                }
+                break;
+
+            default:
+                // Unknown status
+                if (data.face_detected && data.bbox) {
+                    drawFaceBox(data, CONFIG.BOX_COLOR_DETECTED);
+                }
+        }
+    }
+
+    // ============================================
+    // DRAWING FUNCTIONS - OPTIMIZED
+    // ============================================
+    function drawFaceBox(data, color) {
+        // Clear previous drawings
+        clearCanvas();
+
+        if (!data.bbox) return;
+
+        const [x, y, width, height] = data.bbox;
+
+        // Scale coordinates to canvas size
+        const scaleX = detectionCanvas.width / videoFeed.videoWidth;
+        const scaleY = detectionCanvas.height / videoFeed.videoHeight;
+
+        const scaledX = x * scaleX;
+        const scaledY = y * scaleY;
+        const scaledWidth = width * scaleX;
+        const scaledHeight = height * scaleY;
+
+        // Draw rectangle
+        detectionCtx.strokeStyle = color;
+        detectionCtx.lineWidth = 4;
+        detectionCtx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
+
+        // Draw label if employee recognized
+        if (data.employee) {
+            const label = data.employee.name;
+            const confidence = Math.round(data.confidence || 0);
+
+            // Draw label background
+            detectionCtx.fillStyle = color;
+            const labelHeight = 30;
+            detectionCtx.fillRect(scaledX, scaledY - labelHeight, scaledWidth, labelHeight);
+
+            // Draw label text
+            detectionCtx.fillStyle = 'white';
+            detectionCtx.font = 'bold 16px Arial';
+            detectionCtx.textAlign = 'center';
+            detectionCtx.fillText(`${label} (${confidence}%)`, scaledX + scaledWidth / 2, scaledY - 8);
+        }
+    }
+
+    function clearCanvas() {
+        detectionCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+    }
+
+    // ============================================
+    // UI UPDATE FUNCTIONS - OPTIMIZED
+    // ============================================
+    function displayRecognitionResult(data) {
+        const feed = document.getElementById('activityFeed');
+
+        // Clear placeholder if exists
+        if (feed.querySelector('.text-center')) {
+            feed.innerHTML = '';
+        }
+
+        // Create employee card
+        const card = document.createElement('div');
+        card.className = `employee-card ${data.type === 'checkout' ? 'checkout' : ''}`;
+        card.dataset.employeeId = data.employee.army_id;
+
+        const photoUrl = data.employee.photo || '/static/img/default-avatar.png';
+        const timeValue = data.attendance.check_in || data.attendance.check_out || 'Now';
+        const workHours = data.attendance.work_hours ? `${data.attendance.work_hours}h` : 'N/A';
+
+        card.innerHTML = `
         <div class="employee-card-header">
             <img src="/${photoUrl}" alt="Photo" class="employee-photo" onerror="this.src='/static/img/default-avatar.png'">
             <div class="flex-grow-1">
@@ -914,49 +1072,49 @@ function displayRecognitionResult(data) {
         </div>
     `;
 
-    // Add to feed (prepend)
-    feed.insertBefore(card, feed.firstChild);
+        // Add to feed (prepend)
+        feed.insertBefore(card, feed.firstChild);
 
-    // Store current card
-    currentEmployeeCard = card;
+        // Store current card
+        currentEmployeeCard = card;
 
-    // Limit to 10 cards
-    while (feed.children.length > 10) {
-        feed.removeChild(feed.lastChild);
+        // Limit to 10 cards
+        while (feed.children.length > 10) {
+            feed.removeChild(feed.lastChild);
+        }
+
+        // Auto-remove after display duration (optional)
+        // setTimeout(() => {
+        //     if (card && card.parentElement) {
+        //         card.classList.add('removing');
+        //         setTimeout(() => card.remove(), 300);
+        //     }
+        // }, CONFIG.DISPLAY_DURATION);
     }
 
-    // Auto-remove after display duration (optional)
-    // setTimeout(() => {
-    //     if (card && card.parentElement) {
-    //         card.classList.add('removing');
-    //         setTimeout(() => card.remove(), 300);
-    //     }
-    // }, CONFIG.DISPLAY_DURATION);
-}
+    function displayWarningCard(data, message) {
+        const feed = document.getElementById('activityFeed');
 
-function displayWarningCard(data, message) {
-    const feed = document.getElementById('activityFeed');
+        // Clear placeholder
+        if (feed.querySelector('.text-center')) {
+            feed.innerHTML = '';
+        }
 
-    // Clear placeholder
-    if (feed.querySelector('.text-center')) {
-        feed.innerHTML = '';
-    }
+        // Check if this employee already displayed
+        const employeeId = data.employee.army_id;
+        if (lastDisplayedEmployee === employeeId && currentEmployeeCard) {
+            return; // Don't spam warnings
+        }
 
-    // Check if this employee already displayed
-    const employeeId = data.employee.army_id;
-    if (lastDisplayedEmployee === employeeId && currentEmployeeCard) {
-        return; // Don't spam warnings
-    }
+        lastDisplayedEmployee = employeeId;
 
-    lastDisplayedEmployee = employeeId;
+        const card = document.createElement('div');
+        card.className = 'employee-card warning';
+        card.dataset.employeeId = employeeId;
 
-    const card = document.createElement('div');
-    card.className = 'employee-card warning';
-    card.dataset.employeeId = employeeId;
+        const photoUrl = data.employee.photo || '/static/img/default-avatar.png';
 
-    const photoUrl = data.employee.photo || '/static/img/default-avatar.png';
-
-    card.innerHTML = `
+        card.innerHTML = `
         <div class="employee-card-header">
             <img src="/${photoUrl}" alt="Photo" class="employee-photo" onerror="this.src='/static/img/default-avatar.png'">
             <div class="flex-grow-1">
@@ -969,112 +1127,112 @@ function displayWarningCard(data, message) {
         </div>
     `;
 
-    feed.insertBefore(card, feed.firstChild);
-    currentEmployeeCard = card;
+        feed.insertBefore(card, feed.firstChild);
+        currentEmployeeCard = card;
 
-    // Show warning status
-    showStatus(`⚠ ${data.employee.name} - ${message}`, 'warning');
-}
+        // Show warning status
+        showStatus(`⚠ ${data.employee.name} - ${message}`, 'warning');
+    }
 
-function clearEmployeeDisplay() {
-    // Clear canvas
-    clearCanvas();
+    function clearEmployeeDisplay() {
+        // Clear canvas
+        clearCanvas();
 
-    // Reset tracking
-    lastDisplayedEmployee = null;
-    currentEmployeeCard = null;
+        // Reset tracking
+        lastDisplayedEmployee = null;
+        currentEmployeeCard = null;
 
-    // Optionally clear the feed or just the first card
-    // const feed = document.getElementById('activityFeed');
-    // if (currentEmployeeCard && currentEmployeeCard.parentElement) {
-    //     currentEmployeeCard.classList.add('removing');
-    //     setTimeout(() => currentEmployeeCard.remove(), 300);
-    // }
-}
+        // Optionally clear the feed or just the first card
+        // const feed = document.getElementById('activityFeed');
+        // if (currentEmployeeCard && currentEmployeeCard.parentElement) {
+        //     currentEmployeeCard.classList.add('removing');
+        //     setTimeout(() => currentEmployeeCard.remove(), 300);
+        // }
+    }
 
-function clearActivityFeed() {
-    const feed = document.getElementById('activityFeed');
-    feed.innerHTML = `
+    function clearActivityFeed() {
+        const feed = document.getElementById('activityFeed');
+        feed.innerHTML = `
         <div class="text-center text-muted py-3">
             <i class="fas fa-user-check fa-2x mb-2"></i>
             <p class="mb-0">Waiting for faces...</p>
         </div>
     `;
-    lastDisplayedEmployee = null;
-    currentEmployeeCard = null;
-}
+        lastDisplayedEmployee = null;
+        currentEmployeeCard = null;
+    }
 
-// ============================================
-// STATUS FUNCTIONS
-// ============================================
-function showStatus(text, type) {
-    const indicator = document.getElementById('statusIndicator');
-    const statusText = document.getElementById('statusText');
+    // ============================================
+    // STATUS FUNCTIONS
+    // ============================================
+    function showStatus(text, type) {
+        const indicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
 
-    indicator.className = `status-indicator status-${type}`;
-    statusText.textContent = text;
-    indicator.style.display = 'block';
-}
+        indicator.className = `status-indicator status-${type}`;
+        statusText.textContent = text;
+        indicator.style.display = 'block';
+    }
 
-function hideStatus() {
-    document.getElementById('statusIndicator').style.display = 'none';
-}
+    function hideStatus() {
+        document.getElementById('statusIndicator').style.display = 'none';
+    }
 
-// ============================================
-// STATS FUNCTIONS
-// ============================================
-async function loadTodayStats() {
-    try {
-        const response = await fetch('{{ url_for("attendance.stats_today") }}');
-        const data = await response.json();
+    // ============================================
+    // STATS FUNCTIONS
+    // ============================================
+    async function loadTodayStats() {
+        try {
+            const response = await fetch('{{ url_for("attendance.stats_today") }}');
+            const data = await response.json();
 
-        if (data.success) {
-            document.getElementById('todayCheckIns').textContent = data.stats.check_ins || 0;
-            document.getElementById('todayCheckOuts').textContent = data.stats.check_outs || 0;
+            if (data.success) {
+                document.getElementById('todayCheckIns').textContent = data.stats.check_ins || 0;
+                document.getElementById('todayCheckOuts').textContent = data.stats.check_outs || 0;
+            }
+        } catch (error) {
+            console.error('Failed to load stats:', error);
         }
-    } catch (error) {
-        console.error('Failed to load stats:', error);
     }
-}
 
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-function playSound(type) {
-    try {
-        // Create audio context for beep sound
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
+    function playSound(type) {
+        try {
+            // Create audio context for beep sound
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
 
-        if (type === 'success') {
-            oscillator.frequency.value = 800; // Higher frequency for success
-            gainNode.gain.value = 0.3;
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.1); // Short beep
+            if (type === 'success') {
+                oscillator.frequency.value = 800; // Higher frequency for success
+                gainNode.gain.value = 0.3;
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.1); // Short beep
+            }
+        } catch (e) {
+            console.log('Audio playback not supported');
         }
-    } catch (e) {
-        console.log('Audio playback not supported');
     }
-}
 
-// ============================================
-// CLEANUP ON PAGE UNLOAD
-// ============================================
-window.addEventListener('beforeunload', function() {
-    if (isRunning) {
-        stopLiveAttendance();
-    }
-});
+    // ============================================
+    // CLEANUP ON PAGE UNLOAD
+    // ============================================
+    window.addEventListener('beforeunload', function () {
+        if (isRunning) {
+            stopLiveAttendance();
+        }
+    });
 
-// Handle window resize
-window.addEventListener('resize', function() {
-    if (isRunning) {
-        setupCanvas();
-    }
-});
+    // Handle window resize
+    window.addEventListener('resize', function () {
+        if (isRunning) {
+            setupCanvas();
+        }
+    });
 </script>
 {% endblock %}

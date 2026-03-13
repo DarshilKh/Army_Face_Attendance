@@ -73,17 +73,19 @@ class Config:
     REQUIRED_ANGLES = ['front', 'left', 'right']  # Required photo angles
 
     # ==================== CAMERA CONFIG ====================
-    # Default camera index (0 = built-in webcam)
+    # Default camera index (0 = built-in webcam, used as fallback)
     DEFAULT_CAMERA_INDEX = int(os.getenv('DEFAULT_CAMERA_INDEX', '0'))
 
     # Camera resolution
     CAMERA_WIDTH = int(os.getenv('CAMERA_WIDTH', '1280'))
     CAMERA_HEIGHT = int(os.getenv('CAMERA_HEIGHT', '720'))
 
-    # Camera URL (for IP cameras)
-    CAMERA_URL = os.getenv('CAMERA_URL', '')  # e.g., "rtsp://192.168.1.100:554/stream"
+    # Network Camera Configuration (prioritized over system webcam)
+    CAMERA_URL = os.getenv('CAMERA_URL', '')  # e.g., "http://192.168.1.65/"
+    CAMERA_USERNAME = os.getenv('CAMERA_USERNAME', '')
+    CAMERA_PASSWORD = os.getenv('CAMERA_PASSWORD', '')
 
-    # Use IP camera if URL is provided, otherwise use webcam
+    # Use network camera if URL is provided, otherwise fallback to webcam
     USE_IP_CAMERA = bool(CAMERA_URL)
 
     # Frame rate for video processing
@@ -162,8 +164,22 @@ class Config:
     # ==================== HELPER METHODS ====================
     @staticmethod
     def get_camera_source():
-        """Get camera source (URL or index)"""
+        """Get camera source (authenticated network camera URL or webcam index)"""
         if Config.USE_IP_CAMERA and Config.CAMERA_URL:
+            # Build authenticated URL if credentials are provided
+            if Config.CAMERA_USERNAME and Config.CAMERA_PASSWORD:
+                from urllib.parse import urlparse, urlunparse
+                parsed = urlparse(Config.CAMERA_URL)
+                auth_url = urlunparse((
+                    parsed.scheme,
+                    f"{quote_plus(Config.CAMERA_USERNAME)}:{quote_plus(Config.CAMERA_PASSWORD)}@{parsed.hostname}" +
+                    (f":{parsed.port}" if parsed.port else ""),
+                    parsed.path,
+                    parsed.params,
+                    parsed.query,
+                    parsed.fragment
+                ))
+                return auth_url
             return Config.CAMERA_URL
         return Config.DEFAULT_CAMERA_INDEX
 

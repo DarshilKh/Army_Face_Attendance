@@ -1,4 +1,8 @@
-.venv/
+/.venv
 .env
 .idea/
 __pycache__/
+.env
+logs
+static/uploads/attendance
+static/uploads/employees

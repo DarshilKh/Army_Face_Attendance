@@ -7,8 +7,11 @@ def register_blueprints(app):
     from routes.registration import registration_bp
     from routes.attendance import attendance_bp
     from routes.reports import reports_bp
+    from routes.camera import camera_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(registration_bp)
     app.register_blueprint(attendance_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(camera_bp)
+
