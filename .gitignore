@@ -6,3 +6,4 @@ __pycache__/
 logs
 static/uploads/attendance
 static/uploads/employees
+*.pkl

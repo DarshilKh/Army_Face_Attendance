@@ -593,7 +593,16 @@ class FaceRecognitionEngine:
                 del self.embeddings_db[k]
                 app_logger.info(f"Deleted embedding: {k}")
 
-            return self._save_embeddings()
+            saved = self._save_embeddings()
+
+            # Recompute the numpy arrays so recognition stops matching this employee immediately
+            self._precompute_embeddings_array()
+
+            # Also clear recognition caches to prevent stale matches
+            self.recognition_cache.clear()
+
+            app_logger.info(f"Embeddings deleted and arrays recomputed for: {employee_id}")
+            return saved
 
         except Exception as e:
             app_logger.error(f"Delete error: {e}")

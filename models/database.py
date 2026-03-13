@@ -48,6 +48,7 @@ class Employee(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     attendances = db.relationship('Attendance', backref='employee', lazy='dynamic', cascade='all, delete-orphan')
+    face_attempts = db.relationship('FaceAttempt', backref='employee_ref', lazy='dynamic', cascade='all, delete-orphan')
 
 
 class Attendance(db.Model):

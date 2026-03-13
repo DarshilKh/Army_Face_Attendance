@@ -546,6 +546,7 @@ def delete_employee(employee_id):
 
         army_id = employee.army_id
         full_name = employee.full_name
+        emp_id = employee.id
 
         # Delete face embedding
         face_engine.delete_embedding(employee.army_id)
@@ -572,9 +573,35 @@ def delete_employee(employee_id):
         )
         db.session.add(audit)
 
-        # Delete employee
+        # Delete employee (cascade will also delete attendance & face_attempts)
         db.session.delete(employee)
         db.session.commit()
+
+        # Clear all in-memory caches so deleted employee data doesn't persist
+        try:
+            from routes.attendance import (
+                employee_cache, attendance_cache, last_recognized_cache
+            )
+            # Remove this employee from employee cache
+            if army_id in employee_cache:
+                del employee_cache[army_id]
+            # Remove attendance cache for this employee
+            if emp_id in attendance_cache:
+                del attendance_cache[emp_id]
+            # Remove from last recognized cache (check all sessions)
+            sessions_to_clear = [
+                sid for sid, eid in last_recognized_cache.items()
+                if eid == army_id
+            ]
+            for sid in sessions_to_clear:
+                del last_recognized_cache[sid]
+
+            # Clear face engine caches as well
+            face_engine.clear_caches()
+
+            app_logger.info(f"Caches cleared for deleted employee: {army_id}")
+        except Exception as cache_err:
+            app_logger.warning(f"Cache clear warning (non-critical): {cache_err}")
 
         app_logger.info(f"Employee deleted: {army_id} - {full_name}")
 
