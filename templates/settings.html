@@ -40,32 +40,32 @@
                             <div class="mb-3">
                                 <label class="form-label">Camera Source</label>
                                 <select class="form-select" id="cameraSource" name="camera_source">
-                                    <option value="0">Built-in Camera (0)</option>
-                                    <option value="1">External Camera 1</option>
-                                    <option value="2">External Camera 2</option>
-                                    <option value="url">IP Camera (RTSP/HTTP)</option>
+                                    <option value="0" {{ 'selected' if settings.camera_source == '0' }}>Built-in Camera (0)</option>
+                                    <option value="1" {{ 'selected' if settings.camera_source == '1' }}>External Camera 1</option>
+                                    <option value="2" {{ 'selected' if settings.camera_source == '2' }}>External Camera 2</option>
+                                    <option value="url" {{ 'selected' if settings.camera_source == 'url' }}>IP Camera (RTSP/HTTP)</option>
                                 </select>
                             </div>
 
                             <div class="mb-3" id="cameraUrlGroup" style="display:none;">
                                 <label class="form-label">Camera URL</label>
                                 <input type="text" class="form-control" id="cameraUrl" name="camera_url"
-                                       placeholder="rtsp://192.168.1.100:554/stream">
+                                       placeholder="rtsp://192.168.1.100:554/stream" value="{{ settings.camera_url }}">
                                 <small class="text-muted">Example: rtsp://username:password@192.168.1.100:554/stream</small>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Resolution</label>
                                 <select class="form-select" name="resolution">
-                                    <option value="640x480">640x480 (VGA)</option>
-                                    <option value="1280x720" selected>1280x720 (HD)</option>
-                                    <option value="1920x1080">1920x1080 (Full HD)</option>
+                                    <option value="640x480" {{ 'selected' if settings.resolution == '640x480' }}>640x480 (VGA)</option>
+                                    <option value="1280x720" {{ 'selected' if settings.resolution == '1280x720' }}>1280x720 (HD)</option>
+                                    <option value="1920x1080" {{ 'selected' if settings.resolution == '1920x1080' }}>1920x1080 (Full HD)</option>
                                 </select>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Frame Rate (FPS)</label>
-                                <input type="number" class="form-control" name="fps" value="30" min="15" max="60">
+                                <input type="number" class="form-control" name="fps" value="{{ settings.fps }}" min="15" max="60">
                             </div>
 
                             <button type="button" class="btn btn-primary me-2" onclick="testCamera()">
@@ -100,22 +100,22 @@
                             <div class="mb-3">
                                 <label class="form-label">Matching Threshold (0.1 - 1.0)</label>
                                 <input type="range" class="form-range" id="threshold" name="threshold"
-                                       min="0.1" max="1.0" step="0.05" value="0.6">
+                                       min="0.1" max="1.0" step="0.05" value="{{ settings.threshold }}">
                                 <div class="d-flex justify-content-between">
                                     <small>Strict (0.1)</small>
-                                    <small id="thresholdValue">0.6</small>
+                                    <small id="thresholdValue">{{ settings.threshold }}</small>
                                     <small>Relaxed (1.0)</small>
                                 </div>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Minimum Face Size (pixels)</label>
-                                <input type="number" class="form-control" name="min_face_size" value="40" min="20" max="200">
+                                <input type="number" class="form-control" name="min_face_size" value="{{ settings.min_face_size }}" min="20" max="200">
                             </div>
 
                             <div class="mb-3">
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="livenessDetection" checked>
+                                    <input class="form-check-input" type="checkbox" id="livenessDetection" {{ 'checked' if settings.liveness_detection == 'true' }}>
                                     <label class="form-check-label" for="livenessDetection">
                                         Enable Liveness Detection (Anti-Spoofing)
                                     </label>
@@ -150,28 +150,28 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Work Start Time</label>
-                                    <input type="time" class="form-control" name="work_start" value="08:00">
+                                    <input type="time" class="form-control" name="work_start" value="{{ settings.work_start }}">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Work End Time</label>
-                                    <input type="time" class="form-control" name="work_end" value="17:00">
+                                    <input type="time" class="form-control" name="work_end" value="{{ settings.work_end }}">
                                 </div>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Late Threshold (minutes)</label>
-                                <input type="number" class="form-control" name="late_threshold" value="15" min="0" max="60">
+                                <input type="number" class="form-control" name="late_threshold" value="{{ settings.late_threshold }}" min="0" max="60">
                                 <small class="text-muted">Mark as late if check-in is after this many minutes</small>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Half Day Hours</label>
-                                    <input type="number" class="form-control" name="half_day_hours" value="4" min="1" max="12" step="0.5">
+                                    <input type="number" class="form-control" name="half_day_hours" value="{{ settings.half_day_hours }}" min="1" max="12" step="0.5">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Full Day Hours</label>
-                                    <input type="number" class="form-control" name="full_day_hours" value="8" min="1" max="24" step="0.5">
+                                    <input type="number" class="form-control" name="full_day_hours" value="{{ settings.full_day_hours }}" min="1" max="24" step="0.5">
                                 </div>
                             </div>
 
@@ -203,13 +203,13 @@
                         <form id="systemSettingsForm">
                             <div class="mb-3">
                                 <label class="form-label">Session Timeout (seconds)</label>
-                                <input type="number" class="form-control" name="session_timeout" value="1800" min="300" max="7200">
+                                <input type="number" class="form-control" name="session_timeout" value="{{ settings.session_timeout }}" min="300" max="7200">
                                 <small class="text-muted">Users will be logged out after this period of inactivity</small>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Maximum Login Attempts</label>
-                                <input type="number" class="form-control" name="max_login_attempts" value="3" min="1" max="10">
+                                <input type="number" class="form-control" name="max_login_attempts" value="{{ settings.max_login_attempts }}" min="1" max="10">
                             </div>
 
                             <div class="mb-3">
@@ -224,10 +224,10 @@
                             <div class="mb-3">
                                 <label class="form-label">Log Level</label>
                                 <select class="form-select" name="log_level">
-                                    <option value="DEBUG">DEBUG (Detailed)</option>
-                                    <option value="INFO" selected>INFO (Standard)</option>
-                                    <option value="WARNING">WARNING (Important Only)</option>
-                                    <option value="ERROR">ERROR (Errors Only)</option>
+                                    <option value="DEBUG" {{ 'selected' if settings.log_level == 'DEBUG' }}>DEBUG (Detailed)</option>
+                                    <option value="INFO" {{ 'selected' if settings.log_level == 'INFO' }}>INFO (Standard)</option>
+                                    <option value="WARNING" {{ 'selected' if settings.log_level == 'WARNING' }}>WARNING (Important Only)</option>
+                                    <option value="ERROR" {{ 'selected' if settings.log_level == 'ERROR' }}>ERROR (Errors Only)</option>
                                 </select>
                             </div>
 
@@ -313,40 +313,68 @@ function stopPreview() {
     document.getElementById('cameraPreview').style.display = 'none';
 }
 
-// Save Settings Forms
+// Save Settings Forms — REAL API CALLS
 document.querySelectorAll('form').forEach(form => {
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
         showLoading('Saving settings...');
 
         const formData = new FormData(this);
+        const data = {};
+        formData.forEach((value, key) => { data[key] = value; });
 
-        // Simulate save (replace with actual API call)
-        setTimeout(() => {
+        // Handle checkboxes (unchecked ones don't appear in FormData)
+        const checkboxes = this.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            if (cb.id === 'livenessDetection') data['liveness_detection'] = cb.checked;
+            if (cb.id === 'autoBackup') data['auto_backup'] = cb.checked;
+            if (cb.id === 'autoCheckout') data['auto_checkout'] = cb.checked;
+        });
+
+        try {
+            const response = await fetch('/settings/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
             hideLoading();
-            alert('✓ Settings saved successfully!');
-        }, 1000);
+            if (result.success) {
+                alert('✓ ' + result.message);
+            } else {
+                alert('✗ Error: ' + result.message);
+            }
+        } catch (error) {
+            hideLoading();
+            alert('✗ Failed to save: ' + error.message);
+        }
     });
 });
 
-// System Actions
-function clearCache() {
+// System Actions — REAL API CALLS
+async function clearCache() {
     if (confirm('Are you sure you want to clear all cache?')) {
         showLoading('Clearing cache...');
-        setTimeout(() => {
+        try {
+            const response = await fetch('/attendance/cache/clear', { method: 'POST' });
+            const result = await response.json();
             hideLoading();
-            alert('✓ Cache cleared successfully!');
-        }, 1000);
+            alert(result.success ? '✓ Cache cleared successfully!' : '✗ ' + result.message);
+        } catch (error) {
+            hideLoading();
+            alert('✗ Failed to clear cache: ' + error.message);
+        }
     }
 }
 
 function backupDatabase() {
     if (confirm('Start database backup now?')) {
         showLoading('Creating backup...');
+        // TODO: Implement actual backup endpoint
         setTimeout(() => {
             hideLoading();
-            alert('✓ Database backup completed!');
-        }, 2000);
+            alert('⚠ Database backup feature not yet implemented on backend.');
+        }, 1000);
     }
 }
 
@@ -355,9 +383,8 @@ function resetSystem() {
         showLoading('Resetting settings...');
         setTimeout(() => {
             hideLoading();
-            alert('✓ Settings reset to default!');
-            location.reload();
-        }, 1500);
+            alert('⚠ Reset to defaults feature not yet implemented.');
+        }, 1000);
     }
 }
 </script>

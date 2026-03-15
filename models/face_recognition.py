@@ -40,9 +40,13 @@ class FaceRecognitionEngine:
                     cls._instance = super().__new__(cls)
         return cls._instance
 
+    _init_lock = threading.Lock()
+
     def __init__(self):
         """Initialize engine - ULTRA OPTIMIZED"""
-        if not hasattr(self, 'initialized'):
+        with self._init_lock:
+            if getattr(self, 'initialized', False):
+                return
             try:
                 app_logger.info("🚀 Face Recognition Engine v5.0 - INSTANT DETECTION")
 
@@ -451,10 +455,10 @@ class FaceRecognitionEngine:
     # ============================================
 
     def _generate_face_hash(self, embedding: np.ndarray) -> str:
-        """Quick hash for caching"""
+        """Quick hash for caching (Bug #11 fix: use full embedding MD5)"""
         try:
-            # Use first 16 values for hash (faster)
-            return str(hash(embedding[:16].tobytes()))
+            import hashlib
+            return hashlib.md5(embedding.tobytes()).hexdigest()
         except:
             return str(time.time())
 
@@ -510,13 +514,21 @@ class FaceRecognitionEngine:
             if confidence < 0.3:
                 return False, f"Face quality too low ({confidence:.0%}). Use better lighting.", None
 
-            # Check duplicates
+            # Check duplicates (Bug #13 fix: exclude same employee)
             if self.embeddings_array is not None and len(self.embeddings_array) > 0:
-                similarities = cosine_similarity([embedding], self.embeddings_array)[0]
-                max_similarity = np.max(similarities)
+                # Find indices of embeddings NOT belonging to this employee
+                other_indices = [
+                    i for i, emp_id in enumerate(self.employee_ids_array)
+                    if emp_id != employee_id
+                ]
 
-                if max_similarity > 0.75:  # 75% similar = duplicate
-                    return False, f"Face already registered ({max_similarity:.0%} similar)", None
+                if other_indices:
+                    other_embeddings = self.embeddings_array[other_indices]
+                    similarities = cosine_similarity([embedding], other_embeddings)[0]
+                    max_similarity = np.max(similarities)
+
+                    if max_similarity > 0.75:  # 75% similar = duplicate to someone else
+                        return False, f"Face already registered to someone else ({max_similarity:.0%} similar)", None
 
             # Store
             embedding_id = f"EMB_{employee_id}_{int(time.time() * 1000)}"

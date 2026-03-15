@@ -97,7 +97,7 @@ The `.env` file contains:
 - Camera credentials: `admin / admin123`
 - Secret key placeholder text
 
-While `.env` is in `.gitignore`, it's currently trackable. The `.gitignore` lists `.env` **twice** (line 2 and 5), suggesting confusion about whether it's tracked.
+While `.env` is in `.gitignore`, it's currently trackable.
 
 ---
 
@@ -105,6 +105,52 @@ While `.env` is in `.gitignore`, it's currently trackable. The `.gitignore` list
 **File:** `routes/reports.py` (L48, L102, L158, L203)
 
 The reports route renders templates like `reports/index.html`, `reports/daily.html`, `reports/monthly.html`, `reports/employee.html`, but the `templates/` directory has only `reports.html` at the root level — **no `reports/` subdirectory exists**. These endpoints will crash with `TemplateNotFound`.
+
+---
+
+### 6a. 🚨 Settings Page is Entirely Fake — No Backend Save Logic
+**Files:** `templates/settings.html` (L316-329), `routes/auth.py` (L156-163)
+
+The Settings page (`/settings`) has **4 forms** for:
+- Camera Settings (source, resolution, FPS)
+- Face Recognition Settings (threshold, min face size, liveness toggle)
+- Attendance Rules (work start/end time, late threshold, **half day hours**, **full day hours**, auto checkout)
+- System Settings (session timeout, max login attempts, auto backup, log level)
+
+**None of these forms actually save anything.** All 4 Submit buttons use the same JS handler:
+
+```javascript
+// Simulate save (replace with actual API call)
+setTimeout(() => {
+    hideLoading();
+    alert('✓ Settings saved successfully!');
+}, 1000);
+```
+
+They display a fake "Settings saved successfully!" alert after 1 second without making any API call. Similarly, the "Clear Cache", "Backup Database", and "Reset to Default" buttons are all fake `setTimeout` stubs that do nothing.
+
+**Impact:** Admins think they're changing settings like half day hours, work times, and face thresholds, but nothing actually persists. All values remain hardcoded in `config.py` or `.env`.
+
+**Fix:** Create backend `/api/settings/save` endpoints that:
+1. Validate the settings
+2. Store them in the `system_settings` database table (which already exists but is never used)
+3. Update the runtime `Config` values
+4. Return actual confirmation
+
+---
+
+### 6b. Settings Form Values Don't Load from Current Config
+**File:** `templates/settings.html`
+
+All form fields have **hardcoded default values** in the HTML (e.g., `value="0.6"` for threshold, `value="08:00"` for work start). The settings page is rendered by a GET-only route (`routes/auth.py` L156-163) that passes **no context data** to the template:
+
+```python
+@auth_bp.route('/settings')
+def settings():
+    return render_template('settings.html')  # No data passed!
+```
+
+Even if the user had previously changed settings (e.g., threshold to 0.3 in `.env`), the form would show the hardcoded `0.6`. The correct values never load.
 
 ---
 
@@ -217,6 +263,52 @@ This checks against **all** embeddings including the employee's own previous ang
 Every call to `_capture_from_system()` opens a new `VideoCapture`, reads one frame, and releases it. This is extremely slow (hundreds of milliseconds per frame) and causes visible delays and flickering when using the system webcam for streaming.
 
 **Fix:** Keep the `VideoCapture` instance open and reuse it across frames.
+
+---
+
+### 14a. Employee Deletion Does NOT Clean Up Attendance Photos
+**File:** `routes/registration.py` (L534-620)
+
+When an employee is deleted, the code deletes:
+- ✅ Face embeddings from `embeddings.pkl`
+- ✅ Employee registration photos (`static/uploads/employees/<army_id>/`)
+- ✅ Database records (cascade: attendance, face_attempts)
+- ✅ In-memory caches
+- ❌ **Attendance photos are NOT deleted** (`static/uploads/attendance/<date>/<army_id>_*.jpg`)
+
+Attendance photos are stored in date-based folders like `static/uploads/attendance/2026-03-15/ARM001_20260315_090000.jpg`. Since attendance DB records are cascade-deleted, these photos become orphaned files that accumulate on disk with no way to clean them up.
+
+**Fix:** Before deleting the employee, query their attendance records, collect all `check_in_photo` and `check_out_photo` paths, and delete those files:
+
+```python
+# Delete attendance photos
+attendance_records = Attendance.query.filter_by(employee_id=employee.id).all()
+for att in attendance_records:
+    for photo_attr in ['check_in_photo', 'check_out_photo']:
+        photo = getattr(att, photo_attr)
+        if photo and os.path.exists(photo):
+            os.remove(photo)
+```
+
+---
+
+### 14b. Deactivated Employee Can Still Be Recognized for Attendance
+**Files:** `routes/registration.py` (L486-531), `models/face_recognition.py`
+
+When toggling employee status to **inactive** (`toggle_employee_status`), the code only flips `.is_active = False` in the database. It does **NOT**:
+- Remove or disable the face embedding from `embeddings.pkl`
+- Clear the recognition cache
+
+The face recognition engine will still match the deactivated employee's face. The attendance route does check `is_active=True` when querying by `army_id`, but reveals confusing behavior: the face is recognized (green box, name shown), but then fails with "Employee not found in database" since the cached query filters by `is_active=True`.
+
+**Fix:** When deactivating, also remove embeddings (or flag them). When reactivating, re-register:
+```python
+if not employee.is_active:  # Just deactivated
+    face_engine.delete_embedding(employee.army_id)
+else:  # Just reactivated
+    if employee.photo_path:
+        face_engine.register_face(employee.army_id, employee.photo_path)
+```
 
 ---
 
@@ -575,11 +667,11 @@ For deployment in military environments, containerization would ensure consisten
 
 | Category | Count | Severity |
 |---|---|---|
-| 🔴 Critical Bugs | 6 | Immediate fix required |
-| 🟠 Major Bugs | 8 | Should fix before deployment |
+| 🔴 Critical Bugs | 8 | Immediate fix required |
+| 🟠 Major Bugs | 10 | Should fix before deployment |
 | 🟡 Minor Bugs | 8 | Fix when possible |
 | 🔒 Security Vulnerabilities | 9 | Critical for military system |
 | ⚡ Performance Issues | 4 | Degrades user experience |
 | 🏗️ Architecture Issues | 7 | Long-term maintainability |
 | ✨ Feature Improvements | 10 | Enhance system capabilities |
-| **Total** | **52** | — |
+| **Total** | **56** | — |

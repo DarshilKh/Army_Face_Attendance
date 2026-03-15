@@ -45,10 +45,47 @@ def index():
             'month_total': month_attendance
         }
 
-        return render_template('reports/index.html', stats=stats)
+        return render_template('reports.html', stats=stats)
     except Exception as e:
         app_logger.error(f"Error loading reports page: {e}", exc_info=True)
         return render_template('error.html', error_message=str(e)), 500
+
+
+@reports_bp.route('/analytics')
+@login_required
+def analytics():
+    """Advanced analytics page (placeholder)"""
+    return render_template('reports.html')
+
+
+@reports_bp.route('/audit-logs')
+@login_required
+def audit_logs():
+    """Audit logs page"""
+    from models.database import AuditLog
+    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(100).all()
+    return render_template('reports.html', audit_logs=logs)
+
+
+@reports_bp.route('/generate', methods=['POST'])
+@login_required
+def generate_report():
+    """Generate and download attendance report"""
+    try:
+        data = request.get_json()
+        report_type = data.get('format', 'excel')
+        start_date_str = data.get('start_date')
+        end_date_str = data.get('end_date')
+
+        start = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+
+        # Reuse the Excel download logic
+        return download_daily_excel(start_date_str)
+
+    except Exception as e:
+        app_logger.error(f"Error generating report: {e}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
 
 
 @reports_bp.route('/daily', methods=['GET'])
@@ -99,7 +136,7 @@ def daily_report():
             'percentage': round(attendance_percentage, 1)
         }
 
-        return render_template('reports/daily.html',
+        return render_template('reports.html',
                                report_data=report_data,
                                report_date=report_date,
                                stats=stats)
@@ -155,7 +192,7 @@ def monthly_report():
         # Sort by percentage
         report_data.sort(key=lambda x: x['percentage'], reverse=True)
 
-        return render_template('reports/monthly.html',
+        return render_template('reports.html',
                                report_data=report_data,
                                month=month,
                                month_name=start_date.strftime('%B %Y'))
@@ -200,7 +237,7 @@ def employee_report(army_id):
             'half_day': sum(1 for a in attendance_records if a.status == 'half_day')
         }
 
-        return render_template('reports/employee.html',
+        return render_template('reports.html',
                                employee=employee,
                                attendance_records=attendance_records,
                                stats=stats,

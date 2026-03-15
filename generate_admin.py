@@ -1,11 +1,19 @@
 from werkzeug.security import generate_password_hash
 import pymysql
+import os
 
-# Password jo set karna hai
-password = "admin123"
+# Load .env if python-dotenv is available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
-# Hash generate karo
-password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+# Consistent password (same as app.py CLI create_admin command)
+password = "Admin@123"
+
+# Hash generate (same method as app.py)
+password_hash = generate_password_hash(password, method='scrypt')
 
 print(f"Generated hash for password '{password}':")
 print(password_hash)
@@ -19,10 +27,10 @@ WHERE username = 'admin';
 # Database me directly update karo (optional)
 try:
     conn = pymysql.connect(
-        host='localhost',
-        user='root',  # Your MySQL username
-        password='123@',  # Your MySQL password
-        database='army_attendance'
+        host=os.getenv('DB_HOST', 'localhost'),
+        user=os.getenv('DB_USER', 'root'),
+        password=os.getenv('DB_PASSWORD', ''),
+        database=os.getenv('DB_NAME', 'army_attendance')
     )
     cursor = conn.cursor()
 

@@ -298,7 +298,7 @@ if __name__ == '__main__':
         print("   → Network camera: Not configured")
     print("\n⚠️  DEFAULT LOGIN CREDENTIALS:")
     print("   Username: admin")
-    print("   Password: admin123")
+    print("   Password: Admin@123")
     print("\n⚠️  SECURITY WARNING:")
     print("   → Change password immediately after first login")
     print("   → This is a development server - use production WSGI for deployment")

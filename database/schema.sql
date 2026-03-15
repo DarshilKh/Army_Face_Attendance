@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS attendance (
     liveness_score_in FLOAT,
     liveness_score_out FLOAT,
     confidence_score FLOAT,
+    work_hours FLOAT DEFAULT 0.0,
     ip_address VARCHAR(45),
     device_info VARCHAR(255),
     remarks TEXT,

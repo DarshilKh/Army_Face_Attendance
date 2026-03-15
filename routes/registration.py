@@ -394,12 +394,14 @@ def list_employees():
 
         # Apply search filter
         if search:
+            # Escape SQL LIKE special characters to prevent pattern injection
+            escaped_search = search.replace('%', '\\%').replace('_', '\\_')
             query = query.filter(
                 db.or_(
-                    Employee.army_id.like(f'%{search}%'),
-                    Employee.full_name.like(f'%{search}%'),
-                    Employee.phone.like(f'%{search}%'),
-                    Employee.email.like(f'%{search}%')
+                    Employee.army_id.like(f'%{escaped_search}%', escape='\\'),
+                    Employee.full_name.like(f'%{escaped_search}%', escape='\\'),
+                    Employee.phone.like(f'%{escaped_search}%', escape='\\'),
+                    Employee.email.like(f'%{escaped_search}%', escape='\\')
                 )
             )
 
@@ -500,6 +502,31 @@ def toggle_employee_status(employee_id):
 
         db.session.commit()
 
+        # Bug #14b fix: Sync face embeddings with activation status
+        # Deactivated employees should NOT be recognized by the face engine
+        try:
+            if not employee.is_active:
+                # Deactivated — remove face embedding so camera stops recognizing them
+                face_engine.delete_embedding(employee.army_id)
+                app_logger.info(f"Removed face embedding for deactivated employee: {employee.army_id}")
+            else:
+                # Reactivated — re-register face from existing photo
+                if employee.photo_path and os.path.exists(employee.photo_path):
+                    face_engine.register_face(employee.army_id, employee.photo_path)
+                    app_logger.info(f"Re-registered face for reactivated employee: {employee.army_id}")
+                else:
+                    app_logger.warning(f"Cannot re-register face for {employee.army_id}: no photo found")
+
+            # Clear in-memory caches
+            from routes.attendance import employee_cache, attendance_cache, last_recognized_cache
+            if employee.army_id in employee_cache:
+                del employee_cache[employee.army_id]
+            if employee.id in attendance_cache:
+                del attendance_cache[employee.id]
+            face_engine.clear_caches()
+        except Exception as cache_err:
+            app_logger.warning(f"Face embedding/cache sync warning: {cache_err}")
+
         # Log audit
         audit = AuditLog(
             user_id=current_user.id,
@@ -551,7 +578,7 @@ def delete_employee(employee_id):
         # Delete face embedding
         face_engine.delete_embedding(employee.army_id)
 
-        # Delete photo files
+        # Delete employee registration photo files
         if employee.photo_path and os.path.exists(employee.photo_path):
             try:
                 # Delete entire folder
@@ -560,7 +587,24 @@ def delete_employee(employee_id):
                 shutil.rmtree(folder, ignore_errors=True)
                 app_logger.info(f"Deleted photo folder: {folder}")
             except Exception as e:
-                app_logger.warning(f"Could not delete photos: {e}")
+                app_logger.warning(f"Could not delete registration photos: {e}")
+
+        # Delete attendance photos from disk (Bug #14a fix)
+        # Must be done BEFORE cascade-deleting the employee, since cascade
+        # deletes the Attendance records and we lose the photo paths
+        try:
+            attendance_records = Attendance.query.filter_by(employee_id=employee.id).all()
+            deleted_photos = 0
+            for att in attendance_records:
+                for photo_attr in ['check_in_photo', 'check_out_photo']:
+                    photo_path = getattr(att, photo_attr, None)
+                    if photo_path and os.path.exists(photo_path):
+                        os.remove(photo_path)
+                        deleted_photos += 1
+            if deleted_photos:
+                app_logger.info(f"Deleted {deleted_photos} attendance photos for employee {army_id}")
+        except Exception as e:
+            app_logger.warning(f"Could not delete attendance photos: {e}")
 
         # Log audit
         audit = AuditLog(

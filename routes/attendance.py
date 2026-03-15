@@ -38,15 +38,20 @@ DEFAULT_FULL_DAY_HOURS = 8.0
 # GLOBAL CACHES - ULTRA FAST
 # ============================================
 
+import threading
+
 # Session tracking
 last_recognized_cache = {}  # {session_id: employee_id}
+last_recognized_lock = threading.Lock()
 
 # Employee object cache (10 min TTL)
-employee_cache = {}  # {army_id: (employee_obj, timestamp)}
+employee_cache = {}  # {army_id: (employee_dict, timestamp)}
+employee_cache_lock = threading.Lock()
 EMPLOYEE_CACHE_TTL = 600  # 10 minutes
 
 # Attendance cache (1 min TTL)
 attendance_cache = {}  # {employee_id: (attendance_data, timestamp)}
+attendance_cache_lock = threading.Lock()
 ATTENDANCE_CACHE_TTL = 60  # 1 minute
 
 
@@ -119,31 +124,43 @@ def get_employee_cached(army_id: str) -> Optional[Employee]:
     """
     Get employee with aggressive caching - ULTRA FAST
 
-    Cache TTL: 10 minutes
     """
     try:
         current_time = datetime.now().timestamp()
 
         # Check cache
-        if army_id in employee_cache:
-            employee, cached_time = employee_cache[army_id]
+        with employee_cache_lock:
+            if army_id in employee_cache:
+                employee_data, cached_time = employee_cache[army_id]
 
-            # Valid cache?
-            if current_time - cached_time < EMPLOYEE_CACHE_TTL:
-                return employee
-            else:
-                # Expired - remove
-                del employee_cache[army_id]
+                # Valid cache?
+                if current_time - cached_time < EMPLOYEE_CACHE_TTL:
+                    # Hydrate an active SQLAlchemy model for use (Bug #10 fix)
+                    emp = Employee(**employee_data)
+                    # We merge to attach it to the current session
+                    return db.session.merge(emp, load=False)
+                else:
+                    # Expired
+                    del employee_cache[army_id]
 
-        # Query database
+        # Query database - optimized
         employee = Employee.query.filter_by(
             army_id=army_id,
             is_active=True
         ).first()
 
-        # Cache result
+        # Cache result as dict (Bug #10 fix)
         if employee:
-            employee_cache[army_id] = (employee, current_time)
+            emp_dict = {
+                'id': employee.id,
+                'army_id': employee.army_id,
+                'full_name': employee.full_name,
+                'rank': employee.rank,
+                'unit': employee.unit,
+                'is_active': employee.is_active
+            }
+            with employee_cache_lock:
+                employee_cache[army_id] = (emp_dict, current_time)
 
         return employee
 
@@ -162,15 +179,16 @@ def get_attendance_today_cached(employee_id: int) -> Optional[Dict]:
         current_time = datetime.now().timestamp()
 
         # Check cache
-        if employee_id in attendance_cache:
-            attendance_data, cached_time = attendance_cache[employee_id]
+        with attendance_cache_lock:
+            if employee_id in attendance_cache:
+                attendance_data, cached_time = attendance_cache[employee_id]
 
-            # Valid cache?
-            if current_time - cached_time < ATTENDANCE_CACHE_TTL:
-                return attendance_data
-            else:
-                # Expired
-                del attendance_cache[employee_id]
+                # Valid cache?
+                if current_time - cached_time < ATTENDANCE_CACHE_TTL:
+                    return attendance_data
+                else:
+                    # Expired
+                    del attendance_cache[employee_id]
 
         # Query database
         today = date.today()
@@ -194,7 +212,8 @@ def get_attendance_today_cached(employee_id: int) -> Optional[Dict]:
             attendance_data = None
 
         # Cache result
-        attendance_cache[employee_id] = (attendance_data, current_time)
+        with attendance_cache_lock:
+            attendance_cache[employee_id] = (attendance_data, current_time)
 
         return attendance_data
 
@@ -205,8 +224,9 @@ def get_attendance_today_cached(employee_id: int) -> Optional[Dict]:
 
 def invalidate_attendance_cache(employee_id: int):
     """Invalidate attendance cache after update"""
-    if employee_id in attendance_cache:
-        del attendance_cache[employee_id]
+    with attendance_cache_lock:
+        if employee_id in attendance_cache:
+            del attendance_cache[employee_id]
 
 
 def save_attendance_photo(employee_army_id: str, frame: np.ndarray) -> str:
@@ -457,7 +477,8 @@ def mark_attendance():
 
             # Clear cache
             if should_clear:
-                last_recognized_cache[session_id] = None
+                with last_recognized_lock:
+                    last_recognized_cache[session_id] = None
 
             # Build appropriate message
             if status_message == "NO_FACE":
@@ -500,7 +521,8 @@ def mark_attendance():
         is_new_face = (last_recognized != employee_id)
 
         if is_new_face:
-            last_recognized_cache[session_id] = employee_id
+            with last_recognized_lock:
+                last_recognized_cache[session_id] = employee_id
 
         # ============================================
         # STEP 6: HANDLE UI COOLDOWN (1 second)
@@ -777,10 +799,12 @@ def view_attendance():
     if status_filter:
         query = query.filter(Attendance.status == status_filter)
     if search:
+        # Escape SQL LIKE special characters to prevent pattern injection
+        escaped_search = search.replace('%', '\\%').replace('_', '\\_')
         query = query.filter(
             db.or_(
-                Employee.army_id.like(f'%{search}%'),
-                Employee.full_name.like(f'%{search}%')
+                Employee.army_id.like(f'%{escaped_search}%', escape='\\'),
+                Employee.full_name.like(f'%{escaped_search}%', escape='\\')
             )
         )
 
@@ -926,7 +950,8 @@ def health_check():
     """
     try:
         # Check database
-        db.session.execute('SELECT 1')
+        from sqlalchemy import text
+        db.session.execute(text('SELECT 1'))
 
         # Check face engine
         stats = face_engine.get_statistics()

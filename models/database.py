@@ -66,6 +66,7 @@ class Attendance(db.Model):
     liveness_score_in = db.Column(db.Float)
     liveness_score_out = db.Column(db.Float)
     confidence_score = db.Column(db.Float)
+    work_hours = db.Column(db.Float, default=0.0)
     ip_address = db.Column(db.String(45))
     device_info = db.Column(db.String(255))
     remarks = db.Column(db.Text)

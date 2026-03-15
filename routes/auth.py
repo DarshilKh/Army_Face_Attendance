@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from models import db
 from models.database import User, AuditLog
@@ -63,6 +63,12 @@ def login():
                 flash(f'स्वागत है {user.full_name} / Welcome {user.full_name}', 'success')
 
                 next_page = request.args.get('next')
+                # Bug #12 fix: Prevent open redirect — only allow relative URLs
+                if next_page:
+                    from urllib.parse import urlparse
+                    parsed = urlparse(next_page)
+                    if parsed.netloc or parsed.scheme:
+                        next_page = None  # Reject absolute URLs
                 return redirect(next_page if next_page else url_for('auth.dashboard'))
             else:
                 # Increment failed attempts
@@ -153,14 +159,143 @@ def dashboard():
                            stats=stats,
                            recent_attendance=recent_attendance,
                            units=units)
+
+
 @auth_bp.route('/settings')
 @login_required
 def settings():
-    """System settings page"""
+    """System settings page — loads current config values"""
     if current_user.role != 'admin':
         flash('Access denied. Admin only.', 'error')
         return redirect(url_for('auth.dashboard'))
-    return render_template('settings.html')
+
+    # Load current settings from DB, fallback to Config defaults
+    current_settings = _load_settings()
+    return render_template('settings.html', settings=current_settings)
+
+
+def _load_settings():
+    """Load settings from system_settings table with Config defaults as fallback"""
+    from config import Config
+
+    defaults = {
+        'camera_source': str(Config.DEFAULT_CAMERA_INDEX),
+        'camera_url': Config.CAMERA_URL or '',
+        'resolution': f"{Config.CAMERA_RESOLUTION[0]}x{Config.CAMERA_RESOLUTION[1]}",
+        'fps': str(Config.CAMERA_FPS),
+        'threshold': str(Config.FACE_THRESHOLD),
+        'min_face_size': str(Config.MIN_FACE_SIZE),
+        'liveness_detection': str(Config.LIVENESS_REQUIRED).lower(),
+        'work_start': Config.WORK_START_TIME,
+        'work_end': Config.WORK_END_TIME,
+        'late_threshold': str(Config.LATE_THRESHOLD_MINUTES),
+        'half_day_hours': str(Config.HALF_DAY_HOURS),
+        'full_day_hours': str(Config.FULL_DAY_HOURS),
+        'session_timeout': str(Config.SESSION_TIMEOUT),
+        'max_login_attempts': str(Config.MAX_LOGIN_ATTEMPTS),
+        'log_level': Config.LOG_LEVEL,
+    }
+
+    # Override with any values from the database
+    try:
+        from models.database import SystemSetting
+        db_settings = SystemSetting.query.all()
+        for s in db_settings:
+            if s.setting_key in defaults:
+                defaults[s.setting_key] = s.setting_value
+    except Exception as e:
+        app_logger.warning(f"Could not load DB settings, using defaults: {e}")
+
+    return defaults
+
+
+@auth_bp.route('/settings/save', methods=['POST'])
+@login_required
+def save_settings():
+    """Save settings to database and update runtime config"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': 'Admin only'}), 403
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+
+        from models.database import SystemSetting
+        from config import Config
+
+        saved_keys = []
+        for key, value in data.items():
+            # Update or create setting in database
+            setting = SystemSetting.query.filter_by(setting_key=key).first()
+            if setting:
+                setting.setting_value = str(value)
+                setting.updated_by = current_user.id
+            else:
+                setting = SystemSetting(
+                    setting_key=key,
+                    setting_value=str(value),
+                    updated_by=current_user.id
+                )
+                db.session.add(setting)
+            saved_keys.append(key)
+
+        db.session.commit()
+
+        # Update runtime Config values
+        _apply_settings_to_config(data)
+
+        # Audit log
+        audit = AuditLog(
+            user_id=current_user.id,
+            action='SETTINGS_UPDATE',
+            table_name='system_settings',
+            new_value=str(saved_keys),
+            ip_address=request.remote_addr
+        )
+        db.session.add(audit)
+        db.session.commit()
+
+        app_logger.info(f"Settings updated by {current_user.username}: {saved_keys}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Settings saved successfully',
+            'updated_keys': saved_keys
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Error saving settings: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+def _apply_settings_to_config(data):
+    """Apply saved settings to runtime Config for immediate effect"""
+    from config import Config
+
+    config_map = {
+        'threshold': ('FACE_THRESHOLD', float),
+        'min_face_size': ('MIN_FACE_SIZE', int),
+        'liveness_detection': ('LIVENESS_REQUIRED', lambda v: str(v).lower() in ('true', '1', 'on')),
+        'work_start': ('WORK_START_TIME', str),
+        'work_end': ('WORK_END_TIME', str),
+        'late_threshold': ('LATE_THRESHOLD_MINUTES', int),
+        'half_day_hours': ('HALF_DAY_HOURS', float),
+        'full_day_hours': ('FULL_DAY_HOURS', float),
+        'session_timeout': ('SESSION_TIMEOUT', int),
+        'max_login_attempts': ('MAX_LOGIN_ATTEMPTS', int),
+        'log_level': ('LOG_LEVEL', str),
+        'fps': ('CAMERA_FPS', int),
+    }
+
+    for key, value in data.items():
+        if key in config_map:
+            attr_name, converter = config_map[key]
+            try:
+                setattr(Config, attr_name, converter(value))
+            except (ValueError, TypeError) as e:
+                app_logger.warning(f"Could not apply setting {key}={value}: {e}")
 
 
 

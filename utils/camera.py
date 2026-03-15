@@ -208,20 +208,29 @@ class CameraManager:
         return False, None
 
     def _capture_from_system(self):
-        """Capture a frame from the system webcam."""
+        """Capture a frame from the system webcam (Optimized to keep camera open)."""
         try:
-            cap = cv2.VideoCapture(Config.DEFAULT_CAMERA_INDEX)
-            if cap.isOpened():
-                ret, frame = cap.read()
-                cap.release()
+            # Bug #14 fix: Keep camera open instead of re-initializing per frame
+            if getattr(self, '_system_cap', None) is None:
+                self._system_cap = cv2.VideoCapture(Config.DEFAULT_CAMERA_INDEX)
+            
+            if self._system_cap.isOpened():
+                ret, frame = self._system_cap.read()
                 if ret and frame is not None:
                     return True, frame
-                app_logger.warning("❌ System webcam: Failed to read frame")
+                else:
+                    app_logger.warning("❌ System webcam: Failed to read frame, resetting camera")
+                    self._system_cap.release()
+                    self._system_cap = None
             else:
                 app_logger.warning(f"❌ System webcam: Could not open camera index {Config.DEFAULT_CAMERA_INDEX}")
-                cap.release()
+                self._system_cap.release()
+                self._system_cap = None
         except Exception as e:
             app_logger.error(f"❌ System webcam error: {type(e).__name__}: {e}")
+            if getattr(self, '_system_cap', None) is not None:
+                self._system_cap.release()
+                self._system_cap = None
 
         return False, None
 
@@ -238,9 +247,17 @@ class CameraManager:
 
     def reset(self):
         """Force re-check of camera availability."""
+        if getattr(self, '_system_cap', None) is not None:
+            self._system_cap.release()
+            self._system_cap = None
         self._network_cam_available = None
         self._active_source = None
         app_logger.info("🔄 Camera manager reset — will re-check on next request")
+
+    def __del__(self):
+        """Cleanup resources on shutdown"""
+        if getattr(self, '_system_cap', None) is not None:
+            self._system_cap.release()
 
 
 # Singleton instance
