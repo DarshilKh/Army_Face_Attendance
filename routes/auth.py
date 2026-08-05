@@ -119,9 +119,9 @@ def dashboard():
 
     today = date.today()
     today_attendance = Attendance.query.filter_by(date=today).count()
-    today_present = Attendance.query.filter_by(date=today, status='present').count()
-    today_late = Attendance.query.filter_by(date=today, status='late').count()
-    today_absent = total_employees - today_attendance
+    today_present    = Attendance.query.filter_by(date=today, status='present').count()
+    today_late       = Attendance.query.filter_by(date=today, status='late').count()
+    today_absent     = total_employees - today_attendance
 
     # Monthly statistics
     first_day = today.replace(day=1)
@@ -133,9 +133,16 @@ def dashboard():
         Attendance.date <= today
     ).group_by(func.date(Attendance.date)).all()
 
-    # Recent attendance (last 10)
+    # ── Bug fix: recent attendance was showing deleted/deactivated employees
+    #    The original query joined Employee but never filtered on is_active,
+    #    so attendance rows tied to employees that had since been deleted or
+    #    deactivated still appeared in the dashboard's "Recent Attendance"
+    #    table.  Adding Employee.is_active == True removes them.
+    # ─────────────────────────────────────────────────────────────────────────
     recent_attendance = db.session.query(Attendance, Employee).join(
         Employee, Attendance.employee_id == Employee.id
+    ).filter(
+        Employee.is_active == True          # ← exclude deactivated employees
     ).order_by(Attendance.check_in_time.desc()).limit(10).all()
 
     # Get units for filter
@@ -146,12 +153,14 @@ def dashboard():
     units = [u[0] for u in units if u[0]]
 
     stats = {
-        'total_employees': total_employees,
+        'total_employees':  total_employees,
         'today_attendance': today_attendance,
-        'today_present': today_present,
-        'today_late': today_late,
-        'today_absent': today_absent,
-        'attendance_rate': round((today_attendance / total_employees * 100) if total_employees > 0 else 0, 1),
+        'today_present':    today_present,
+        'today_late':       today_late,
+        'today_absent':     today_absent,
+        'attendance_rate':  round(
+            (today_attendance / total_employees * 100) if total_employees > 0 else 0, 1
+        ),
         'monthly_data': [{'date': str(m.date), 'count': m.count} for m in monthly_attendance]
     }
 
@@ -179,21 +188,21 @@ def _load_settings():
     from config import Config
 
     defaults = {
-        'camera_source': str(Config.DEFAULT_CAMERA_INDEX),
-        'camera_url': Config.CAMERA_URL or '',
-        'resolution': f"{Config.CAMERA_RESOLUTION[0]}x{Config.CAMERA_RESOLUTION[1]}",
-        'fps': str(Config.CAMERA_FPS),
-        'threshold': str(Config.FACE_THRESHOLD),
-        'min_face_size': str(Config.MIN_FACE_SIZE),
-        'liveness_detection': str(Config.LIVENESS_REQUIRED).lower(),
-        'work_start': Config.WORK_START_TIME,
-        'work_end': Config.WORK_END_TIME,
-        'late_threshold': str(Config.LATE_THRESHOLD_MINUTES),
-        'half_day_hours': str(Config.HALF_DAY_HOURS),
-        'full_day_hours': str(Config.FULL_DAY_HOURS),
-        'session_timeout': str(Config.SESSION_TIMEOUT),
-        'max_login_attempts': str(Config.MAX_LOGIN_ATTEMPTS),
-        'log_level': Config.LOG_LEVEL,
+        'camera_source':       str(Config.DEFAULT_CAMERA_INDEX),
+        'camera_url':          Config.CAMERA_URL or '',
+        'resolution':          f"{Config.CAMERA_RESOLUTION[0]}x{Config.CAMERA_RESOLUTION[1]}",
+        'fps':                 str(Config.CAMERA_FPS),
+        'threshold':           str(Config.FACE_THRESHOLD),
+        'min_face_size':       str(Config.MIN_FACE_SIZE),
+        'liveness_detection':  str(Config.LIVENESS_REQUIRED).lower(),
+        'work_start':          Config.WORK_START_TIME,
+        'work_end':            Config.WORK_END_TIME,
+        'late_threshold':      str(Config.LATE_THRESHOLD_MINUTES),
+        'half_day_hours':      str(Config.HALF_DAY_HOURS),
+        'full_day_hours':      str(Config.FULL_DAY_HOURS),
+        'session_timeout':     str(Config.SESSION_TIMEOUT),
+        'max_login_attempts':  str(Config.MAX_LOGIN_ATTEMPTS),
+        'log_level':           Config.LOG_LEVEL,
     }
 
     # Override with any values from the database
@@ -275,18 +284,18 @@ def _apply_settings_to_config(data):
     from config import Config
 
     config_map = {
-        'threshold': ('FACE_THRESHOLD', float),
-        'min_face_size': ('MIN_FACE_SIZE', int),
-        'liveness_detection': ('LIVENESS_REQUIRED', lambda v: str(v).lower() in ('true', '1', 'on')),
-        'work_start': ('WORK_START_TIME', str),
-        'work_end': ('WORK_END_TIME', str),
-        'late_threshold': ('LATE_THRESHOLD_MINUTES', int),
-        'half_day_hours': ('HALF_DAY_HOURS', float),
-        'full_day_hours': ('FULL_DAY_HOURS', float),
-        'session_timeout': ('SESSION_TIMEOUT', int),
-        'max_login_attempts': ('MAX_LOGIN_ATTEMPTS', int),
-        'log_level': ('LOG_LEVEL', str),
-        'fps': ('CAMERA_FPS', int),
+        'threshold':           ('FACE_THRESHOLD',        float),
+        'min_face_size':       ('MIN_FACE_SIZE',         int),
+        'liveness_detection':  ('LIVENESS_REQUIRED',     lambda v: str(v).lower() in ('true', '1', 'on')),
+        'work_start':          ('WORK_START_TIME',       str),
+        'work_end':            ('WORK_END_TIME',         str),
+        'late_threshold':      ('LATE_THRESHOLD_MINUTES', int),
+        'half_day_hours':      ('HALF_DAY_HOURS',        float),
+        'full_day_hours':      ('FULL_DAY_HOURS',        float),
+        'session_timeout':     ('SESSION_TIMEOUT',       int),
+        'max_login_attempts':  ('MAX_LOGIN_ATTEMPTS',    int),
+        'log_level':           ('LOG_LEVEL',             str),
+        'fps':                 ('CAMERA_FPS',            int),
     }
 
     for key, value in data.items():
@@ -298,14 +307,13 @@ def _apply_settings_to_config(data):
                 app_logger.warning(f"Could not apply setting {key}={value}: {e}")
 
 
-
 @auth_bp.route('/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
     """Change password"""
     if request.method == 'POST':
         current_password = request.form.get('current_password')
-        new_password = request.form.get('new_password')
+        new_password     = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
 
         if not current_user.check_password(current_password):
@@ -321,8 +329,9 @@ def change_password():
             return redirect(url_for('auth.change_password'))
 
         # Password strength check
-        if not re.search(r'[A-Z]', new_password) or not re.search(r'[a-z]', new_password) or not re.search(r'[0-9]',
-                                                                                                           new_password):
+        if (not re.search(r'[A-Z]', new_password)
+                or not re.search(r'[a-z]', new_password)
+                or not re.search(r'[0-9]', new_password)):
             flash('Password must contain uppercase, lowercase, and numbers', 'error')
             return redirect(url_for('auth.change_password'))
 
