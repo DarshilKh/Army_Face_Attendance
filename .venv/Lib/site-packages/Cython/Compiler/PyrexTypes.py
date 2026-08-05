@@ -4689,6 +4689,8 @@ class CTupleType(CType):
 
     _convert_to_py_code = None
     _convert_from_py_code = None
+    to_py_function = None
+    from_py_function = None
 
     def __init__(self, cname, components):
         from .Builtin import tuple_type
@@ -4696,8 +4698,6 @@ class CTupleType(CType):
         self.components = components
         self.equivalent_type = tuple_type
         self.size = len(components)
-        self.to_py_function = f"{Naming.convert_func_prefix}_to_py_{self.cname}"
-        self.from_py_function = f"{Naming.convert_func_prefix}_from_py_{self.cname}"
 
     def __str__(self):
         return "(%s)" % ", ".join(str(c) for c in self.components)
@@ -4732,6 +4732,7 @@ class CTupleType(CType):
                 return False
 
         if self._convert_to_py_code is None:
+            self.to_py_function = f"{Naming.convert_func_prefix}_to_py_{self.cname}"
             context = dict(
                 struct_type_decl=self.empty_declaration_code(),
                 components=self.components,
@@ -4755,6 +4756,7 @@ class CTupleType(CType):
                 return False
 
         if self._convert_from_py_code is None:
+            self.from_py_function = f"{Naming.convert_func_prefix}_from_py_{self.cname}"
             context = dict(
                 struct_type_decl=self.empty_declaration_code(),
                 components=self.components,
@@ -5544,6 +5546,10 @@ def independent_spanning_type(type1, type2):
         if resolved_type2.is_int and resolved_type1.is_builtin_type and resolved_type1.name == 'int':
             return resolved_type1
         # e.g. PyInt + double => object
+        return py_object_type
+    elif resolved_type1.is_builtin_type and resolved_type2.is_builtin_type:
+        # Either numeric or incompatible. Do not try to find a widest Python type
+        # (e.g. int+float => float) as it would change one of the result types.
         return py_object_type
 
     span_type = _spanning_type(type1, type2)

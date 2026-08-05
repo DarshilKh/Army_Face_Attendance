@@ -53,13 +53,26 @@ class FaceRecognitionEngine:
                 # ONNX Runtime - Silent mode
                 onnxruntime.set_default_logger_severity(3)
 
-                # Initialize InsightFace
+                # ── GPU/CPU provider fix ──────────────────────────────────────
+                # Old: providers=['CPUExecutionProvider'], ctx_id=-1
+                #      Forces CPU-only execution even when a CUDA GPU is present,
+                #      making detection significantly slower than necessary.
+                #
+                # New: providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
+                #      ONNX Runtime tries CUDA first and automatically falls back
+                #      to CPU if no compatible GPU is found, so this is safe on
+                #      CPU-only machines too.
+                #
+                #      ctx_id=0  → use the first GPU (device 0).
+                #      ctx_id=-1 → explicitly disables GPU; must be 0 when CUDA
+                #                  provider is listed first.
+                # ─────────────────────────────────────────────────────────────
                 self.app = FaceAnalysis(
                     name=Config.INSIGHTFACE_MODEL,
-                    providers=['CPUExecutionProvider']
+                    providers=['CUDAExecutionProvider', 'CPUExecutionProvider']  # ← GPU first, CPU fallback
                 )
 
-                self.app.prepare(ctx_id=-1, det_size=Config.DETECTION_SIZE)
+                self.app.prepare(ctx_id=0, det_size=Config.DETECTION_SIZE)      # ← 0 = first GPU
 
                 # Configuration
                 self.face_threshold = Config.FACE_THRESHOLD
@@ -518,7 +531,7 @@ class FaceRecognitionEngine:
             if self.embeddings_array is not None and len(self.embeddings_array) > 0:
                 # Find indices of embeddings NOT belonging to this employee
                 other_indices = [
-                    i for i, emp_id in enumerate(self.employee_ids_array)
+                    i for i, emp_id in enumerate(self.employee_ids)
                     if emp_id != employee_id
                 ]
 

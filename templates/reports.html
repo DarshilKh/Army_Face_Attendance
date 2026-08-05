@@ -35,14 +35,16 @@
                             <div class="mb-3">
                                 <label class="form-label">Start Date</label>
                                 <input type="date" class="form-control" name="start_date"
-                                       value="{{ (get_current_date() - timedelta(days=30)).isoformat() }}" required>
+                                       value="{{ (get_current_date() - timedelta(days=30)).isoformat() }}"
+                                       required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">End Date</label>
                                 <input type="date" class="form-control" name="end_date"
-                                       value="{{ get_current_date().isoformat() }}" required>
+                                       value="{{ get_current_date().isoformat() }}"
+                                       required>
                             </div>
                         </div>
                     </div>
@@ -51,7 +53,6 @@
                         <label class="form-label">Unit (Optional)</label>
                         <select class="form-select" name="unit">
                             <option value="">All Units</option>
-                            <!-- Units will be loaded dynamically -->
                         </select>
                     </div>
 
@@ -79,16 +80,19 @@
             </div>
             <div class="card-body">
                 <div class="list-group">
-                    <a href="{{ url_for('reports.analytics') }}" class="list-group-item list-group-item-action">
+                    <a href="{{ url_for('reports.analytics') }}"
+                       class="list-group-item list-group-item-action">
                         <i class="fas fa-chart-line"></i> Advanced Analytics
                         <span class="float-end"><i class="fas fa-arrow-right"></i></span>
                     </a>
-                    <a href="{{ url_for('attendance.view_attendance') }}" class="list-group-item list-group-item-action">
+                    <a href="{{ url_for('attendance.view_attendance') }}"
+                       class="list-group-item list-group-item-action">
                         <i class="fas fa-calendar-day"></i> Today's Attendance
                         <span class="float-end"><i class="fas fa-arrow-right"></i></span>
                     </a>
                     {% if current_user.role == 'admin' %}
-                    <a href="{{ url_for('reports.audit_logs') }}" class="list-group-item list-group-item-action">
+                    <a href="{{ url_for('reports.audit_logs') }}"
+                       class="list-group-item list-group-item-action">
                         <i class="fas fa-history"></i> Audit Logs
                         <span class="float-end"><i class="fas fa-arrow-right"></i></span>
                     </a>
@@ -121,15 +125,13 @@
         e.preventDefault();
 
         const formData = new FormData(this);
-        const data = Object.fromEntries(formData);
+        const data     = Object.fromEntries(formData);
 
         showLoading();
 
         fetch('{{ url_for("reports.generate_report") }}', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         })
         .then(response => {
@@ -141,14 +143,22 @@
         .then(blob => {
             hideLoading();
 
-            // Download file
+            // ── Bug fix: map the format dropdown value to the real file
+            //    extension.  The old code used data.format directly, so
+            //    choosing "excel" produced a file called
+            //    "Attendance_Report.excel" instead of ".xlsx".
+            const extensionMap = { excel: 'xlsx', pdf: 'pdf' };
+            const extension    = extensionMap[data.format] || data.format;
+
+            // Trigger browser download
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'Attendance_Report.' + data.format;
+            const a   = document.createElement('a');
+            a.href     = url;
+            a.download = 'Attendance_Report.' + extension;
             document.body.appendChild(a);
             a.click();
             a.remove();
+            window.URL.revokeObjectURL(url);   // free memory
 
             alert('Report downloaded successfully!');
         })
@@ -168,16 +178,16 @@
             const weekAgo = new Date(today);
             weekAgo.setDate(weekAgo.getDate() - 7);
             startDate = weekAgo.toISOString().split('T')[0];
-            endDate = today.toISOString().split('T')[0];
+            endDate   = today.toISOString().split('T')[0];
         } else if (type === 'month') {
             const monthAgo = new Date(today);
             monthAgo.setMonth(monthAgo.getMonth() - 1);
             startDate = monthAgo.toISOString().split('T')[0];
-            endDate = today.toISOString().split('T')[0];
+            endDate   = today.toISOString().split('T')[0];
         }
 
         document.querySelector('[name="start_date"]').value = startDate;
-        document.querySelector('[name="end_date"]').value = endDate;
+        document.querySelector('[name="end_date"]').value   = endDate;
     }
 </script>
 {% endblock %}

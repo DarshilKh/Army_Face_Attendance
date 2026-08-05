@@ -49,7 +49,7 @@ def _register_bounds_validator_if_needed(parser, name, flag_values):
 
     def checker(value):
       if value is not None and parser.is_outside_bounds(value):
-        message = '%s is not %s' % (value, parser.syntactic_help)
+        message = f'{value} is not {parser.syntactic_help}'
         raise _exceptions.ValidationError(message)
       return True
 
@@ -65,8 +65,9 @@ def DEFINE(  # pylint: disable=invalid-name
     flag_values: _flagvalues.FlagValues = ...,
     serializer: _argument_parser.ArgumentSerializer[_T] | None = ...,
     module_name: str | None = ...,
-    required: Literal[True] = ...,
-    **args: Any
+    *,
+    required: Literal[True],
+    **args: Any,
 ) -> _flagvalues.FlagHolder[_T]:
   ...
 
@@ -75,14 +76,31 @@ def DEFINE(  # pylint: disable=invalid-name
 def DEFINE(  # pylint: disable=invalid-name
     parser: _argument_parser.ArgumentParser[_T],
     name: str,
-    default: Any | None,
+    default: None,
     help: str | None,  # pylint: disable=redefined-builtin
     flag_values: _flagvalues.FlagValues = ...,
     serializer: _argument_parser.ArgumentSerializer[_T] | None = ...,
     module_name: str | None = ...,
+    *,
     required: bool = ...,
-    **args: Any
+    **args: Any,
 ) -> _flagvalues.FlagHolder[_T | None]:
+  ...
+
+
+@overload
+def DEFINE(  # pylint: disable=invalid-name
+    parser: _argument_parser.ArgumentParser[_T],
+    name: str,
+    default: object,
+    help: str | None,  # pylint: disable=redefined-builtin
+    flag_values: _flagvalues.FlagValues = ...,
+    serializer: _argument_parser.ArgumentSerializer[_T] | None = ...,
+    module_name: str | None = ...,
+    *,
+    required: bool = ...,
+    **args: Any,
+) -> _flagvalues.FlagHolder[_T]:
   ...
 
 
@@ -94,8 +112,9 @@ def DEFINE(  # pylint: disable=invalid-name
     flag_values=_flagvalues.FLAGS,
     serializer=None,
     module_name=None,
-    required=False,
-    **args):
+    required: bool = False,
+    **args,
+):
   """Registers a generic Flag object.
 
   NOTE: in the docstrings of all DEFINE* functions, "registers" is short
@@ -130,6 +149,7 @@ def DEFINE(  # pylint: disable=invalid-name
 
 
 @overload
+# pyrefly: ignore[inconsistent-overload-default]
 def DEFINE_flag(  # pylint: disable=invalid-name
     flag: _flag.Flag[_T],
     flag_values: _flagvalues.FlagValues = ...,
@@ -150,10 +170,8 @@ def DEFINE_flag(  # pylint: disable=invalid-name
 
 
 def DEFINE_flag(  # pylint: disable=invalid-name
-    flag,
-    flag_values=_flagvalues.FLAGS,
-    module_name=None,
-    required=False):
+    flag, flag_values=_flagvalues.FLAGS, module_name=None, required=False
+):
   """Registers a :class:`Flag` object with a :class:`FlagValues` object.
 
   By default, the global :const:`FLAGS` ``FlagValue`` object is used.
@@ -177,7 +195,7 @@ def DEFINE_flag(  # pylint: disable=invalid-name
   """
   if required and flag.default is not None:
     raise ValueError(
-        'Required flag --%s needs to have None as default' % flag.name
+        f'Required flag --{flag.name} needs to have None as default'
     )
   # Copying the reference to flag_values prevents pychecker warnings.
   fv = flag_values
@@ -193,7 +211,8 @@ def DEFINE_flag(  # pylint: disable=invalid-name
     _validators.mark_flag_as_required(flag.name, fv)
   ensure_non_none_value = (flag.default is not None) or required
   return _flagvalues.FlagHolder(
-      fv, flag, ensure_non_none_value=ensure_non_none_value)
+      fv, flag, ensure_non_none_value=ensure_non_none_value
+  )
 
 
 def set_default(flag_holder: _flagvalues.FlagHolder[_T], value: _T) -> None:
@@ -232,8 +251,8 @@ def override_value(flag_holder: _flagvalues.FlagHolder[_T], value: _T) -> None:
   parsed = fv[flag_holder.name]._parse(value)  # pylint: disable=protected-access
   if parsed != value:
     raise _exceptions.IllegalFlagValueError(
-        'flag %s: parsed value %r not equal to original %r'
-        % (flag_holder.name, parsed, value)
+        f'flag {flag_holder.name}: parsed value {parsed!r} not equal to '
+        f'original {value!r}'
     )
   setattr(fv, flag_holder.name, value)
 
@@ -289,10 +308,10 @@ def declare_key_flag(
   Args:
     flag_name: str | :class:`FlagHolder`, the name or holder of an already
       declared flag. (Redeclaring flags as key, including flags implicitly key
-      because they were declared in this module, is a no-op.)
-      Positional-only parameter.
-    flag_values: :class:`FlagValues`, the FlagValues instance in which the
-      flag will be declared as a key flag. This should almost never need to be
+      because they were declared in this module, is a no-op.) Positional-only
+      parameter.
+    flag_values: :class:`FlagValues`, the FlagValues instance in which the flag
+      will be declared as a key flag. This should almost never need to be
       overridden.
 
   Raises:
@@ -304,15 +323,19 @@ def declare_key_flag(
     # These flags are defined in SPECIAL_FLAGS, and are treated
     # specially during flag parsing, taking precedence over the
     # user-defined flags.
-    _internal_declare_key_flags([flag_name],
-                                flag_values=_helpers.SPECIAL_FLAGS,
-                                key_flag_values=flag_values)
+    _internal_declare_key_flags(
+        [flag_name],
+        flag_values=_helpers.SPECIAL_FLAGS,
+        key_flag_values=flag_values,
+    )
     return
   try:
     _internal_declare_key_flags([flag_name], flag_values=flag_values)
-  except KeyError:
-    raise ValueError('Flag --%s is undefined. To set a flag as a key flag '
-                     'first define it in Python.' % flag_name)
+  except KeyError as e:
+    raise ValueError(
+        f'Flag --{flag_name} is undefined. To set a flag as a key flag first '
+        'define it in Python.'
+    ) from e
 
 
 def adopt_module_key_flags(
@@ -323,8 +346,8 @@ def adopt_module_key_flags(
   Args:
     module: module, the module object from which all key flags will be declared
       as key flags to the current module.
-    flag_values: :class:`FlagValues`, the FlagValues instance in which the
-      flags will be declared as key flags. This should almost never need to be
+    flag_values: :class:`FlagValues`, the FlagValues instance in which the flags
+      will be declared as key flags. This should almost never need to be
       overridden.
 
   Raises:
@@ -332,10 +355,11 @@ def adopt_module_key_flags(
         instead of a module object.
   """
   if not isinstance(module, types.ModuleType):
-    raise _exceptions.Error('Expected a module object, not %r.' % (module,))
+    raise _exceptions.Error(f'Expected a module object, not {module!r}.')
   _internal_declare_key_flags(
       [f.name for f in flag_values.get_key_flags_for_module(module.__name__)],
-      flag_values=flag_values)
+      flag_values=flag_values,
+  )
   # If module is this flag module, take _helpers.SPECIAL_FLAGS into account.
   if module == _helpers.FLAGS_MODULE:
     _internal_declare_key_flags(
@@ -346,7 +370,8 @@ def adopt_module_key_flags(
         # FlagValues, where no other module should register flags).
         [_helpers.SPECIAL_FLAGS[name].name for name in _helpers.SPECIAL_FLAGS],
         flag_values=_helpers.SPECIAL_FLAGS,
-        key_flag_values=flag_values)
+        key_flag_values=flag_values,
+    )
 
 
 def disclaim_key_flags() -> None:
@@ -1010,7 +1035,8 @@ def DEFINE_spaceseplist(  # pylint: disable=invalid-name
     a handle to defined flag.
   """
   parser = _argument_parser.WhitespaceSeparatedListParser(
-      comma_compat=comma_compat)
+      comma_compat=comma_compat
+  )
   serializer = _argument_parser.ListSerializer(' ')
   return DEFINE(
       parser,
@@ -1436,8 +1462,9 @@ def DEFINE_multi_enum(  # pylint: disable=invalid-name
     enum_values: Iterable[str],
     help: str,  # pylint: disable=redefined-builtin
     flag_values: _flagvalues.FlagValues = ...,
+    *,
     required: bool = ...,
-    **args: Any
+    **args: Any,
 ) -> _flagvalues.FlagHolder[list[str] | None]:
   ...
 
@@ -1449,8 +1476,9 @@ def DEFINE_multi_enum(  # pylint: disable=invalid-name
     enum_values: Iterable[str],
     help: str,  # pylint: disable=redefined-builtin
     flag_values: _flagvalues.FlagValues = ...,
+    *,
     required: bool = ...,
-    **args: Any
+    **args: Any,
 ) -> _flagvalues.FlagHolder[list[str]]:
   ...
 
@@ -1492,12 +1520,13 @@ def DEFINE_multi_enum(  # pylint: disable=invalid-name
   """
   parser = _argument_parser.EnumParser(enum_values, case_sensitive)
   serializer = _argument_parser.ArgumentSerializer()
+  joined_values = '|'.join(enum_values)
   return DEFINE_multi(
       parser,
       serializer,
       name,
       default,
-      '<%s>: %s' % ('|'.join(enum_values), help),
+      f'<{joined_values}>: {help}',
       flag_values,
       required=True if required else False,
       **args,
@@ -1546,8 +1575,9 @@ def DEFINE_multi_enum_class(  # pylint: disable=invalid-name
     help: str,  # pylint: disable=redefined-builtin
     flag_values: _flagvalues.FlagValues = ...,
     module_name: str | None = ...,
+    *,
     required: bool = ...,
-    **args: Any
+    **args: Any,
 ) -> _flagvalues.FlagHolder[list[_ET] | None]:
   ...
 
@@ -1564,8 +1594,9 @@ def DEFINE_multi_enum_class(  # pylint: disable=invalid-name
     help: str,  # pylint: disable=redefined-builtin
     flag_values: _flagvalues.FlagValues = ...,
     module_name: str | None = ...,
+    *,
     required: bool = ...,
-    **args: Any
+    **args: Any,
 ) -> _flagvalues.FlagHolder[list[_ET]]:
   ...
 
@@ -1578,8 +1609,9 @@ def DEFINE_multi_enum_class(  # pylint: disable=invalid-name
     help: str,  # pylint: disable=redefined-builtin
     flag_values: _flagvalues.FlagValues = ...,
     module_name: str | None = ...,
+    *,
     required: bool = ...,
-    **args: Any
+    **args: Any,
 ) -> _flagvalues.FlagHolder[list[_ET]]:
   ...
 
@@ -1690,7 +1722,7 @@ def DEFINE_alias(  # pylint: disable=invalid-name
     def value(self, value):
       flag.value = value
 
-  help_msg = 'Alias for --%s.' % flag.name
+  help_msg = f'Alias for --{flag.name}.'
   # If alias_name has been used, flags.DuplicatedFlag will be raised.
   return DEFINE_flag(
       _FlagAlias(
@@ -1699,4 +1731,8 @@ def DEFINE_alias(  # pylint: disable=invalid-name
           name,
           flag.default,
           help_msg,
-          boolean=flag.boolean), flag_values, module_name)
+          boolean=flag.boolean,
+      ),
+      flag_values,
+      module_name,
+  )

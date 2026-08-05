@@ -1,3 +1,5 @@
+import sys
+
 from numpy.testing import (assert_allclose, assert_almost_equal,
                            assert_array_equal, assert_array_almost_equal_nulp)
 import numpy as np
@@ -205,7 +207,8 @@ class TestDetrend:
     scope='class')
 class TestSpectral:
     @pytest.fixture(scope='class', autouse=True)
-    def stim(self, request, fstims, iscomplex, sides, len_x, NFFT_density,
+    @classmethod
+    def stim(cls, request, fstims, iscomplex, sides, len_x, NFFT_density,
              nover_density, pad_to_density, pad_to_spectrum):
         Fs = 100.
 
@@ -321,11 +324,6 @@ class TestSpectral:
         if iscomplex:
             y = y.astype('complex')
 
-        # Interestingly, the instance on which this fixture is called is not
-        # the same as the one on which a test is run. So we need to modify the
-        # class itself when using a class-scoped fixture.
-        cls = request.cls
-
         cls.Fs = Fs
         cls.sides = sides
         cls.fstims = fstims
@@ -429,7 +427,16 @@ class TestSpectral:
         assert spec.shape[0] == freqs.shape[0]
         assert spec.shape[1] == getattr(self, f"t_{case}").shape[0]
 
-    def test_csd(self):
+    @pytest.mark.parametrize('bitsize', [
+        pytest.param(None, id='default'),
+        pytest.param(32,
+                     marks=pytest.mark.skipif(sys.maxsize <= 2**32,
+                                              reason='System is already 32-bit'),
+                     id='32-bit')
+    ])
+    def test_csd(self, bitsize, monkeypatch):
+        if bitsize is not None:
+            monkeypatch.setattr(sys, 'maxsize', 2**bitsize)
         freqs = self.freqs_density
         spec, fsp = mlab.csd(x=self.y, y=self.y+1,
                              NFFT=self.NFFT_density,
@@ -873,6 +880,8 @@ class TestGaussianKDECustom:
         with pytest.raises(ValueError):
             mlab.GaussianKDE([42])
 
+    @pytest.mark.skipif(sys.platform == 'emscripten',
+                        reason="WASM doesn't support floating-point exceptions")
     def test_silverman_multidim_dataset(self):
         """Test silverman's for a multi-dimensional array."""
         x1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
@@ -886,6 +895,8 @@ class TestGaussianKDECustom:
         y_expected = 0.76770389927475502
         assert_almost_equal(mygauss.covariance_factor(), y_expected, 7)
 
+    @pytest.mark.skipif(sys.platform == 'emscripten',
+                        reason="WASM doesn't support floating-point exceptions")
     def test_scott_multidim_dataset(self):
         """Test scott's output for a multi-dimensional array."""
         x1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])

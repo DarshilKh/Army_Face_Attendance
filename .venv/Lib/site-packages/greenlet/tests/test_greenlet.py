@@ -13,8 +13,12 @@ from . import TestCase
 from . import RUNNING_ON_MANYLINUX
 from . import PY313
 from . import PY314
+from . import WIN
 from . import RUNNING_ON_FREETHREAD_BUILD
 from .leakcheck import fails_leakcheck
+from .leakcheck import fails_leakcheck_on_py314_or_less
+from .leakcheck import ignores_leakcheck
+from .leakcheck import ignores_leakcheck_if
 
 
 # We manually manage locks in many tests
@@ -148,6 +152,70 @@ class TestGreenlet(TestCase):
             th.join(10)
         self.assertEqual(len(success), len(ths))
 
+    @ignores_leakcheck
+    def test_switching_many_threads(self):
+        # This can expose issues on the free-threaded build.
+        def creates_greenlet(greenlets, wait_to_die_until):
+            def body():
+                while True:
+                    greenlet.getcurrent().parent.switch()
+            g = greenlet.greenlet(body)
+            g.switch()
+            greenlets.append(g)
+            wait_to_die_until.wait()
+
+        def switches_from_other_thread(greenlets, wait_to_check_until, quit_after):
+            wait_to_check_until.wait()
+            while not quit_after.is_set():
+                for g in list(greenlets):
+                    try:
+                        if not g.dead:
+                            g.switch()
+                    except greenlet.error:
+                        # Every attempt where the greenlet isn't dead should
+                        # raise this
+                        pass
+
+        def run_it(thread_count=16):
+            greenlets = []
+            greenlets_all_created = threading.Event()
+            all_threads_dead = threading.Event()
+
+            creators = [
+                threading.Thread(target=creates_greenlet, args=(greenlets,
+                                                                greenlets_all_created))
+                for _
+                in range(thread_count)
+            ]
+
+            switchers = [
+                threading.Thread(target=switches_from_other_thread,
+                                 args=(greenlets, greenlets_all_created,
+                                       all_threads_dead))
+                for _
+                in range(thread_count)
+            ]
+
+            for t in (creators + switchers):
+                t.start()
+
+            # Simple polling loop
+            while len(greenlets) < thread_count:
+                time.sleep(0.0001)
+            greenlets_all_created.set()
+
+            for t in creators:
+                t.join(1.0)
+            all_threads_dead.set()
+            for t in switchers:
+                t.join(1.0)
+
+        # enough reps to have a chance of repeating, not so many it
+        # takes forever
+        for _ in range(20):
+            run_it()
+            gc.collect()
+
     def test_exception(self):
         seen = []
         g1 = RawGreenlet(fmain)
@@ -206,22 +274,19 @@ class TestGreenlet(TestCase):
 
         g = RawGreenlet(run)
         g.switch()
-        # Destroying the only reference to the greenlet causes it
-        # to get GreenletExit; when it in turn raises, even though we're the parent
-        # we don't get the exception, it just gets printed.
-        # When we run on 3.8 only, we can use sys.unraisablehook
-        oldstderr = sys.stderr
-        from io import StringIO
-        stderr = sys.stderr = StringIO()
+
+        unraisable_events = []
+        old_hook = sys.unraisablehook
+        def _capture(unraisable):
+            unraisable_events.append(unraisable)
+        sys.unraisablehook = _capture
         try:
             del g
         finally:
-            sys.stderr = oldstderr
+            sys.unraisablehook = old_hook
 
-        v = stderr.getvalue()
-        self.assertIn("Exception", v)
-        self.assertIn('ignored', v)
-        self.assertIn("SomeError", v)
+        self.assertEqual(len(unraisable_events), 1)
+        self.assertIsInstance(unraisable_events[0].exc_value, SomeError)
 
 
     @unittest.skipIf(
@@ -444,7 +509,7 @@ class TestGreenlet(TestCase):
         g = mygreenlet(lambda: None)
         self.assertRaises(SomeError, g.throw, SomeError())
 
-    @fails_leakcheck
+    @fails_leakcheck_on_py314_or_less
     def _do_test_throw_to_dead_thread_doesnt_crash(self, wait_for_cleanup=False):
         result = []
         def worker():
@@ -502,7 +567,11 @@ class TestGreenlet(TestCase):
         # See issue 252
         self.expect_greenlet_leak = True # direct us not to wait for it to go away
 
-    @fails_leakcheck
+    @fails_leakcheck_on_py314_or_less
+    @ignores_leakcheck_if(
+        WIN and sys.version_info[:2] == (3, 10),
+        "does not leaks on Windows 3.10, but does on other platforms"
+    )
     def test_throw_to_dead_thread_doesnt_crash(self):
         self._do_test_throw_to_dead_thread_doesnt_crash()
 
@@ -958,6 +1027,46 @@ class TestGreenlet(TestCase):
         # The next line crashes on 3.12 if we haven't exposed the frames.
         self.assertIsNone(frame.f_back)
 
+    def test_switching_holding_critical_section_no_crash(self):
+        # https://github.com/python-greenlet/greenlet/issues/513
+        # In no-GIL builds, we were failing to restore the
+        # critical_section pointer, leading to
+        # ``Fatal Python error: PyMutex_Unlock: unlocking mutex that is not locked``
+        # when two greenlets both held a lock on an object, and then
+        # the GIL was released, which, according to
+        # ``Include/cpython/critical_section.h`` causes the critical
+        # section to get released.
+        # The field is present on Python 3.13+, and only used
+        # in no-GIL builds.
+        # Initial version of this test case provided in the
+        # github issue by ddorian
+        def k1(x):
+            g2.switch()  # into G2 while holding G1's sort critical section
+            return x
+
+
+        def k2(x):
+            g1.switch()  # back into G1 while holding G2's sort critical section
+            return x
+
+
+        def g1_body():
+            sorted([0], key=k1)
+            g2.switch()
+
+
+        def g2_body():
+            sorted([0], key=k2)
+            # Do a blocking I/O operation which would cause the
+            # critical sections to get suspended
+            with open(__file__, "rt", encoding='utf-8') as f:
+                f.read()
+
+
+        g1 = greenlet.greenlet(g1_body)
+        g2 = greenlet.greenlet(g2_body)
+        g1.switch()
+
 
 class TestGreenletSetParentErrors(TestCase):
     def test_threaded_reparent(self):
@@ -1239,6 +1348,15 @@ class TestMainGreenlet(TestCase):
         self._check_current_is_main()
         self.assertIsInstance(greenlet.getcurrent(), RawGreenlet)
 
+    def test_greenlet_run(self):
+        def do_it():
+            with self.assertRaises(AttributeError):
+                getattr(g, 'run')
+
+        g = greenlet.greenlet(do_it)
+        g.switch()
+        with self.assertRaises(AttributeError):
+            getattr(g, 'run')
 
 
 class TestBrokenGreenlets(TestCase):
@@ -1350,12 +1468,25 @@ class TestBrokenGreenlets(TestCase):
             output
         )
 
+    def test_switch_leaves_no_critical_section_held(self):
+        # Free-threaded builds take per-object locks via
+        # Py_BEGIN_CRITICAL_SECTION, tracked in tstate->critical_section. A
+        # switch swaps C stacks, so leaving those locks held strands them on the
+        # fiber we left: asyncio's Task.__step holds one on the running task
+        # across the step, and touching that task from a child fiber then
+        # deadlocked re-taking it. Out of process because a regression is a
+        # hang, not a catchable error.
+        # (repro: freethread_switch_deadlock.py in the repo root)
+        if not RUNNING_ON_FREETHREAD_BUILD:
+            self.skipTest("Only free-threaded builds take critical sections")
+        output = self.run_script('fail_switch_critical_section.py')
+        self.assertIn('SWITCH CS OK', output)
+
 class TestModule(TestCase):
 
     @unittest.skipUnless(hasattr(sys, '_is_gil_enabled'),
                          "Needs 3.13 and above for sys._is_gil_enabled")
     def test_no_gil_on_free_threaded(self):
-
         if RUNNING_ON_FREETHREAD_BUILD:
             self.assertFalse(sys._is_gil_enabled())
         else:

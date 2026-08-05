@@ -24,10 +24,10 @@ from typing import Any, NamedTuple
 from xml.dom import minidom
 
 
-_DEFAULT_HELP_WIDTH = 80  # Default width of help output.
+_DEFAULT_HELP_WIDTH: int = 80  # Default width of help output.
 # Minimal "sane" width of help output. We assume that any value below 40 is
 # unreasonable.
-_MIN_HELP_WIDTH = 40
+_MIN_HELP_WIDTH: int = 40
 
 # Define the allowed error rate in an input string to get suggestions.
 #
@@ -38,7 +38,7 @@ _MIN_HELP_WIDTH = 40
 # For manual testing, consider "<command> --list" which produced a large number
 # of spurious suggestions when we used "least_errors > 0.5" instead of
 # "least_erros >= 0.5".
-_SUGGESTION_ERROR_RATE_THRESHOLD = 0.50
+_SUGGESTION_ERROR_RATE_THRESHOLD: float = 0.50
 
 # Characters that cannot appear or are highly discouraged in an XML 1.0
 # document. (See http://www.w3.org/TR/REC-xml/#charsets or
@@ -74,6 +74,7 @@ class _ModuleObjectAndName(NamedTuple):
   - module: object, module object.
   - module_name: str, module name.
   """
+
   module: types.ModuleType
   module_name: str
 
@@ -137,13 +138,14 @@ def create_xml_dom_element(
   Args:
     doc: minidom.Document, the DOM document it should create nodes from.
     name: str, the tag of XML element.
-    value: object, whose string representation will be used
-        as the value of the XML element. Illegal or highly discouraged xml 1.0
-        characters are stripped.
+    value: object, whose string representation will be used as the value of the
+      XML element. Illegal or highly discouraged xml 1.0 characters are
+      stripped.
 
   Returns:
     An instance of minidom.Element.
   """
+
   s = str(value)
   if isinstance(value, bool):
     # Display boolean values as the C++ flag library does: no caps.
@@ -174,8 +176,10 @@ def get_flag_suggestions(
 
   # Find close approximations in flag prefixes.
   # This also handles the case where the flag is spelled right but ambiguous.
-  distances = [(_damerau_levenshtein(attempt, option[0:len(attempt)]), option)
-               for option in option_names]
+  distances = [
+      (_damerau_levenshtein(attempt, option[0 : len(attempt)]), option)
+      for option in option_names
+  ]
   # t[0] is distance, and sorting by t[1] allows us to have stable output.
   distances.sort()
 
@@ -209,7 +213,8 @@ def _damerau_levenshtein(a, b):
       d = min(
           distance(x[1:], y) + 1,  # correct an insertion error
           distance(x, y[1:]) + 1,  # correct a deletion error
-          distance(x[1:], y[1:]) + (x[0] != y[0]))  # correct a wrong character
+          distance(x[1:], y[1:]) + (x[0] != y[0]),
+      )  # correct a wrong character
       if len(x) >= 2 and len(y) >= 2 and x[0] == y[1] and x[1] == y[0]:
         # Correct a transposition.
         t = distance(x[2:], y[2:]) + 1
@@ -218,6 +223,7 @@ def _damerau_levenshtein(a, b):
 
     memo[x, y] = d
     return d
+
   return distance(a, b)
 
 
@@ -264,9 +270,11 @@ def text_wrap(
   # Create one wrapper for the first paragraph and one for subsequent
   # paragraphs that does not have the initial wrapping.
   wrapper = textwrap.TextWrapper(
-      width=length, initial_indent=firstline_indent, subsequent_indent=indent)
+      width=length, initial_indent=firstline_indent, subsequent_indent=indent
+  )
   subsequent_wrapper = textwrap.TextWrapper(
-      width=length, initial_indent=indent, subsequent_indent=indent)
+      width=length, initial_indent=indent, subsequent_indent=indent
+  )
 
   # textwrap does not have any special treatment for newlines. From the docs:
   # "...newlines may appear in the middle of a line and cause strange output.
@@ -286,6 +294,7 @@ def text_wrap(
 def flag_dict_to_args(
     flag_map: dict[str, Any], multi_flags: set[str] | None = None
 ) -> Iterable[str]:
+  # fmt: off
   """Convert a dict of values into process call parameters.
 
   This method is used to convert a dictionary into a sequence of parameters
@@ -307,32 +316,34 @@ def flag_dict_to_args(
         * Everything else is converted to string an passed as such.
 
     multi_flags: set, names (strings) of flags that should be treated as
-        multi-flags.
+      multi-flags.
+
   Yields:
     sequence of string suitable for a subprocess execution.
   """
+  # fmt: on
   for key, value in flag_map.items():
     if value is None:
-      yield '--%s' % key
+      yield f'--{key}'
     elif isinstance(value, bool):
       if value:
-        yield '--%s' % key
+        yield f'--{key}'
       else:
-        yield '--no%s' % key
+        yield f'--no{key}'
     elif isinstance(value, (bytes, str)):
       # We don't want strings to be handled like python collections.
-      yield '--%s=%s' % (key, value)  # type: ignore[str-bytes-safe]
+      yield f'--{key}={value}'  # type: ignore[str-bytes-safe]
     else:
       # Now we attempt to deal with collections.
       try:
         if multi_flags and key in multi_flags:
           for item in value:
-            yield '--%s=%s' % (key, str(item))
+            yield f'--{key}={item}'
         else:
-          yield '--%s=%s' % (key, ','.join(str(item) for item in value))
+          yield f"--{key}={','.join(str(item) for item in value)}"
       except TypeError:
         # Default case.
-        yield '--%s=%s' % (key, value)
+        yield f'--{key}={value}'
 
 
 def trim_docstring(docstring: str) -> str:

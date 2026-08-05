@@ -104,7 +104,7 @@ _CallableT = TypeVar('_CallableT', bound=Callable)
 
 
 @overload
-def flagsaver(func: _CallableT) -> _CallableT:
+def flagsaver(func: _CallableT) -> _CallableT:  # pyrefly: ignore[inconsistent-overload]
   ...
 
 
@@ -207,7 +207,8 @@ def _construct_overrider(flag_overrider_cls, *args, **kwargs):
   if len(args) == 1 and callable(args[0]):
     if kwargs:
       raise ValueError(
-          "It's invalid to specify both positional and keyword parameters.")
+          "It's invalid to specify both positional and keyword parameters."
+      )
     func = args[0]
     if inspect.isclass(func):
       raise TypeError('@flagsaver.flagsaver cannot be applied to a class.')
@@ -216,12 +217,12 @@ def _construct_overrider(flag_overrider_cls, *args, **kwargs):
   # In which case they augment any specified kwargs.
   for arg in args:
     if not isinstance(arg, tuple) or len(arg) != 2:
-      raise ValueError('Expected (FlagHolder, value) pair, found %r' % (arg,))
+      raise ValueError(f'Expected (FlagHolder, value) pair, found {arg!r}')
     holder, value = arg
     if not isinstance(holder, flags.FlagHolder):
-      raise ValueError('Expected (FlagHolder, value) pair, found %r' % (arg,))
+      raise ValueError(f'Expected (FlagHolder, value) pair, found {arg!r}')
     if holder.name in kwargs:
-      raise ValueError('Cannot set --%s multiple times' % holder.name)
+      raise ValueError(f'Cannot set --{holder.name} multiple times')
     kwargs[holder.name] = value
   return flag_overrider_cls(**kwargs)
 
@@ -239,7 +240,9 @@ def save_flag_values(
     Dictionary mapping keys to values. Keys are flag names, values are
     corresponding ``__dict__`` members. E.g. ``{'key': value_dict, ...}``.
   """
-  return {name: _copy_flag_dict(flag_values[name]) for name in flag_values}
+  return {
+      name: _copy_flag_dict(flag_values[name]) for name in list(flag_values)
+  }
 
 
 def restore_flag_values(
@@ -297,6 +300,16 @@ def _wrap(flag_overrider_cls, func, overrides):
     A wrapped version of func.
   """
 
+  if inspect.iscoroutinefunction(func):
+
+    @functools.wraps(func)
+    async def _flagsaver_async_wrapper(*args, **kwargs):
+      """Wrapper function that saves and restores flags."""
+      with flag_overrider_cls(**overrides):
+        return await func(*args, **kwargs)
+
+    return _flagsaver_async_wrapper
+
   @functools.wraps(func)
   def _flagsaver_wrapper(*args, **kwargs):
     """Wrapper function that saves and restores flags."""
@@ -332,6 +345,7 @@ class _FlagOverrider:
       raise
 
   def __exit__(self, exc_type, exc_value, traceback):
+    assert self._saved_flag_values is not None
     restore_flag_values(self._saved_flag_values, FLAGS)
 
 
@@ -357,7 +371,8 @@ class _ParsingFlagOverrider(_FlagOverrider):
         continue
       raise TypeError(
           f'flagsaver.as_parsed() cannot parse {flag_name}. Expected a single '
-          f'string or sequence of strings but {type(new_value)} was provided.')
+          f'string or sequence of strings but {type(new_value)} was provided.'
+      )
     super().__init__(**overrides)
 
   def __enter__(self):

@@ -1,7 +1,15 @@
 from collections.abc import Callable
 from typing import Any, NoReturn, TypeVar, overload
 
+from absl import flags
 from absl.flags import _flag
+
+RUN_WITH_PDB: flags.FlagHolder[bool]
+PDB_POST_MORTEM: flags.FlagHolder[bool]
+PDB: flags.FlagHolder[bool]
+RUN_WITH_PROFILING: flags.FlagHolder[bool]
+PROFILE_FILE: flags.FlagHolder[str]
+USE_CPROFILE_FOR_PROFILING: flags.FlagHolder[bool]
 
 _MainArgs = TypeVar('_MainArgs')
 _Exc = TypeVar('_Exc', bound=Exception)
@@ -28,6 +36,10 @@ class HelpfullFlag(_flag.BooleanFlag):
     ...
 
 class HelpXMLFlag(_flag.BooleanFlag):
+  def __init__(self):
+    ...
+
+class OnlyCheckFlagsFlag(_flag.BooleanFlag):
   def __init__(self):
     ...
 

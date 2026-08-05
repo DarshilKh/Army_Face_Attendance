@@ -79,6 +79,7 @@ class Config:
     # Camera resolution
     CAMERA_WIDTH = int(os.getenv('CAMERA_WIDTH', '1280'))
     CAMERA_HEIGHT = int(os.getenv('CAMERA_HEIGHT', '720'))
+    CAMERA_RESOLUTION = (CAMERA_WIDTH, CAMERA_HEIGHT)
 
     # Network Camera Configuration (prioritized over system webcam)
     CAMERA_URL = os.getenv('CAMERA_URL', '')  # e.g., "http://192.168.1.65/"

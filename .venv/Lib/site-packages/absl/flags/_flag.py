@@ -41,8 +41,7 @@ class Flag(Generic[_T]):
     name: the name for this flag
     default: the default value for this flag
     default_unparsed: the unparsed default value for this flag.
-    default_as_str: default value as repr'd string, e.g., "'true'"
-      (or None)
+    default_as_str: default value as repr'd string, e.g., "'true'" (or None)
     value: the most recent parsed value of this flag set by :meth:`parse`
     help: a help string or None if no help is available
     short_name: the single letter alias for this flag (or None)
@@ -50,17 +49,17 @@ class Flag(Generic[_T]):
     present: true if this flag was parsed from command line flags
     parser: an :class:`~absl.flags.ArgumentParser` object
     serializer: an ArgumentSerializer object
-    allow_override: the flag may be redefined without raising an error,
-      and newly defined flag overrides the old one.
-    allow_override_cpp: use the flag from C++ if available the flag
-      definition is replaced by the C++ flag after init
-    allow_hide_cpp: use the Python flag despite having a C++ flag with
-      the same name (ignore the C++ flag)
+    allow_override: the flag may be redefined without raising an error, and
+      newly defined flag overrides the old one.
+    allow_override_cpp: use the flag from C++ if available the flag definition
+      is replaced by the C++ flag after init
+    allow_hide_cpp: use the Python flag despite having a C++ flag with the same
+      name (ignore the C++ flag)
     using_default_value: the flag value has not been set by user
-    allow_overwrite: the flag may be parsed more than once without
-      raising an error, the last set value will be used
-    allow_using_method_names: whether this flag can be defined even if
-      it has a name that conflicts with a FlagValues method.
+    allow_overwrite: the flag may be parsed more than once without raising an
+      error, the last set value will be used
+    allow_using_method_names: whether this flag can be defined even if it has a
+      name that conflicts with a FlagValues method.
     validators: list of the flag validators.
 
   The only public method of a ``Flag`` object is :meth:`parse`, but it is
@@ -127,7 +126,8 @@ class Flag(Generic[_T]):
     if self.allow_hide_cpp and self.allow_override_cpp:
       raise _exceptions.Error(
           "Can't have both allow_hide_cpp (means use Python flag) and "
-          'allow_override_cpp (means use C++ flag after InitGoogle)')
+          'allow_override_cpp (means use C++ flag after InitGoogle)'
+      )
 
     self._set_default(default)
 
@@ -151,15 +151,19 @@ class Flag(Generic[_T]):
     return NotImplemented
 
   def __bool__(self):
-    raise TypeError('A Flag instance would always be True. '
-                    'Did you mean to test the `.value` attribute?')
+    raise TypeError(
+        'A Flag instance would always be True. '
+        'Did you mean to test the `.value` attribute?'
+    )
 
   def __getstate__(self):
     raise TypeError("can't pickle Flag objects")
 
   def __copy__(self):
-    raise TypeError('%s does not support shallow copies. '
-                    'Use copy.deepcopy instead.' % type(self).__name__)
+    raise TypeError(
+        f'{type(self).__name__} does not support shallow copies. Use'
+        ' copy.deepcopy instead.'
+    )
 
   def __deepcopy__(self, memo: dict[int, Any]) -> 'Flag[_T]':
     result = object.__new__(type(self))
@@ -187,8 +191,8 @@ class Flag(Generic[_T]):
     """
     if self.present and not self.allow_overwrite:
       raise _exceptions.IllegalFlagValueError(
-          'flag --%s=%s: already defined as %s' % (
-              self.name, argument, self.value))
+          f'flag --{self.name}={argument}: already defined as {self.value}'
+      )
     self.value = self._parse(argument)
     self.present += 1
 
@@ -208,7 +212,8 @@ class Flag(Generic[_T]):
     except (TypeError, ValueError, OverflowError) as e:
       # Recast as IllegalFlagValueError.
       raise _exceptions.IllegalFlagValueError(
-          'flag --%s=%s: %s' % (self.name, argument, e))
+          f'flag --{self.name}={argument}: {e}'
+      )
 
   def unparse(self) -> None:
     self.value = self.default
@@ -225,14 +230,13 @@ class Flag(Generic[_T]):
       return ''
     if self.boolean:
       if value:
-        return '--%s' % self.name
+        return f'--{self.name}'
       else:
-        return '--no%s' % self.name
+        return f'--no{self.name}'
     else:
       if not self.serializer:
-        raise _exceptions.Error(
-            'Serializer not present for flag %s' % self.name)
-      return '--%s=%s' % (self.name, self.serializer.serialize(value))
+        raise _exceptions.Error(f'Serializer not present for flag {self.name}')
+      return f'--{self.name}={self.serializer.serialize(value)}'
 
   def _set_default(self, value: _T | None | str) -> None:
     """Changes the default value (and current value too) for this Flag."""
@@ -281,16 +285,19 @@ class Flag(Generic[_T]):
     element = doc.createElement('flag')
     if is_key:
       element.appendChild(_helpers.create_xml_dom_element(doc, 'key', 'yes'))
-    element.appendChild(_helpers.create_xml_dom_element(
-        doc, 'file', module_name))
+    element.appendChild(
+        _helpers.create_xml_dom_element(doc, 'file', module_name)
+    )
     # Adds flag features that are relevant for all flags.
     element.appendChild(_helpers.create_xml_dom_element(doc, 'name', self.name))
     if self.short_name:
-      element.appendChild(_helpers.create_xml_dom_element(
-          doc, 'short_name', self.short_name))
+      element.appendChild(
+          _helpers.create_xml_dom_element(doc, 'short_name', self.short_name)
+      )
     if self.help:
-      element.appendChild(_helpers.create_xml_dom_element(
-          doc, 'meaning', self.help))
+      element.appendChild(
+          _helpers.create_xml_dom_element(doc, 'meaning', self.help)
+      )
     # The default flag value can either be represented as a string like on the
     # command line, or as a Python object.  We serialize this value in the
     # latter case in order to remain consistent.
@@ -301,13 +308,16 @@ class Flag(Generic[_T]):
         default_serialized = ''
     else:
       default_serialized = self.default  # type: ignore[assignment]
-    element.appendChild(_helpers.create_xml_dom_element(
-        doc, 'default', default_serialized))
+    element.appendChild(
+        _helpers.create_xml_dom_element(doc, 'default', default_serialized)
+    )
     value_serialized = self._serialize_value_for_xml(self.value)
-    element.appendChild(_helpers.create_xml_dom_element(
-        doc, 'current', value_serialized))
-    element.appendChild(_helpers.create_xml_dom_element(
-        doc, 'type', self.flag_type()))
+    element.appendChild(
+        _helpers.create_xml_dom_element(doc, 'current', value_serialized)
+    )
+    element.appendChild(
+        _helpers.create_xml_dom_element(doc, 'type', self.flag_type())
+    )
     # Adds extra flag features this flag may have.
     for e in self._extra_xml_dom_elements(doc):
       element.appendChild(e)
@@ -363,7 +373,7 @@ class BooleanFlag(Flag[bool]):
 class EnumFlag(Flag[str]):
   """Basic enum flag; its value can be any string from list of enum_values."""
 
-  parser: _argument_parser.EnumParser
+  parser: _argument_parser.EnumParser  # pyrefly: ignore[bad-override]
 
   def __init__(
       self,
@@ -380,22 +390,24 @@ class EnumFlag(Flag[str]):
     g = _argument_parser.ArgumentSerializer()
     super().__init__(p, g, name, default, help, short_name, **args)
     self.parser = p
-    self.help = '<%s>: %s' % ('|'.join(p.enum_values), self.help)
+    joined_values = '|'.join(p.enum_values)
+    self.help = f'<{joined_values}>: {self.help}'
 
   def _extra_xml_dom_elements(
       self, doc: minidom.Document
   ) -> list[minidom.Element]:
     elements = []
     for enum_value in self.parser.enum_values:
-      elements.append(_helpers.create_xml_dom_element(
-          doc, 'enum_value', enum_value))
+      elements.append(
+          _helpers.create_xml_dom_element(doc, 'enum_value', enum_value)
+      )
     return elements
 
 
 class EnumClassFlag(Flag[_ET]):
   """Basic enum flag; its value is an enum class's member."""
 
-  parser: _argument_parser.EnumClassParser
+  parser: _argument_parser.EnumClassParser  # pyrefly: ignore[bad-override]
 
   def __init__(
       self,
@@ -414,15 +426,17 @@ class EnumClassFlag(Flag[_ET]):
     g = _argument_parser.EnumClassSerializer(lowercase=not case_sensitive)
     super().__init__(p, g, name, default, help, short_name, **args)
     self.parser = p
-    self.help = '<%s>: %s' % ('|'.join(p.member_names), self.help)
+    joined_names = '|'.join(p.member_names)
+    self.help = f'<{joined_names}>: {self.help}'
 
   def _extra_xml_dom_elements(
       self, doc: minidom.Document
   ) -> list[minidom.Element]:
     elements = []
     for enum_value in self.parser.enum_class.__members__.keys():
-      elements.append(_helpers.create_xml_dom_element(
-          doc, 'enum_value', enum_value))
+      elements.append(
+          _helpers.create_xml_dom_element(doc, 'enum_value', enum_value)
+      )
     return elements
 
 
@@ -451,9 +465,9 @@ class MultiFlag(Generic[_T], Flag[list[_T]]):
     """Parses one or more arguments with the installed parser.
 
     Args:
-      arguments: a single argument or a list of arguments (typically a
-        list of default values); a single argument is converted
-        internally into a list containing one item.
+      arguments: a single argument or a list of arguments (typically a list of
+        default values); a single argument is converted internally into a list
+        containing one item.
     """
     new_values = self._parse(arguments)
     if self.present:
@@ -466,25 +480,23 @@ class MultiFlag(Generic[_T], Flag[list[_T]]):
   def _parse(self, arguments: str | _T | Iterable[_T]) -> list[_T]:  # pylint: disable=arguments-renamed
     arguments_list: list[str | _T]
 
-    if isinstance(arguments, str):
-      arguments_list = [arguments]
-
-    elif isinstance(arguments, Iterable):
-      arguments_list = list(arguments)
-
-    else:
-      # Default value may be a list of values.  Most other arguments
-      # will not be, so convert them into a single-item list to make
-      # processing simpler below.
-      arguments_list = [arguments]
+    match arguments:
+      case str():
+        arguments_list = [arguments]
+      case Iterable():
+        arguments_list = list(arguments)
+      case _:
+        # Default value may be a list of values.  Most other arguments
+        # will not be, so convert them into a single-item list to make
+        # processing simpler below.
+        arguments_list = [arguments]
 
     return [super(MultiFlag, self)._parse(item) for item in arguments_list]  # type: ignore
 
   def _serialize(self, value: list[_T] | None) -> str:
     """See base class."""
     if not self.serializer:
-      raise _exceptions.Error(
-          'Serializer not present for flag %s' % self.name)
+      raise _exceptions.Error(f'Serializer not present for flag {self.name}')
     if value is None:
       return ''
 
@@ -505,8 +517,9 @@ class MultiFlag(Generic[_T], Flag[list[_T]]):
     elements = []
     if hasattr(self.parser, 'enum_values'):
       for enum_value in self.parser.enum_values:  # pytype: disable=attribute-error
-        elements.append(_helpers.create_xml_dom_element(
-            doc, 'enum_value', enum_value))
+        elements.append(
+            _helpers.create_xml_dom_element(doc, 'enum_value', enum_value)
+        )
     return elements
 
 
@@ -530,36 +543,40 @@ class MultiEnumClassFlag(MultiFlag[_ET]):  # pytype: disable=not-indexable
       **args
   ):
     p = _argument_parser.EnumClassParser(
-        enum_class, case_sensitive=case_sensitive)
+        enum_class, case_sensitive=case_sensitive
+    )
     g: _argument_parser.EnumClassListSerializer
     g = _argument_parser.EnumClassListSerializer(
-        list_sep=',', lowercase=not case_sensitive)
+        list_sep=',', lowercase=not case_sensitive
+    )
     super().__init__(p, g, name, default, help_string, **args)
     # NOTE: parser should be typed EnumClassParser[_ET] but the constructor
     # restricts the available interface to ArgumentParser[str].
     self.parser = p
     # NOTE: serializer should be non-Optional but this isn't inferred.
     self.serializer = g
+    joined_names = '|'.join(p.member_names)
     self.help = (
-        '<%s>: %s;\n    repeat this option to specify a list of values' %
-        ('|'.join(p.member_names), help_string or '(no help available)'))
+        f'<{joined_names}>: '
+        f'{help_string or "(no help available)"};\n'
+        '    repeat this option to specify a list of values'
+    )
 
   def _extra_xml_dom_elements(
       self, doc: minidom.Document
   ) -> list[minidom.Element]:
     elements = []
     for enum_value in self.parser.enum_class.__members__.keys():  # pytype: disable=attribute-error
-      elements.append(_helpers.create_xml_dom_element(
-          doc, 'enum_value', enum_value))
+      elements.append(
+          _helpers.create_xml_dom_element(doc, 'enum_value', enum_value)
+      )
     return elements
 
   def _serialize_value_for_xml(self, value):
     """See base class."""
     if value is not None:
       if not self.serializer:
-        raise _exceptions.Error(
-            'Serializer not present for flag %s' % self.name
-        )
+        raise _exceptions.Error(f'Serializer not present for flag {self.name}')
       value_serialized = self.serializer.serialize(value)
     else:
       value_serialized = ''

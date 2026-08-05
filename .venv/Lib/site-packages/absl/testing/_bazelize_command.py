@@ -16,9 +16,7 @@
 
 import os
 
-from absl import flags
-
-FLAGS = flags.FLAGS
+from absl.testing import absltest
 
 
 def get_executable_path(py_binary_name):
@@ -33,7 +31,7 @@ def get_executable_path(py_binary_name):
 
   Args:
     py_binary_name: string, the name of a py_binary that is in another Bazel
-        target's data dependencies.
+      target's data dependencies.
 
   Raises:
     RuntimeError: Raised when it cannot locate the executable path.
@@ -41,7 +39,7 @@ def get_executable_path(py_binary_name):
 
   if os.name == 'nt':
     py_binary_name += '.exe'
-    manifest_file = os.path.join(FLAGS.test_srcdir, 'MANIFEST')
+    manifest_file = os.path.join(absltest.TEST_SRCDIR.value, 'MANIFEST')
     workspace_name = os.environ['TEST_WORKSPACE']
     manifest_entry = f'{workspace_name}/{py_binary_name}'
     with open(manifest_file) as manifest_fd:
@@ -52,8 +50,9 @@ def get_executable_path(py_binary_name):
         if manifest_entry == tokens[0]:
           return tokens[1]
     raise RuntimeError(
-        'Cannot locate executable path for {}, MANIFEST file: {}.'.format(
-            py_binary_name, manifest_file))
+        f'Cannot locate executable path for {py_binary_name}, MANIFEST file:'
+        f' {manifest_file}.'
+    )
   else:
     # NOTE: __file__ may be .py or .pyc, depending on how the module was
     # loaded and executed.

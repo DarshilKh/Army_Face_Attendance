@@ -45,14 +45,14 @@ except ImportError:
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_boolean(
+RUN_WITH_PDB = flags.DEFINE_boolean(
     'run_with_pdb',
     False,
     'Set to true for debug mode. PDB is used by default; $PYTHONBREAKPOINT '
     '(https://docs.python.org/3/using/cmdline.html#envvar-PYTHONBREAKPOINT) '
     'can be used to specify a custom debugger.',
 )
-flags.DEFINE_boolean(
+PDB_POST_MORTEM = flags.DEFINE_boolean(
     'pdb_post_mortem',
     False,
     'Set to true to handle uncaught exceptions with the post mortem debugger. '
@@ -60,21 +60,38 @@ flags.DEFINE_boolean(
     '(https://docs.python.org/3/using/cmdline.html#envvar-PYTHONBREAKPOINT) '
     'can be used to specify a custom one.',
 )
-flags.DEFINE_alias('pdb', 'pdb_post_mortem')
-flags.DEFINE_boolean('run_with_profiling', False,
-                     'Set to true for profiling the script. '
-                     'Execution will be slower, and the output format might '
-                     'change over time.')
-flags.DEFINE_string('profile_file', None,
-                    'Dump profile information to a file (for python -m '
-                    'pstats). Implies --run_with_profiling.')
-flags.DEFINE_boolean('use_cprofile_for_profiling', True,
-                     'Use cProfile instead of the profile module for '
-                     'profiling. This has no effect unless '
-                     '--run_with_profiling is set.')
-flags.DEFINE_boolean('only_check_args', False,
-                     'Set to true to validate args and exit.',
-                     allow_hide_cpp=True)
+PDB = flags.DEFINE_alias('pdb', 'pdb_post_mortem')
+RUN_WITH_PROFILING = flags.DEFINE_boolean(
+    'run_with_profiling',
+    False,
+    'Set to true for profiling the script. '
+    'Execution will be slower, and the output format might '
+    'change over time.',
+)
+PROFILE_FILE = flags.DEFINE_string(
+    'profile_file',
+    os.getenv('ABSL_PYTHON_PROFILE_FILE'),
+    'Dump profile information to a file (for python -m '
+    'pstats). Implies --run_with_profiling.',
+)
+USE_CPROFILE_FOR_PROFILING = flags.DEFINE_boolean(
+    'use_cprofile_for_profiling',
+    True,
+    'Use cProfile instead of the profile module for '
+    'profiling. This has no effect unless '
+    '--run_with_profiling is set.',
+)
+_ONLY_CHECK_ARGS = flags.DEFINE_boolean(
+    'only_check_args',
+    False,
+    'Set to true to validate args and exit.',
+    allow_hide_cpp=True,
+)
+
+
+def _exit_before_main(status_code) -> None:
+  """Abstraction of exiting before main() to enable overrides."""
+  sys.exit(status_code)
 
 
 def _get_debugger_module_with_function(function_name):
@@ -142,6 +159,7 @@ class UsageError(Error):
 
 class HelpFlag(flags.BooleanFlag):
   """Special boolean flag that displays usage and raises SystemExit."""
+
   NAME = 'help'
   SHORT_NAME = '?'
 
@@ -160,11 +178,12 @@ class HelpFlag(flags.BooleanFlag):
       # Advertise --helpfull on stdout, since usage() was on stdout.
       print()
       print('Try --helpfull to get a list of all flags.')
-      sys.exit(1)
+      _exit_before_main(1)
 
 
 class HelpshortFlag(HelpFlag):
   """--helpshort is an alias for --help."""
+
   NAME = 'helpshort'
   SHORT_NAME = None
 
@@ -178,7 +197,7 @@ class HelpfullFlag(flags.BooleanFlag):
   def parse(self, arg):
     if self._parse(arg):
       usage(writeto_stdout=True)
-      sys.exit(1)
+      _exit_before_main(1)
 
 
 class HelpXMLFlag(flags.BooleanFlag):
@@ -195,7 +214,28 @@ class HelpXMLFlag(flags.BooleanFlag):
   def parse(self, arg):
     if self._parse(arg):
       flags.FLAGS.write_help_in_xml_format(sys.stdout)
-      sys.exit(1)
+      _exit_before_main(1)
+
+
+class OnlyCheckFlagsFlag(flags.BooleanFlag):
+  """Similar to HelpFlag, but only checks flag definitions.
+
+  In the process it will load all modules defining flags and verify there are no
+  duplicate flag definitions.
+  """
+
+  def __init__(self):
+    super().__init__(
+        'only_check_flags',
+        False,
+        'Check if all flag definitions are valid and exit before main.',
+        allow_hide_cpp=True,
+    )
+
+  def parse(self, arg):
+    if self._parse(arg):
+      sys.stdout.write('SUCCESS: All Abseil flags are valid.\n')
+      _exit_before_main(0)
 
 
 def parse_flags_with_usage(args):
@@ -203,7 +243,7 @@ def parse_flags_with_usage(args):
 
   Args:
     args: [str], a non-empty list of the command line arguments including
-        program name.
+      program name.
 
   Returns:
     [str], a non-empty list of remaining command line arguments after parsing
@@ -214,13 +254,13 @@ def parse_flags_with_usage(args):
   except flags.Error as error:
     message = str(error)
     if '\n' in message:
-      final_message = 'FATAL Flags parsing error:\n%s\n' % textwrap.indent(
-          message, '  ')
+      message = textwrap.indent(message, '  ')
+      final_message = f'FATAL Flags parsing error:\n{message}\n'
     else:
-      final_message = 'FATAL Flags parsing error: %s\n' % message
+      final_message = f'FATAL Flags parsing error: {message}\n'
     sys.stderr.write(final_message)
     sys.stderr.write('Pass --helpshort or --helpfull to see help on flags.\n')
-    sys.exit(1)
+    _exit_before_main(1)
 
 
 _define_help_flags_called = False
@@ -236,6 +276,7 @@ def define_help_flags():
     flags.DEFINE_flag(HelpshortFlag())  # alias for --help
     flags.DEFINE_flag(HelpfullFlag())
     flags.DEFINE_flag(HelpXMLFlag())
+    flags.DEFINE_flag(OnlyCheckFlagsFlag())
     _define_help_flags_called = True
 
 
@@ -276,8 +317,8 @@ def _register_and_parse_flags_with_usage(
     raise Error('FLAGS must be parsed after flags_parser is called.')
 
   # Exit when told so.
-  if FLAGS.only_check_args:
-    sys.exit(0)
+  if _ONLY_CHECK_ARGS.value:
+    _exit_before_main(0)
   # Immediately after flags are parsed, bump verbosity to INFO if the flag has
   # not been set.
   if FLAGS['verbosity'].using_default_value:
@@ -286,25 +327,27 @@ def _register_and_parse_flags_with_usage(
 
   return args_to_main
 
+
 _register_and_parse_flags_with_usage.done = False
 
 
 def _run_main(main, argv):
   """Calls main, optionally with a debugger or profiler."""
-  if FLAGS.run_with_pdb:
+  if RUN_WITH_PDB.value:
     sys.exit(_get_debugger_module_with_function('runcall').runcall(main, argv))
-  elif FLAGS.run_with_profiling or FLAGS.profile_file:
+  elif RUN_WITH_PROFILING.value or PROFILE_FILE.value:
     # Avoid import overhead since most apps (including performance-sensitive
     # ones) won't be run with profiling.
     # pylint: disable=g-import-not-at-top
     import atexit
-    if FLAGS.use_cprofile_for_profiling:
+
+    if USE_CPROFILE_FOR_PROFILING.value:
       import cProfile as profile
     else:
       import profile
     profiler = profile.Profile()
-    if FLAGS.profile_file:
-      atexit.register(profiler.dump_stats, FLAGS.profile_file)
+    if PROFILE_FILE.value:
+      atexit.register(profiler.dump_stats, PROFILE_FILE.value)
     else:
       atexit.register(profiler.print_stats)
     sys.exit(profiler.runcall(main, argv))
@@ -377,7 +420,7 @@ def run(
 
       # Check the tty so that we don't hang waiting for input in an
       # non-interactive scenario.
-      if FLAGS.pdb_post_mortem and sys.stdout.isatty():
+      if PDB_POST_MORTEM.value and sys.stdout.isatty():
         traceback.print_exc()
         print()
         print(' *** Entering post-mortem debugging ***')
@@ -387,6 +430,7 @@ def run(
   except Exception as e:
     _call_exception_handlers(e)
     raise
+
 
 # Callbacks which have been deferred until after _run_init has been called.
 _init_callbacks = collections.deque()
@@ -406,8 +450,8 @@ def call_after_init(callback):
 
   Args:
     callback: a callable to be called once ABSL has finished initialization.
-      This may be immediate if initialization has already finished. It
-      takes no arguments and returns nothing.
+      This may be immediate if initialization has already finished. It takes no
+      arguments and returns nothing.
   """
   if _run_init.done:
     callback()
@@ -443,18 +487,19 @@ def _run_init(
 _run_init.done = False
 
 
-def usage(shorthelp=False, writeto_stdout=False, detailed_error=None,
-          exitcode=None):
+def usage(
+    shorthelp=False, writeto_stdout=False, detailed_error=None, exitcode=None
+):
   """Writes __main__'s docstring to stderr with some help text.
 
   Args:
-    shorthelp: bool, if True, prints only flags from the main module,
-        rather than all flags.
-    writeto_stdout: bool, if True, writes help message to stdout,
-        rather than to stderr.
+    shorthelp: bool, if True, prints only flags from the main module, rather
+      than all flags.
+    writeto_stdout: bool, if True, writes help message to stdout, rather than to
+      stderr.
     detailed_error: str, additional detail about why usage info was presented.
     exitcode: optional integer, if set, exits with this status code after
-        writing help.
+      writing help.
   """
   if writeto_stdout:
     stdfile = sys.stdout
@@ -463,7 +508,7 @@ def usage(shorthelp=False, writeto_stdout=False, detailed_error=None,
 
   doc = sys.modules['__main__'].__doc__
   if not doc:
-    doc = '\nUSAGE: %s [flags]\n' % sys.argv[0]
+    doc = f'\nUSAGE: {sys.argv[0]} [flags]\n'
     doc = flags.text_wrap(doc, indent='       ', firstline_indent='')
   else:
     # Replace all '%s' with sys.argv[0], and all '%%' with '%'.
@@ -484,7 +529,7 @@ def usage(shorthelp=False, writeto_stdout=False, detailed_error=None,
       stdfile.write(flag_str)
     stdfile.write('\n')
     if detailed_error is not None:
-      stdfile.write('\n%s\n' % detailed_error)
+      stdfile.write(f'\n{detailed_error}\n')
   except OSError as e:
     # We avoid printing a huge backtrace if we get EPIPE, because
     # "foo.par --help | less" is a frequent use case.
@@ -534,6 +579,8 @@ def install_exception_handler(handler):
   FlagsError or UsageError.
   """
   if not isinstance(handler, ExceptionHandler):
-    raise TypeError('handler of type %s does not inherit from ExceptionHandler'
-                    % type(handler))
+    raise TypeError(
+        f'handler of type {type(handler)} does not inherit from'
+        ' ExceptionHandler'
+    )
   EXCEPTION_HANDLERS.append(handler)

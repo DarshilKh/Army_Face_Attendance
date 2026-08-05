@@ -123,7 +123,6 @@ def get_face_bbox(face_obj) -> Optional[List[int]]:
 def get_employee_cached(army_id: str) -> Optional[Employee]:
     """
     Get employee with aggressive caching - ULTRA FAST
-
     """
     try:
         current_time = datetime.now().timestamp()
@@ -232,11 +231,6 @@ def invalidate_attendance_cache(employee_id: int):
 def save_attendance_photo(employee_army_id: str, frame: np.ndarray) -> str:
     """
     Save attendance photo - FAST with compression
-
-    Optimizations:
-    - JPEG quality 75 (good balance)
-    - Automatic folder creation
-    - Error handling
     """
     try:
         current_time = datetime.now()
@@ -398,13 +392,6 @@ def mark_attendance():
     TWO-STAGE PROCESSING:
     1. INSTANT face detection and recognition (fast)
     2. Smart attendance logic with minimal DB queries
-
-    OPTIMIZATIONS:
-    - Cached employee and attendance data
-    - Single recognition call
-    - Photo saved only when needed
-    - Clear response structure
-    - Comprehensive logging
     """
     try:
         # ============================================
@@ -440,17 +427,16 @@ def mark_attendance():
         # STEP 2: FACE RECOGNITION (INSTANT)
         # ============================================
 
-        # Single recognition call - FAST!
         employee_id, confidence, face_obj, status_message = face_engine.recognize_face(
             frame,
             return_all_matches=False,
-            last_attendance_today=None  # We'll query separately if needed
+            last_attendance_today=None
         )
 
         bbox = get_face_bbox(face_obj)
 
         # ============================================
-        # DEBUG LOGGING (Optional - can be disabled in production)
+        # DEBUG LOGGING
         # ============================================
 
         if app_logger.level <= 20:  # INFO level
@@ -471,16 +457,13 @@ def mark_attendance():
 
         if not employee_id or status_message in ["NO_FACE", "NO_MATCH", "NO_REGISTERED_FACES", "ERROR"]:
 
-            # Check if we need to clear previous display
             last_recognized = last_recognized_cache.get(session_id)
             should_clear = (last_recognized is not None)
 
-            # Clear cache
             if should_clear:
                 with last_recognized_lock:
                     last_recognized_cache[session_id] = None
 
-            # Build appropriate message
             if status_message == "NO_FACE":
                 message = "No face detected"
             elif status_message == "NO_MATCH":
@@ -567,7 +550,6 @@ def mark_attendance():
             check_in_datetime = last_attendance['check_in_datetime']
             hours_since = (now - check_in_datetime).total_seconds() / 3600
 
-            # Too early for checkout
             if hours_since < DEFAULT_HALF_DAY_HOURS:
                 remaining = DEFAULT_HALF_DAY_HOURS - hours_since
                 hours_int = int(remaining)
@@ -583,12 +565,8 @@ def mark_attendance():
                     extra_data={'remaining_hours': round(remaining, 2)}
                 )
 
-            # ============================================
             # CHECKOUT PROCESS
-            # ============================================
-
             try:
-                # Get attendance record
                 attendance_record = Attendance.query.filter_by(
                     employee_id=employee.id,
                     date=today
@@ -602,35 +580,29 @@ def mark_attendance():
                         bbox=bbox
                     )
 
-                # Save photo
                 photo_path = save_attendance_photo(employee.army_id, frame)
 
-                # Update record
                 attendance_record.check_out_time = now
                 attendance_record.check_out_photo = photo_path
 
-                # Calculate work hours
                 work_hours = calculate_work_hours(
                     attendance_record.check_in_time,
                     now
                 )
                 attendance_record.work_hours = work_hours
 
-                # Update status
                 late_minutes = 0
                 if attendance_record.status == 'late':
                     work_start = datetime.combine(today, DEFAULT_WORK_START)
-                    late_minutes = max(0, int((attendance_record.check_in_time - work_start).total_seconds() / 60))
+                    late_minutes = max(0, int(
+                        (attendance_record.check_in_time - work_start).total_seconds() / 60
+                    ))
 
                 attendance_record.status = determine_attendance_status(work_hours, late_minutes)
 
-                # Commit
                 db.session.commit()
-
-                # Invalidate cache
                 invalidate_attendance_cache(employee.id)
 
-                # Build response
                 return build_success_response(
                     f'Check-out successful! {employee.full_name}',
                     'checkout',
@@ -656,19 +628,14 @@ def mark_attendance():
                     bbox=bbox
                 )
 
-        # ============================================
         # CASE 3: CHECK-IN (First time today)
-        # ============================================
-
         try:
-            # Double-check attendance doesn't already exist (prevents duplicates)
             existing_attendance = Attendance.query.filter_by(
                 employee_id=employee.id,
                 date=today
             ).first()
 
             if existing_attendance and existing_attendance.check_in_time:
-                # Already marked attendance today
                 return build_warning_response(
                     f'{employee.full_name} - Attendance already marked today',
                     'already_checked_in',
@@ -678,22 +645,19 @@ def mark_attendance():
                     is_new_face
                 )
 
-            # Save photo
             photo_path = save_attendance_photo(employee.army_id, frame)
 
-            # Calculate late minutes
             work_start = datetime.combine(today, DEFAULT_WORK_START)
             late_minutes = max(0, int((now - work_start).total_seconds() / 60))
             status = 'late' if late_minutes > DEFAULT_LATE_THRESHOLD else 'present'
 
-            # Create attendance record
             attendance_record = Attendance(
                 employee_id=employee.id,
                 check_in_time=now,
                 date=today,
                 status=status,
                 check_in_photo=photo_path,
-                liveness_score_in=0.85,  # Default (can be enhanced with actual liveness)
+                liveness_score_in=0.85,
                 confidence_score=confidence,
                 ip_address=request.remote_addr,
                 device_info=request.user_agent.string[:200] if request.user_agent else 'Unknown',
@@ -702,14 +666,10 @@ def mark_attendance():
 
             db.session.add(attendance_record)
             db.session.commit()
-
-            # Invalidate cache
             invalidate_attendance_cache(employee.id)
 
-            # Build message
             status_msg = f' - {late_minutes} min late' if status == 'late' else ''
 
-            # Build response
             return build_success_response(
                 f'Check-in successful! {employee.full_name}{status_msg}',
                 'checkin',
@@ -727,8 +687,7 @@ def mark_attendance():
         except Exception as e:
             db.session.rollback()
             app_logger.error(f"Check-in error: {e}", exc_info=True)
-            
-            # Handle duplicate attendance (unique constraint violation)
+
             if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
                 return build_warning_response(
                     f'{employee.full_name} - Attendance already marked today',
@@ -738,7 +697,7 @@ def mark_attendance():
                     face_obj,
                     is_new_face
                 )
-            
+
             return build_error_response(
                 'Check-in failed - database error',
                 'CHECKIN_ERROR',
@@ -776,30 +735,30 @@ def view_attendance():
     """
     View attendance records - OPTIMIZED QUERY
     """
-    # Get filters
-    date_filter = request.args.get('date', date.today().isoformat())
-    unit_filter = request.args.get('unit', '')
+    date_filter   = request.args.get('date',   date.today().isoformat())
+    unit_filter   = request.args.get('unit',   '')
     status_filter = request.args.get('status', '')
-    search = request.args.get('search', '').strip()
+    search        = request.args.get('search', '').strip()
 
-    # Parse date
     try:
         filter_date = date.fromisoformat(date_filter)
     except ValueError:
         filter_date = date.today()
 
-    # Build query
+    # Active-employee filter ensures deactivated employees are excluded from
+    # the view and from all stats derived from attendance_records.
     query = db.session.query(Attendance, Employee).join(
         Employee, Attendance.employee_id == Employee.id
-    ).filter(Attendance.date == filter_date)
+    ).filter(
+        Attendance.date == filter_date,
+        Employee.is_active == True
+    )
 
-    # Apply filters
     if unit_filter:
         query = query.filter(Employee.unit == unit_filter)
     if status_filter:
         query = query.filter(Attendance.status == status_filter)
     if search:
-        # Escape SQL LIKE special characters to prevent pattern injection
         escaped_search = search.replace('%', '\\%').replace('_', '\\_')
         query = query.filter(
             db.or_(
@@ -808,28 +767,27 @@ def view_attendance():
             )
         )
 
-    # Execute
     attendance_records = query.order_by(Attendance.check_in_time.desc()).all()
 
-    # Get units for filter dropdown
     units = db.session.query(Employee.unit).distinct().filter(
         Employee.unit.isnot(None),
         Employee.is_active == True
     ).all()
     units = [u[0] for u in units if u[0]]
 
-    # Calculate stats
     total_employees = Employee.query.filter_by(is_active=True).count()
-    total_present = len(attendance_records)
+    total_present   = len(attendance_records)
 
     stats = {
         'total_employees': total_employees,
-        'total_present': total_present,
-        'total_absent': total_employees - total_present,
-        'present': sum(1 for a, e in attendance_records if a.status == 'present'),
-        'late': sum(1 for a, e in attendance_records if a.status == 'late'),
-        'half_day': sum(1 for a, e in attendance_records if a.status == 'half_day'),
-        'attendance_rate': round((total_present / total_employees * 100) if total_employees > 0 else 0, 1)
+        'total_present':   total_present,
+        'total_absent':    total_employees - total_present,
+        'present':         sum(1 for a, e in attendance_records if a.status == 'present'),
+        'late':            sum(1 for a, e in attendance_records if a.status == 'late'),
+        'half_day':        sum(1 for a, e in attendance_records if a.status == 'half_day'),
+        'attendance_rate': round(
+            (total_present / total_employees * 100) if total_employees > 0 else 0, 1
+        )
     }
 
     return render_template(
@@ -846,25 +804,42 @@ def view_attendance():
 def stats_today():
     """
     Get today's stats - FAST
+
+    Bug fix: join Employee and filter is_active=True so records tied to
+    deactivated employees are excluded from every dashboard card.
+    The original code used a plain Attendance.query.filter_by(date=today)
+    with no join at all, meaning deactivated employees' rows were counted
+    in every stat (check_ins, check_outs, present, late, half_day, absent,
+    attendance_rate).
     """
     try:
         today = date.today()
 
-        # Get counts
         total_employees = Employee.query.filter_by(is_active=True).count()
-        today_attendance = Attendance.query.filter_by(date=today).all()
+
+        # ── Fixed: was Attendance.query.filter_by(date=today) — no join,
+        #    no is_active guard, so deactivated employee rows were included.
+        today_attendance = db.session.query(Attendance).join(
+            Employee, Attendance.employee_id == Employee.id
+        ).filter(
+            Attendance.date == today,
+            Employee.is_active == True          # ← exclude deactivated employees
+        ).all()
 
         return jsonify({
             'success': True,
             'stats': {
                 'total_employees': total_employees,
-                'check_ins': sum(1 for a in today_attendance if a.check_in_time),
-                'check_outs': sum(1 for a in today_attendance if a.check_out_time),
-                'present': sum(1 for a in today_attendance if a.status == 'present'),
-                'late': sum(1 for a in today_attendance if a.status == 'late'),
-                'half_day': sum(1 for a in today_attendance if a.status == 'half_day'),
-                'absent': total_employees - len(today_attendance),
-                'attendance_rate': round((len(today_attendance) / total_employees * 100) if total_employees > 0 else 0, 1)
+                'check_ins':       sum(1 for a in today_attendance if a.check_in_time),
+                'check_outs':      sum(1 for a in today_attendance if a.check_out_time),
+                'present':         sum(1 for a in today_attendance if a.status == 'present'),
+                'late':            sum(1 for a in today_attendance if a.status == 'late'),
+                'half_day':        sum(1 for a in today_attendance if a.status == 'half_day'),
+                'absent':          total_employees - len(today_attendance),
+                'attendance_rate': round(
+                    (len(today_attendance) / total_employees * 100)
+                    if total_employees > 0 else 0, 1
+                )
             }
         })
 
@@ -878,32 +853,34 @@ def stats_today():
 def recent_activity():
     """
     Recent attendance activity - FAST
+
+    Includes is_active guard so deactivated employees are excluded from
+    the live feed.
     """
     try:
         today = date.today()
         limit = int(request.args.get('limit', 10))
 
-        # Query recent
         recent = db.session.query(Attendance, Employee).join(
             Employee, Attendance.employee_id == Employee.id
         ).filter(
-            Attendance.date == today
+            Attendance.date == today,
+            Employee.is_active == True          # ← exclude deactivated employees
         ).order_by(
             Attendance.created_at.desc()
         ).limit(limit).all()
 
-        # Build response
         activities = [{
             'employee_id': emp.army_id,
-            'name': emp.full_name,
-            'rank': emp.rank or 'N/A',
-            'unit': emp.unit or 'N/A',
-            'photo': emp.photo_path or '/static/img/default-avatar.png',
-            'check_in': att.check_in_time.strftime('%I:%M %p') if att.check_in_time else None,
-            'check_out': att.check_out_time.strftime('%I:%M %p') if att.check_out_time else None,
-            'status': att.status,
-            'confidence': round(att.confidence_score * 100, 1) if att.confidence_score else 0,
-            'work_hours': att.work_hours
+            'name':        emp.full_name,
+            'rank':        emp.rank or 'N/A',
+            'unit':        emp.unit or 'N/A',
+            'photo':       emp.photo_path or '/static/img/default-avatar.png',
+            'check_in':    att.check_in_time.strftime('%I:%M %p')  if att.check_in_time  else None,
+            'check_out':   att.check_out_time.strftime('%I:%M %p') if att.check_out_time else None,
+            'status':      att.status,
+            'confidence':  round(att.confidence_score * 100, 1) if att.confidence_score else 0,
+            'work_hours':  att.work_hours
         } for att, emp in recent]
 
         return jsonify({
@@ -919,14 +896,10 @@ def recent_activity():
 @attendance_bp.route('/clear_cache', methods=['POST'])
 @login_required
 def clear_cache():
-    """
-    Clear all caches - ADMIN
-    """
+    """Clear all caches - ADMIN"""
     try:
-        # Clear face engine caches
         face_engine.clear_caches()
 
-        # Clear local caches
         last_recognized_cache.clear()
         employee_cache.clear()
         attendance_cache.clear()
@@ -945,15 +918,11 @@ def clear_cache():
 
 @attendance_bp.route('/health')
 def health_check():
-    """
-    Health check endpoint
-    """
+    """Health check endpoint"""
     try:
-        # Check database
         from sqlalchemy import text
         db.session.execute(text('SELECT 1'))
 
-        # Check face engine
         stats = face_engine.get_statistics()
 
         return jsonify({
@@ -978,18 +947,20 @@ def health_check():
 @attendance_bp.route('/stats/cache')
 @login_required
 def cache_stats():
-    """
-    Get cache statistics - DEBUG
-    """
+    """Get cache statistics - DEBUG"""
     try:
         return jsonify({
             'success': True,
             'cache_stats': {
-                'employee_cache_size': len(employee_cache),
-                'attendance_cache_size': len(attendance_cache),
+                'employee_cache_size':        len(employee_cache),
+                'attendance_cache_size':      len(attendance_cache),
                 'last_recognized_cache_size': len(last_recognized_cache),
-                'face_engine_cache_size': len(face_engine.recognition_cache),
-                'total_cached_items': len(employee_cache) + len(attendance_cache) + len(last_recognized_cache)
+                'face_engine_cache_size':     len(face_engine.recognition_cache),
+                'total_cached_items': (
+                    len(employee_cache) +
+                    len(attendance_cache) +
+                    len(last_recognized_cache)
+                )
             }
         })
     except Exception as e:

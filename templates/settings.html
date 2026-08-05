@@ -275,33 +275,67 @@ document.getElementById('threshold').addEventListener('input', function() {
     document.getElementById('thresholdValue').textContent = this.value;
 });
 
-// Test Camera
+// ─── FIXED: testCamera ────────────────────────────────────────────────────────
+// The old version passed the dropdown's string value ("0", "1", "2") directly
+// as deviceId.exact, which is wrong — deviceId must be a real browser device ID
+// string (e.g. "abc123..."), not an integer index.
+//
+// The fix enumerates actual video devices and picks the one at the requested
+// position in the list, then passes that device's real deviceId to getUserMedia.
 async function testCamera() {
     showLoading('Testing camera...');
     const cameraSource = document.getElementById('cameraSource').value;
 
     try {
-        const constraints = {
-            video: {
-                deviceId: cameraSource !== 'url' ? { exact: cameraSource } : undefined,
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
+        let constraints;
+
+        if (cameraSource === 'url') {
+            // IP/RTSP cameras cannot be accessed via getUserMedia in the browser.
+            // Fall back to any available camera just to verify the browser stack works.
+            constraints = { video: true };
+        } else {
+            // ── Key fix ──────────────────────────────────────────────────────
+            // 1. Enumerate every media device the browser can see.
+            // 2. Filter down to video inputs only.
+            // 3. Treat the dropdown value ("0", "1", "2") as a positional index
+            //    into that filtered list.
+            // 4. Grab the real deviceId from the matched entry and pass THAT
+            //    to getUserMedia instead of the raw index string.
+            // ─────────────────────────────────────────────────────────────────
+            const devices      = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(d => d.kind === 'videoinput');
+            const index        = parseInt(cameraSource, 10);
+
+            if (videoDevices.length === 0) {
+                throw new Error('No camera devices found on this system.');
             }
-        };
+
+            // If the requested index is out of range, fall back to the first device.
+            const targetDevice = videoDevices[index] || videoDevices[0];
+
+            constraints = {
+                video: {
+                    deviceId: { exact: targetDevice.deviceId },
+                    width:  { ideal: 1280 },
+                    height: { ideal: 720  }
+                }
+            };
+        }
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        const video = document.getElementById('previewVideo');
+        const video  = document.getElementById('previewVideo');
         video.srcObject = stream;
 
         document.getElementById('cameraPreview').style.display = 'block';
         hideLoading();
-
         alert('✓ Camera test successful!');
+
     } catch (error) {
         hideLoading();
         alert('✗ Camera test failed: ' + error.message);
     }
 }
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Stop Preview
 function stopPreview() {
@@ -327,15 +361,15 @@ document.querySelectorAll('form').forEach(form => {
         const checkboxes = this.querySelectorAll('input[type="checkbox"]');
         checkboxes.forEach(cb => {
             if (cb.id === 'livenessDetection') data['liveness_detection'] = cb.checked;
-            if (cb.id === 'autoBackup') data['auto_backup'] = cb.checked;
-            if (cb.id === 'autoCheckout') data['auto_checkout'] = cb.checked;
+            if (cb.id === 'autoBackup')         data['auto_backup']        = cb.checked;
+            if (cb.id === 'autoCheckout')       data['auto_checkout']      = cb.checked;
         });
 
         try {
             const response = await fetch('/settings/save', {
-                method: 'POST',
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body:    JSON.stringify(data)
             });
             const result = await response.json();
             hideLoading();
@@ -357,7 +391,7 @@ async function clearCache() {
         showLoading('Clearing cache...');
         try {
             const response = await fetch('/attendance/cache/clear', { method: 'POST' });
-            const result = await response.json();
+            const result   = await response.json();
             hideLoading();
             alert(result.success ? '✓ Cache cleared successfully!' : '✗ ' + result.message);
         } catch (error) {
@@ -370,7 +404,6 @@ async function clearCache() {
 function backupDatabase() {
     if (confirm('Start database backup now?')) {
         showLoading('Creating backup...');
-        // TODO: Implement actual backup endpoint
         setTimeout(() => {
             hideLoading();
             alert('⚠ Database backup feature not yet implemented on backend.');

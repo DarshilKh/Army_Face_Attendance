@@ -20,10 +20,11 @@ aliases defined at the package level instead.
 from collections.abc import Callable, Iterable, Iterator, Sequence
 import copy
 from importlib import abc
+from importlib import machinery
 import logging
 import os
 import sys
-from typing import Any, Generic, TextIO, TypeVar
+from typing import Any, Generic, NoReturn, TextIO, TypeVar
 from xml.dom import minidom
 
 from absl.flags import _exceptions
@@ -46,16 +47,16 @@ class ReloadDetector(abc.MetaPathFinder):
     self.reloading_modules = set()
 
   def find_spec(self, fullname, path, target=None):
+    del path, target
     if fullname in sys.modules:  # Indicates a reload.
       self.reloading_modules.add(fullname)
     return None
 
 
 reload_detector = ReloadDetector()
+reload_detector_insert_position = -1
 
-# Register the hook by inserting it right before the last path finder.
-# This should play nicely with lazy imports.
-sys.meta_path.insert(-1, reload_detector)
+sys.meta_path.insert(reload_detector_insert_position, reload_detector)
 
 
 class FlagValues:
@@ -417,10 +418,10 @@ class FlagValues:
       try:
         setter(name, value)
         return value
-      except (TypeError, ValueError):  # Flag value is not valid.
+      except (TypeError, ValueError) as e:  # Flag value is not valid.
         raise _exceptions.IllegalFlagValueError(
             f'"{value}" is not valid for --{name}'
-        )
+        ) from e
       except NameError:  # Flag name is not valid.
         pass
     raise _exceptions.UnrecognizedFlagError(name, value)
@@ -440,10 +441,10 @@ class FlagValues:
       if flag_name == flag.name:
         try:
           self[flag_name] = flag
-        except _exceptions.DuplicateFlagError:
+        except _exceptions.DuplicateFlagError as e:
           raise _exceptions.DuplicateFlagError.from_flag(
               flag_name, self, other_flag_values=flag_values
-          )
+          ) from e
 
   def remove_flag_values(
       self, flag_values: 'FlagValues | Iterable[str]'
@@ -540,7 +541,7 @@ class FlagValues:
       return flag_entry.value
     else:
       raise _exceptions.UnparsedFlagAccessError(
-          'Trying to access flag --%s before flags were parsed.' % name
+          f'Trying to access flag --{name} before flags were parsed.'
       )
 
   def __setattr__(self, name: str, value: _T) -> _T:
@@ -610,21 +611,24 @@ class FlagValues:
     for validator in sorted(
         validators, key=lambda validator: validator.insertion_index
     ):
+      flag_names: set[str]
+      match validator:
+        case _validators_classes.SingleFlagValidator():
+          flag_names = {validator.flag_name}
+        case _validators_classes.MultiFlagsValidator():
+          flag_names = set(validator.flag_names)
+        case _:
+          flag_names = set()
+
+      if not flag_names.isdisjoint(bad_flags):
+        continue
+
       try:
-        if isinstance(validator, _validators_classes.SingleFlagValidator):
-          if validator.flag_name in bad_flags:
-            continue
-        elif isinstance(validator, _validators_classes.MultiFlagsValidator):
-          if bad_flags & set(validator.flag_names):
-            continue
         validator.verify(self)
       except _exceptions.ValidationError as e:
-        if isinstance(validator, _validators_classes.SingleFlagValidator):
-          bad_flags.add(validator.flag_name)
-        elif isinstance(validator, _validators_classes.MultiFlagsValidator):
-          bad_flags.update(set(validator.flag_names))
+        bad_flags.update(flag_names)
         message = validator.print_flags_with_values(self)
-        messages.append('%s: %s' % (message, str(e)))
+        messages.append(f'{message}: {e}')
     if messages:
       raise _exceptions.IllegalFlagValueError('\n'.join(messages))
 
@@ -996,7 +1000,7 @@ class FlagValues:
     """Returns a help string for a given module."""
     if not isinstance(module, str):
       module = module.__name__
-    output_lines.append('\n%s%s:' % (prefix, module))
+    output_lines.append(f'\n{prefix}{module}:')
     self._render_flag_list(flags, output_lines, prefix + '  ')
 
   def _render_our_module_flags(self, module, output_lines, prefix=''):
@@ -1040,6 +1044,7 @@ class FlagValues:
     return self.module_help(sys.argv[0])
 
   def _render_flag_list(self, flaglist, output_lines, prefix='  '):
+    """Adds flags to output_lines list."""
     fl = self._flags()
     special_fl = _helpers.SPECIAL_FLAGS._flags()  # pylint: disable=protected-access  # pytype: disable=attribute-error
     flaglist = [(flag.name, flag) for flag in flaglist]
@@ -1058,11 +1063,11 @@ class FlagValues:
       flagset[flag] = 1
       flaghelp = ''
       if flag.short_name:
-        flaghelp += '-%s,' % flag.short_name
+        flaghelp += f'-{flag.short_name},'
       if flag.boolean:
-        flaghelp += '--[no]%s:' % flag.name
+        flaghelp += f'--[no]{flag.name}:'
       else:
-        flaghelp += '--%s:' % flag.name
+        flaghelp += f'--{flag.name}:'
       flaghelp += ' '
       if flag.help:
         flaghelp += flag.help
@@ -1072,16 +1077,16 @@ class FlagValues:
       if flag.default_as_str:
         flaghelp += '\n'
         flaghelp += _helpers.text_wrap(
-            '(default: %s)' % flag.default_as_str, indent=prefix + '  '
+            f'(default: {flag.default_as_str})', indent=prefix + '  '
         )
       if flag.parser.syntactic_help:
         flaghelp += '\n'
         flaghelp += _helpers.text_wrap(
-            '(%s)' % flag.parser.syntactic_help, indent=prefix + '  '
+            f'({flag.parser.syntactic_help})', indent=prefix + '  '
         )
       output_lines.append(flaghelp)
 
-  def get_flag_value(self, name: str, default: Any) -> Any:  # pylint: disable=invalid-name
+  def get_flag_value(self, name: str, default: Any) -> Any:
     """Returns the value of a flag (if not None) or a default value.
 
     Args:
@@ -1134,7 +1139,7 @@ class FlagValues:
     elif flagfile_str.startswith('-flagfile='):
       return os.path.expanduser((flagfile_str[(len('-flagfile=')) :]).strip())
     else:
-      raise _exceptions.Error('Hit illegal --flagfile type: %s' % flagfile_str)
+      raise _exceptions.Error(f'Hit illegal --flagfile type: {flagfile_str}')
 
   def _get_flag_file_lines(self, filename, parsed_file_stack=None):
     """Returns the useful (!=comments, etc) lines from a file with flags.
@@ -1164,8 +1169,8 @@ class FlagValues:
     # at a previous depth.
     if filename in parsed_file_stack:
       sys.stderr.write(
-          'Warning: Hit circular flagfile dependency. Ignoring flagfile: %s\n'
-          % (filename,)
+          'Warning: Hit circular flagfile dependency. Ignoring flagfile:'
+          f' {filename}\n'
       )
       return []
     else:
@@ -1177,7 +1182,7 @@ class FlagValues:
       file_obj = open(filename)
     except OSError as e_msg:
       raise _exceptions.CantOpenFlagFileError(
-          'ERROR:: Unable to open flagfile: %s' % e_msg
+          f'ERROR:: Unable to open flagfile: {e_msg}'
       )
 
     with file_obj:
@@ -1357,7 +1362,7 @@ class FlagValues:
 
     usage_doc = sys.modules['__main__'].__doc__
     if not usage_doc:
-      usage_doc = '\nUSAGE: %s [flags]\n' % sys.argv[0]
+      usage_doc = f'\nUSAGE: {sys.argv[0]} [flags]\n'
     else:
       usage_doc = usage_doc.replace('%s', sys.argv[0])
     all_flag.appendChild(
@@ -1393,14 +1398,13 @@ class FlagValues:
     flag_names = {name} if short_name is None else {name, short_name}
     for flag_name in flag_names:
       if flag_name in self.__dict__['__banned_flag_names']:
+        class_name = type(self).__name__
         raise _exceptions.FlagNameConflictsWithMethodError(
-            'Cannot define a flag named "{name}". It conflicts with a method '
-            'on class "{class_name}". To allow defining it, use '
-            'allow_using_method_names and access the flag value with '
-            "FLAGS['{name}'].value. FLAGS.{name} returns the method, "
-            'not the flag value.'.format(
-                name=flag_name, class_name=type(self).__name__
-            )
+            f'Cannot define a flag named "{flag_name}". It conflicts with a'
+            f' method on class "{class_name}". To allow defining it, use'
+            ' allow_using_method_names and access the flag value with'
+            f" FLAGS['{flag_name}'].value. FLAGS.{flag_name} returns the"
+            ' method, not the flag value.'
         )
 
 
@@ -1459,18 +1463,19 @@ class FlagHolder(Generic[_T_co]):
     # This allows future use of this for "required flags with None default"
     self._ensure_non_none_value = ensure_non_none_value
 
-  def __eq__(self, other):
+  def __eq__(self, other) -> NoReturn:
+    self_name = type(self).__name__
+    other_name = type(other).__name__
     raise TypeError(
-        "unsupported operand type(s) for ==: '{0}' and '{1}' "
-        "(did you mean to use '{0}.value' instead?)".format(
-            type(self).__name__, type(other).__name__
-        )
+        f"unsupported operand type(s) for ==: '{self_name}' and '{other_name}'"
+        f" (did you mean to use '{self_name}.value' instead?)"
     )
 
-  def __bool__(self):
+  def __bool__(self) -> NoReturn:  # pylint: disable=invalid-bool-returned
+    name = type(self).__name__
     raise TypeError(
-        "bool() not supported for instances of type '{0}' "
-        "(did you mean to use '{0}.value' instead?)".format(type(self).__name__)
+        f"bool() not supported for instances of type '{name}' (did you mean to"
+        f" use '{name}.value' instead?)"
     )
 
   __nonzero__ = __bool__
@@ -1493,7 +1498,7 @@ class FlagHolder(Generic[_T_co]):
     val = getattr(self._flagvalues, self._name)
     if self._ensure_non_none_value and val is None:
       raise _exceptions.IllegalFlagValueError(
-          'Unexpected None value for flag %s' % self._name
+          f'Unexpected None value for flag {self._name}'
       )
     return val
 

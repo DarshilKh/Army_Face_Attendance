@@ -18,6 +18,7 @@ This module contains base classes and high-level functions for Abseil-style
 tests.
 """
 
+import collections
 from collections import abc
 import contextlib
 import dataclasses
@@ -49,7 +50,7 @@ from unittest import mock  # pylint: disable=unused-import Allow absltest.mock.
 import unittest.case
 from urllib import parse
 
-from absl import app  # pylint: disable=g-import-not-at-top
+from absl import app
 from absl import flags
 from absl import logging
 from absl.testing import _pretty_print_reporter
@@ -170,7 +171,7 @@ def _get_default_randomize_ordering_seed() -> int:
         above.
   """
   if FLAGS['test_randomize_ordering_seed'].present:
-    randomize = FLAGS.test_randomize_ordering_seed
+    randomize = TEST_RANDOMIZE_ORDERING_SEED.value
   elif 'TEST_RANDOMIZE_ORDERING_SEED' in os.environ:
     randomize = os.environ['TEST_RANDOMIZE_ORDERING_SEED']
   else:
@@ -194,21 +195,24 @@ TEST_SRCDIR = flags.DEFINE_string(
     'test_srcdir',
     get_default_test_srcdir(),
     'Root of directory tree where source files live',
-    allow_override_cpp=True)
+    allow_override_cpp=True,
+)
 TEST_TMPDIR = flags.DEFINE_string(
     'test_tmpdir',
     get_default_test_tmpdir(),
     'Directory for temporary testing files',
-    allow_override_cpp=True)
+    allow_override_cpp=True,
+)
 
-flags.DEFINE_integer(
+TEST_RANDOM_SEED = flags.DEFINE_integer(
     'test_random_seed',
     _get_default_test_random_seed(),
     'Random seed for testing. Some test frameworks may '
     'change the default value of this flag between runs, so '
     'it is not appropriate for seeding probabilistic tests.',
-    allow_override_cpp=True)
-flags.DEFINE_string(
+    allow_override_cpp=True,
+)
+TEST_RANDOMIZE_ORDERING_SEED = flags.DEFINE_string(
     'test_randomize_ordering_seed',
     '',
     'If positive, use this as a seed to randomize the '
@@ -216,8 +220,11 @@ flags.DEFINE_string(
     'random seed to use. If 0 or not set, do not randomize '
     'test case execution order. This flag also overrides '
     'the TEST_RANDOMIZE_ORDERING_SEED environment variable.',
-    allow_override_cpp=True)
-flags.DEFINE_string('xml_output_file', '', 'File to store XML test results')
+    allow_override_cpp=True,
+)
+XML_OUTPUT_FILE = flags.DEFINE_string(
+    'xml_output_file', '', 'File to store XML test results'
+)
 
 
 def _open(
@@ -281,9 +288,9 @@ class _TempDir:
     Args:
       file_path: Optional file path for the temp file. If not given, a unique
         file name will be generated and used. Slashes are allowed in the name;
-        any missing intermediate directories will be created. NOTE: This path
-        is the path that will be cleaned up, including any directories in the
-        path, e.g., 'foo/bar/baz.txt' will `rm -r foo`
+        any missing intermediate directories will be created. NOTE: This path is
+        the path that will be cleaned up, including any directories in the path,
+        e.g., 'foo/bar/baz.txt' will `rm -r foo`
       content: Optional string or bytes to initially write to the file. If not
         specified, then an empty file is created.
       mode: Mode string to use when writing content. Only used if `content` is
@@ -296,16 +303,22 @@ class _TempDir:
     Returns:
       A _TempFile representing the created file.
     """
-    tf, _ = _TempFile._create(self._path, file_path, content, mode, encoding,
-                              errors)
+    tf, _ = _TempFile._create(  # pylint: disable=protected-access
+        self._path,
+        file_path,
+        content,  # pyrefly: ignore[bad-argument-type]  # pyrefly#2644
+        mode,
+        encoding,
+        errors,
+    )
     return tf
 
   def mkdir(self, dir_path: str | None = None) -> '_TempDir':
     """Create a directory in the directory.
 
     Args:
-      dir_path: Optional path to the directory to create. If not given,
-        a unique name will be generated and used.
+      dir_path: Optional path to the directory to create. If not given, a unique
+        name will be generated and used.
 
     Returns:
       A _TempDir representing the created directory.
@@ -366,7 +379,7 @@ class _TempFile:
       if isinstance(content, str):
         tf.write_text(content, mode=mode, encoding=encoding, errors=errors)
       else:
-        tf.write_bytes(content, mode)
+        tf.write_bytes(content, mode)  # pyrefly: ignore[bad-argument-type]  # pyrefly#2644
 
     else:
       tf.write_bytes(b'')
@@ -420,8 +433,8 @@ class _TempFile:
 
     Args:
       data: bytes to write.
-      mode: Mode to open the file for writing. The "b" flag is implicit if
-        not already present. It must not have the "t" flag.
+      mode: Mode to open the file for writing. The "b" flag is implicit if not
+        already present. It must not have the "t" flag.
     """
     with self.open_bytes(mode) as fp:
       fp.write(data)
@@ -444,8 +457,10 @@ class _TempFile:
       ValueError: if invalid inputs are provided.
     """
     if 'b' in mode:
-      raise ValueError('Invalid mode {!r}: "b" flag not allowed when opening '
-                       'file in text mode'.format(mode))
+      raise ValueError(
+          f'Invalid mode {mode!r}: "b" flag not allowed when opening file in'
+          ' text mode'
+      )
     if 't' not in mode:
       mode += 't'
     cm = self._open(mode, encoding, errors)
@@ -467,8 +482,10 @@ class _TempFile:
       ValueError: if invalid inputs are provided.
     """
     if 't' in mode:
-      raise ValueError('Invalid mode {!r}: "t" flag not allowed when opening '
-                       'file in binary mode'.format(mode))
+      raise ValueError(
+          f'Invalid mode {mode!r}: "t" flag not allowed when opening file in'
+          ' binary mode'
+      )
     if 'b' not in mode:
       mode += 'b'
     cm = self._open(mode, encoding=None, errors=None)
@@ -542,6 +559,9 @@ class TestCase(unittest.TestCase):
   longMessage = True
 
   # Exit stacks for per-test and per-class scopes.
+  _exit_stack: Any
+  _cls_exit_stack: Any
+
   if sys.version_info < (3, 11):
     _exit_stack = None
     _cls_exit_stack = None
@@ -550,8 +570,14 @@ class TestCase(unittest.TestCase):
     super().__init__(*args, **kwargs)
     # This is to work around missing type stubs in unittest.pyi
     self._outcome: Any | None = getattr(self, '_outcome')
+    # Properties for the test itself.
+    self.__recorded_properties: dict[str, Any] = {}
+    # Property dicts per subtest, keyed by the subtest's id().
+    self.__subtest_properties: dict[str, dict[str, Any]] = (
+        collections.defaultdict(dict)
+    )
 
-  def setUp(self):
+  def setUp(self) -> None:
     super().setUp()
     # NOTE: Only Python 3 contextlib has ExitStack and
     # Python 3.11+ already has enterContext.
@@ -560,7 +586,7 @@ class TestCase(unittest.TestCase):
       self.addCleanup(self._exit_stack.close)
 
   @classmethod
-  def setUpClass(cls):
+  def setUpClass(cls) -> None:
     super().setUpClass()
     # NOTE: Only Python 3 contextlib has ExitStack, only Python 3.8+ has
     # addClassCleanup and Python 3.11+ already has enterClassContext.
@@ -571,6 +597,43 @@ class TestCase(unittest.TestCase):
     ):
       cls._cls_exit_stack = contextlib.ExitStack()
       cls.addClassCleanup(cls._cls_exit_stack.close)
+
+  def get_recorded_properties(self, subtest=None) -> dict[str, Any]:
+    """Returns any properties that the user has recorded.
+
+    If called from within a subtest and subtest is None, returns a dict made up
+    of *both* the subtest's properties *and* the outer test's properties. (The
+    subtest's properties take precedence in the event of a conflict.)
+
+    Args:
+      subtest: The subtest whose properties should be returned. Unlike the
+        default case, if subtest is set, *only* that subtest's properties are
+        returned, not those of the enclosing test.
+    """
+    if subtest:
+      return self.__subtest_properties[subtest.id()].copy()
+    ret = self.__recorded_properties.copy()
+    if hasattr(self, '_subtest') and self._subtest:
+      ret |= self.__subtest_properties[self._subtest.id()]
+    return ret
+
+  def record_property(self, property_name: str, property_value: Any) -> None:
+    """Record an arbitrary property for later use.
+
+    The property is attributed to the currently active subtest, if any,
+    or the test itself, otherwise.
+
+    Args:
+      property_name: Name of property to record; must be a valid XML attribute
+        name.
+      property_value: Value of property to record; must be a valid XML attribute
+        value.
+    """
+    if hasattr(self, '_subtest') and self._subtest:
+      recorded_properties = self.__subtest_properties[self._subtest.id()]
+    else:
+      recorded_properties = self.__recorded_properties
+    recorded_properties[property_name] = property_value
 
   def create_tempdir(
       self,
@@ -602,8 +665,8 @@ class TestCase(unittest.TestCase):
     See also: :meth:`create_tempfile` for creating temporary files.
 
     Args:
-      name: Optional name of the directory. If not given, a unique
-        name will be generated and used.
+      name: Optional name of the directory. If not given, a unique name will be
+        generated and used.
       cleanup: Optional cleanup policy on when/if to remove the directory (and
         all its contents) at the end of the test. If None, then uses
         :attr:`tempfile_cleanup`.
@@ -665,8 +728,7 @@ class TestCase(unittest.TestCase):
         any missing intermediate directories will be created. NOTE: This path is
         the path that will be cleaned up, including any directories in the path,
         e.g., ``'foo/bar/baz.txt'`` will ``rm -r foo``.
-      content: Optional string or
-        bytes to initially write to the file. If not
+      content: Optional string or bytes to initially write to the file. If not
         specified, then an empty file is created.
       mode: Mode string to use when writing content. Only used if `content` is
         non-empty.
@@ -683,9 +745,14 @@ class TestCase(unittest.TestCase):
       usage.
     """
     test_path = self._get_tempdir_path_test()
-    tf, cleanup_path = _TempFile._create(test_path, file_path, content=content,
-                                         mode=mode, encoding=encoding,
-                                         errors=errors)
+    tf, cleanup_path = _TempFile._create(  # pylint: disable=protected-access
+        test_path,
+        file_path,
+        content=content,  # pyrefly: ignore[bad-argument-type]  # pyrefly#2644
+        mode=mode,
+        encoding=encoding,
+        errors=errors,
+    )
     self._maybe_add_temp_path_cleanup(cleanup_path, cleanup)
     return tf
 
@@ -719,7 +786,8 @@ class TestCase(unittest.TestCase):
     if not self._exit_stack:
       raise AssertionError(
           'self._exit_stack is not set: enter_context is Py3-only; also make '
-          'sure that AbslTest.setUp() is called.')
+          'sure that AbslTest.setUp() is called.'
+      )
     return self._exit_stack.enter_context(manager)
 
   @enter_context.classmethod
@@ -727,19 +795,22 @@ class TestCase(unittest.TestCase):
   def _enter_context_cls(
       cls, manager: contextlib.AbstractContextManager[_T]
   ) -> _T:
+    """A classmethod version of enter_context."""
     if sys.version_info >= (3, 11):
       return cls.enterClassContext(manager)
 
     if not cls._cls_exit_stack:
       raise AssertionError(
           'cls._cls_exit_stack is not set: cls.enter_context requires '
-          'Python 3.8+; also make sure that AbslTest.setUpClass() is called.')
+          'Python 3.8+; also make sure that AbslTest.setUpClass() is called.'
+      )
     return cls._cls_exit_stack.enter_context(manager)
 
   @classmethod
   def _get_tempdir_path_cls(cls) -> str:
-    return os.path.join(TEST_TMPDIR.value,
-                        cls.__qualname__.replace('__main__.', ''))
+    return os.path.join(
+        TEST_TMPDIR.value, cls.__qualname__.replace('__main__.', '')
+    )
 
   def _get_tempdir_path_test(self) -> str:
     return os.path.join(self._get_tempdir_path_cls(), self._testMethodName)
@@ -778,11 +849,14 @@ class TestCase(unittest.TestCase):
         + len(outcome.result.errors)
         + len(outcome.result.unexpectedSuccesses)
     )
+
     def _call_cleaner_on_success(*args, **kwargs):
       if not self._internal_ran_and_passed_when_called_during_cleanup(
-          previous_failure_count):
+          previous_failure_count
+      ):
         return
       function(*args, **kwargs)
+
     self.addCleanup(_call_cleaner_on_success, *args, **kwargs)
 
   def _internal_ran_and_passed_when_called_during_cleanup(
@@ -823,7 +897,7 @@ class TestCase(unittest.TestCase):
     # Omit the main name so that test name can be directly copy/pasted to
     # the command line.
     if desc.startswith('__main__.'):
-      desc = desc[len('__main__.'):]
+      desc = desc[len('__main__.') :]
 
     # NOTE: super() is used here instead of directly invoking
     # unittest.TestCase.shortDescription(self), because of the
@@ -845,7 +919,7 @@ class TestCase(unittest.TestCase):
       msg: Optional message to report on failure.
     """
     if not actual.startswith(expected_start):
-      self.fail('%r does not start with %r' % (actual, expected_start), msg)
+      self.fail(f'{actual!r} does not start with {expected_start!r}', msg)
 
   def assertNotStartsWith(self, actual, unexpected_start, msg=None):
     """Asserts that actual.startswith(unexpected_start) is False.
@@ -856,7 +930,7 @@ class TestCase(unittest.TestCase):
       msg: Optional message to report on failure.
     """
     if actual.startswith(unexpected_start):
-      self.fail('%r does start with %r' % (actual, unexpected_start), msg)
+      self.fail(f'{actual!r} does start with {unexpected_start!r}', msg)
 
   def assertEndsWith(self, actual, expected_end, msg=None):
     """Asserts that actual.endswith(expected_end) is True.
@@ -867,7 +941,7 @@ class TestCase(unittest.TestCase):
       msg: Optional message to report on failure.
     """
     if not actual.endswith(expected_end):
-      self.fail('%r does not end with %r' % (actual, expected_end), msg)
+      self.fail(f'{actual!r} does not end with {expected_end!r}', msg)
 
   def assertNotEndsWith(self, actual, unexpected_end, msg=None):
     """Asserts that actual.endswith(unexpected_end) is False.
@@ -878,7 +952,7 @@ class TestCase(unittest.TestCase):
       msg: Optional message to report on failure.
     """
     if actual.endswith(unexpected_end):
-      self.fail('%r does end with %r' % (actual, unexpected_end), msg)
+      self.fail(f'{actual!r} does end with {unexpected_end!r}', msg)
 
   def assertSequenceStartsWith(self, prefix, whole, msg=None):
     """An equality assertion for the beginning of ordered sequences.
@@ -902,31 +976,35 @@ class TestCase(unittest.TestCase):
 
     if isinstance(whole, abc.Mapping) or isinstance(whole, abc.Set):
       self.fail(
-          'For whole: Mapping or Set objects are not supported, found type: %s'
-          % type(whole),
+          'For whole: Mapping or Set objects are not supported, found type:'
+          f' {type(whole)}',
           msg,
       )
     try:
       whole_len = len(whole)
     except (TypeError, NotImplementedError):
-      self.fail('For whole: len(%s) is not supported, it appears to be type: '
-                '%s' % (whole, type(whole)), msg)
+      self.fail(
+          f'For whole: len({whole}) is not supported, it appears to be type:'
+          f' {type(whole)}',
+          msg,
+      )
 
     assert prefix_len <= whole_len, self._formatMessage(
         msg,
-        'Prefix length (%d) is longer than whole length (%d).' %
-        (prefix_len, whole_len)
+        f'Prefix length ({prefix_len}) is longer than whole length'
+        f' ({whole_len}).',
     )
 
     if not prefix_len and whole_len:
-      self.fail('Prefix length is 0 but whole length is %d: %s' %
-                (len(whole), whole), msg)
+      self.fail(
+          f'Prefix length is 0 but whole length is {len(whole)}: {whole}',
+          msg,
+      )
 
     try:
       self.assertSequenceEqual(prefix, whole[:prefix_len], msg)
     except AssertionError:
-      self.fail('prefix: %s not found at start of whole: %s.' %
-                (prefix, whole), msg)
+      self.fail(f'prefix: {prefix} not found at start of whole: {whole}.', msg)
 
   def assertEmpty(self, container, msg=None):
     """Asserts that an object has zero length.
@@ -936,8 +1014,10 @@ class TestCase(unittest.TestCase):
       msg: Optional message to report on failure.
     """
     if not isinstance(container, abc.Sized):
-      self.fail('Expected a Sized object, got: '
-                '{!r}'.format(type(container).__name__), msg)
+      self.fail(
+          f'Expected a Sized object, got: {type(container).__name__!r}',
+          msg,
+      )
 
     # explicitly check the length since some Sized objects (e.g. numpy.ndarray)
     # have strange __nonzero__/__bool__ behavior.
@@ -952,8 +1032,10 @@ class TestCase(unittest.TestCase):
       msg: Optional message to report on failure.
     """
     if not isinstance(container, abc.Sized):
-      self.fail('Expected a Sized object, got: '
-                '{!r}'.format(type(container).__name__), msg)
+      self.fail(
+          f'Expected a Sized object, got: {type(container).__name__!r}',
+          msg,
+      )
 
     # explicitly check the length since some Sized objects (e.g. numpy.ndarray)
     # have strange __nonzero__/__bool__ behavior.
@@ -969,15 +1051,21 @@ class TestCase(unittest.TestCase):
       msg: Optional message to report on failure.
     """
     if not isinstance(container, abc.Sized):
-      self.fail('Expected a Sized object, got: '
-                '{!r}'.format(type(container).__name__), msg)
+      self.fail(
+          f'Expected a Sized object, got: {type(container).__name__!r}',
+          msg,
+      )
     if len(container) != expected_len:
       container_repr = unittest.util.safe_repr(container)  # pytype: disable=module-attr
-      self.fail('{} has length of {}, expected {}.'.format(
-          container_repr, len(container), expected_len), msg)
+      self.fail(
+          f'{container_repr} has length of {len(container)}, expected'
+          f' {expected_len}.',
+          msg,
+      )
 
-  def assertSequenceAlmostEqual(self, expected_seq, actual_seq, places=None,
-                                msg=None, delta=None):
+  def assertSequenceAlmostEqual(
+      self, expected_seq, actual_seq, places=None, msg=None, delta=None
+  ):
     """An approximate equality assertion for ordered sequences.
 
     Fail if the two sequences are unequal as determined by their value
@@ -999,8 +1087,10 @@ class TestCase(unittest.TestCase):
       delta: The OK difference between compared values.
     """
     if len(expected_seq) != len(actual_seq):
-      self.fail('Sequence size mismatch: {} vs {}'.format(
-          len(expected_seq), len(actual_seq)), msg)
+      self.fail(
+          f'Sequence size mismatch: {len(expected_seq)} vs {len(actual_seq)}',
+          msg,
+      )
 
     err_list = []
     for idx, (exp_elem, act_elem) in enumerate(zip(expected_seq, actual_seq)):
@@ -1009,8 +1099,9 @@ class TestCase(unittest.TestCase):
         # `delta`. However, it's okay for assertSequenceAlmostEqual to pass
         # both because we want the latter to fail if the former does.
         # pytype: disable=wrong-keyword-args
-        self.assertAlmostEqual(exp_elem, act_elem, places=places, msg=msg,
-                               delta=delta)
+        self.assertAlmostEqual(
+            exp_elem, act_elem, places=places, msg=msg, delta=delta
+        )
         # pytype: enable=wrong-keyword-args
       except self.failureException as err:
         err_list.append(f'At index {idx}: {err}')
@@ -1027,8 +1118,11 @@ class TestCase(unittest.TestCase):
     if not missing:
       return
 
-    self.fail('Missing elements %s\nExpected: %s\nActual: %s' % (
-        missing, expected_subset, actual_set), msg)
+    self.fail(
+        f'Missing elements {missing}\nExpected: {expected_subset}\n'
+        f'Actual: {actual_set}',
+        msg,
+    )
 
   def assertNoCommonElements(self, expected_seq, actual_seq, msg=None):
     """Checks whether actual iterable and expected iterable are disjoint."""
@@ -1036,8 +1130,11 @@ class TestCase(unittest.TestCase):
     if not common:
       return
 
-    self.fail('Common elements %s\nExpected: %s\nActual: %s' % (
-        common, expected_seq, actual_seq), msg)
+    self.fail(
+        f'Common elements {common}\nExpected: {expected_seq}\n'
+        f'Actual: {actual_seq}',
+        msg,
+    )
 
   def assertItemsEqual(self, expected_seq, actual_seq, msg=None):
     """Deprecated, please use assertCountEqual instead.
@@ -1075,11 +1172,14 @@ class TestCase(unittest.TestCase):
     # Fail on strings: empirically, passing strings to this test method
     # is almost always a bug. If comparing the character sets of two strings
     # is desired, cast the inputs to sets or lists explicitly.
-    if (isinstance(expected_seq, _TEXT_OR_BINARY_TYPES) or
-        isinstance(actual_seq, _TEXT_OR_BINARY_TYPES)):
-      self.fail('Passing string/bytes to assertSameElements is usually a bug. '
-                'Did you mean to use assertEqual?\n'
-                'Expected: %s\nActual: %s' % (expected_seq, actual_seq))
+    if isinstance(expected_seq, _TEXT_OR_BINARY_TYPES) or isinstance(
+        actual_seq, _TEXT_OR_BINARY_TYPES
+    ):
+      self.fail(
+          'Passing string/bytes to assertSameElements is usually a bug. '
+          'Did you mean to use assertEqual?\n'
+          f'Expected: {expected_seq}\nActual: {actual_seq}'
+      )
     try:
       expected = {element: None for element in expected_seq}
       actual = {element: None for element in actual_seq}
@@ -1099,9 +1199,9 @@ class TestCase(unittest.TestCase):
     if msg:
       errors.extend((msg, ':\n'))
     if missing:
-      errors.append('Expected, but missing:\n  %r\n' % missing)
+      errors.append(f'Expected, but missing:\n  {missing!r}\n')
     if unexpected:
-      errors.append('Unexpected, but present:\n  %r\n' % unexpected)
+      errors.append(f'Unexpected, but present:\n  {unexpected!r}\n')
     if missing or unexpected:
       self.fail(''.join(errors))
 
@@ -1109,10 +1209,10 @@ class TestCase(unittest.TestCase):
   # has a different error format. However, I find this slightly more readable.
   def assertMultiLineEqual(self, first, second, msg=None, **kwargs):
     """Asserts that two multi-line strings are equal."""
-    assert isinstance(first,
-                      str), ('First argument is not a string: %r' % (first,))
-    assert isinstance(second,
-                      str), ('Second argument is not a string: %r' % (second,))
+    assert isinstance(first, str), f'First argument is not a string: {first!r}'
+    assert isinstance(
+        second, str
+    ), f'Second argument is not a string: {second!r}'
     line_limit = kwargs.pop('line_limit', 0)
     if kwargs:
       raise TypeError(f'Unexpected keyword args {tuple(kwargs)}')
@@ -1133,18 +1233,18 @@ class TestCase(unittest.TestCase):
       n_omitted = len(failure_message) - line_limit
       failure_message = failure_message[:line_limit]
       failure_message.append(
-          '(... and {} more delta lines omitted for brevity.)\n'.format(
-              n_omitted))
+          f'(... and {n_omitted} more delta lines omitted for brevity.)\n'
+      )
 
     raise self.failureException(''.join(failure_message))
 
   def assertBetween(self, value, minv, maxv, msg=None):
     """Asserts that value is between minv and maxv (inclusive)."""
-    msg = self._formatMessage(msg,
-                              '"%r" unexpectedly not between "%r" and "%r"' %
-                              (value, minv, maxv))
-    self.assertTrue(minv <= value, msg)
-    self.assertTrue(maxv >= value, msg)
+    msg = self._formatMessage(
+        msg, f'"{value!r}" unexpectedly not between "{minv!r}" and "{maxv!r}"'
+    )
+    self.assertLessEqual(minv, value, msg)
+    self.assertGreaterEqual(maxv, value, msg)
 
   def assertRegexMatch(self, actual_str, regexes, message=None):
     r"""Asserts that at least one regex in regexes matches str.
@@ -1175,13 +1275,12 @@ class TestCase(unittest.TestCase):
 
     Args:
       actual_str:  The string we try to match with the items in regexes.
-      regexes:  The regular expressions we want to match against str.
-          See "Notes" above for detailed notes on how this is interpreted.
+      regexes:  The regular expressions we want to match against str. See
+        "Notes" above for detailed notes on how this is interpreted.
       message:  The message to be printed if the test fails.
     """
     if isinstance(regexes, _TEXT_OR_BINARY_TYPES):
-      self.fail('regexes is string or bytes; use assertRegex instead.',
-                message)
+      self.fail('regexes is string or bytes; use assertRegex instead.', message)
     if not regexes:
       self.fail('No regexes specified.', message)
 
@@ -1194,53 +1293,65 @@ class TestCase(unittest.TestCase):
       regexes = [regex.decode('utf-8') for regex in regexes]
       regex_type = str
     elif regex_type is str and isinstance(actual_str, bytes):
-      regexes = [regex.encode('utf-8') for regex in regexes]
+      regexes = [
+          regex.encode('utf-8')
+          for regex in typing.cast(abc.Sequence[str], regexes)
+      ]
       regex_type = bytes
 
     if regex_type is str:
-      regex = '(?:%s)' % ')|(?:'.join(regexes)
+      regex = f"(?:{')|(?:'.join(regexes)})"
     elif regex_type is bytes:
-      regex = b'(?:' + (b')|(?:'.join(regexes)) + b')'
+      regex = b'(?:' + b')|(?:'.join(regexes) + b')'
     else:
-      self.fail('Only know how to deal with unicode str or bytes regexes.',
-                message)
+      self.fail(
+          'Only know how to deal with unicode str or bytes regexes.', message
+      )
 
     if not re.search(regex, actual_str, re.MULTILINE):
-      self.fail('"%s" does not contain any of these regexes: %s.' %
-                (actual_str, regexes), message)
+      self.fail(
+          f'"{actual_str}" does not contain any of these regexes: {regexes}.',
+          message,
+      )
 
-  def assertCommandSucceeds(self, command, regexes=(b'',), env=None,
-                            close_fds=True, msg=None):
+  def assertCommandSucceeds(
+      self, command, regexes=(b'',), env=None, close_fds=True, msg=None
+  ):
     """Asserts that a shell command succeeds (i.e. exits with code 0).
 
     Args:
       command: List or string representing the command to run.
       regexes: List of regular expression byte strings that match success.
       env: Dictionary of environment variable settings. If None, no environment
-          variables will be set for the child process. This is to make tests
-          more hermetic. NOTE: this behavior is different than the standard
-          subprocess module.
+        variables will be set for the child process. This is to make tests more
+        hermetic. NOTE: this behavior is different than the standard subprocess
+        module.
       close_fds: Whether or not to close all open fd's in the child after
-          forking.
+        forking.
       msg: Optional message to report on failure.
     """
-    (ret_code, err) = get_command_stderr(command, env, close_fds)
+    ret_code, err = get_command_stderr(command, env, close_fds)
 
     # We need bytes regexes here because `err` is bytes.
     # Accommodate code which listed their output regexes w/o the b'' prefix by
     # converting them to bytes for the user.
     if isinstance(regexes[0], str):
-      regexes = [regex.encode('utf-8') for regex in regexes]
+      regexes = [
+          regex.encode('utf-8')
+          for regex in typing.cast(abc.Sequence[str], regexes)
+      ]
 
     command_string = get_command_string(command)
     self.assertEqual(
-        ret_code, 0,
-        self._formatMessage(msg,
-                            'Running command\n'
-                            '%s failed with error code %s and message\n'
-                            '%s' % (_quote_long_string(command_string),
-                                    ret_code,
-                                    _quote_long_string(err)))
+        ret_code,
+        0,
+        self._formatMessage(
+            msg,
+            'Running command\n'
+            f'{_quote_long_string(command_string)} failed with error code'
+            f' {ret_code} and message\n'
+            f'{_quote_long_string(err)}',
+        ),
     )
     self.assertRegexMatch(
         err,
@@ -1248,29 +1359,29 @@ class TestCase(unittest.TestCase):
         message=self._formatMessage(
             msg,
             'Running command\n'
-            '%s failed with error code %s and message\n'
-            '%s which matches no regex in %s' % (
-                _quote_long_string(command_string),
-                ret_code,
-                _quote_long_string(err),
-                regexes)))
+            f'{_quote_long_string(command_string)} failed with error code'
+            f' {ret_code} and message\n'
+            f'{_quote_long_string(err)} which matches no regex in {regexes}',
+        ),
+    )
 
-  def assertCommandFails(self, command, regexes, env=None, close_fds=True,
-                         msg=None):
+  def assertCommandFails(
+      self, command, regexes, env=None, close_fds=True, msg=None
+  ):
     """Asserts a shell command fails and the error matches a regex in a list.
 
     Args:
       command: List or string representing the command to run.
       regexes: the list of regular expression strings.
       env: Dictionary of environment variable settings. If None, no environment
-          variables will be set for the child process. This is to make tests
-          more hermetic. NOTE: this behavior is different than the standard
-          subprocess module.
+        variables will be set for the child process. This is to make tests more
+        hermetic. NOTE: this behavior is different than the standard subprocess
+        module.
       close_fds: Whether or not to close all open fd's in the child after
-          forking.
+        forking.
       msg: Optional message to report on failure.
     """
-    (ret_code, err) = get_command_stderr(command, env, close_fds)
+    ret_code, err = get_command_stderr(command, env, close_fds)
 
     # We need bytes regexes here because `err` is bytes.
     # Accommodate code which listed their output regexes w/o the b'' prefix by
@@ -1280,10 +1391,14 @@ class TestCase(unittest.TestCase):
 
     command_string = get_command_string(command)
     self.assertNotEqual(
-        ret_code, 0,
-        self._formatMessage(msg, 'The following command succeeded '
-                            'while expected to fail:\n%s' %
-                            _quote_long_string(command_string)))
+        ret_code,
+        0,
+        self._formatMessage(
+            msg,
+            'The following command succeeded while expected to fail:\n'
+            f'{_quote_long_string(command_string)}',
+        ),
+    )
     self.assertRegexMatch(
         err,
         regexes,
@@ -1291,13 +1406,18 @@ class TestCase(unittest.TestCase):
             msg,
             'Running command\n'
             '%s failed with error code %s and message\n'
-            '%s which matches no regex in %s' % (
+            '%s which matches no regex in %s'
+            % (
                 _quote_long_string(command_string),
                 ret_code,
                 _quote_long_string(err),
-                regexes)))
+                regexes,
+            ),
+        ),
+    )
 
   class _AssertRaisesContext:
+    """Context manager for assertRaises* methods."""
 
     def __init__(self, expected_exception, test_case, test_func, msg=None):
       self.expected_exception = expected_exception
@@ -1310,8 +1430,9 @@ class TestCase(unittest.TestCase):
 
     def __exit__(self, exc_type, exc_value, tb):
       if exc_type is None:
-        self.test_case.fail(self.expected_exception.__name__ + ' not raised',
-                            self.msg)
+        self.test_case.fail(
+            self.expected_exception.__name__ + ' not raised', self.msg
+        )
       if not issubclass(exc_type, self.expected_exception):
         return False
       self.test_func(exc_value)
@@ -1321,7 +1442,8 @@ class TestCase(unittest.TestCase):
 
   @typing.overload
   def assertRaisesWithPredicateMatch(
-      self, expected_exception, predicate) -> _AssertRaisesContext:
+      self, expected_exception, predicate
+  ) -> _AssertRaisesContext:
     # The purpose of this return statement is to work around
     # https://github.com/PyCQA/pylint/issues/5273; it is otherwise ignored.
     return self._AssertRaisesContext(None, None, None)
@@ -1339,14 +1461,15 @@ class TestCase(unittest.TestCase):
     # https://github.com/PyCQA/pylint/issues/5273; it is otherwise ignored.
     return self._AssertRaisesContext(None, None, None)  # type: ignore[return-value]
 
-  def assertRaisesWithPredicateMatch(self, expected_exception, predicate,
-                                     callable_obj=None, *args, **kwargs):
+  def assertRaisesWithPredicateMatch(
+      self, expected_exception, predicate, callable_obj=None, *args, **kwargs
+  ):
     """Asserts that exception is thrown and predicate(exception) is true.
 
     Args:
       expected_exception: Exception class expected to be raised.
       predicate: Function of one argument that inspects the passed-in exception
-          and returns True (success) or False (please fail the test).
+        and returns True (success) or False (please fail the test).
       callable_obj: Function to be called.
       *args: Extra args.
       **kwargs: Extra keyword args.
@@ -1357,9 +1480,11 @@ class TestCase(unittest.TestCase):
     Raises:
       self.failureException if callable_obj does not raise a matching exception.
     """
+
     def Check(err):
-      self.assertTrue(predicate(err),
-                      '%r does not match predicate %r' % (err, predicate))
+      self.assertTrue(
+          predicate(err), f'{err!r} does not match predicate {predicate!r}'
+      )
 
     context = self._AssertRaisesContext(expected_exception, self, Check)
     if callable_obj is None:
@@ -1388,9 +1513,14 @@ class TestCase(unittest.TestCase):
     # https://github.com/PyCQA/pylint/issues/5273; it is otherwise ignored.
     return self._AssertRaisesContext(None, None, None)  # type: ignore[return-value]
 
-  def assertRaisesWithLiteralMatch(self, expected_exception,
-                                   expected_exception_message,
-                                   callable_obj=None, *args, **kwargs):
+  def assertRaisesWithLiteralMatch(
+      self,
+      expected_exception,
+      expected_exception_message,
+      callable_obj=None,
+      *args,
+      **kwargs,
+  ):
     """Asserts that the message in a raised exception equals the given string.
 
     Unlike assertRaisesRegex, this method takes a literal string, not
@@ -1402,8 +1532,8 @@ class TestCase(unittest.TestCase):
     Args:
       expected_exception: Exception class expected to be raised.
       expected_exception_message: String message expected in the raised
-          exception.  For a raise exception e, expected_exception_message must
-          equal str(e).
+        exception.  For a raise exception e, expected_exception_message must
+        equal str(e).
       callable_obj: Function to be called, or None to return a context.
       *args: Extra args.
       **kwargs: Extra kwargs.
@@ -1414,13 +1544,16 @@ class TestCase(unittest.TestCase):
     Raises:
       self.failureException if callable_obj does not raise a matching exception.
     """
+
     def Check(err):
       actual_exception_message = str(err)
-      self.assertTrue(expected_exception_message == actual_exception_message,
-                      'Exception message does not match.\n'
-                      'Expected: %r\n'
-                      'Actual: %r' % (expected_exception_message,
-                                      actual_exception_message))
+      self.assertEqual(
+          expected_exception_message,
+          actual_exception_message,
+          'Exception message does not match.\n'
+          f'Expected: {expected_exception_message!r}\n'
+          f'Actual: {actual_exception_message!r}',
+      )
 
     context = self._AssertRaisesContext(expected_exception, self, Check)
     if callable_obj is None:
@@ -1435,8 +1568,8 @@ class TestCase(unittest.TestCase):
 
     Args:
       strings: A list of strings, such as [ 'fox', 'dog' ]
-      target: A target string in which to look for the strings, such as
-          'The quick brown fox jumped over the lazy dog'.
+      target: A target string in which to look for the strings, such as 'The
+        quick brown fox jumped over the lazy dog'.
       msg: Optional message to report on failure.
     """
     if isinstance(strings, (bytes, str)):
@@ -1447,11 +1580,12 @@ class TestCase(unittest.TestCase):
     for string in strings:
       index = target.find(str(string), current_index)
       if index == -1 and current_index == 0:
-        self.fail("Did not find '%s' in '%s'" %
-                  (string, target), msg)
+        self.fail(f'Did not find {string!r} in {target!r}', msg)
       elif index == -1:
-        self.fail("Did not find '%s' after '%s' in '%s'" %
-                  (string, last_string, target), msg)
+        self.fail(
+            f'Did not find {string!r} after {last_string!r} in {target!r}',
+            msg,
+        )
       last_string = string
       current_index = index
 
@@ -1479,8 +1613,11 @@ class TestCase(unittest.TestCase):
         pass
 
     if first_nonmatching is not None:
-      self.fail('%s not a subsequence of %s. First non-matching element: %s' %
-                (subsequence, container, first_nonmatching), msg)
+      self.fail(
+          f'{subsequence} not a subsequence of {container}. '
+          f'First non-matching element: {first_nonmatching}',
+          msg,
+      )
 
   def assertContainsExactSubsequence(self, container, subsequence, msg=None):
     """Asserts that "container" contains "subsequence" as an exact subsequence.
@@ -1502,15 +1639,19 @@ class TestCase(unittest.TestCase):
       if longest_match == len(subsequence):
         break
       index = 0
-      while (index < len(subsequence) and
-             subsequence[index] == container[start + index]):
+      while (
+          index < len(subsequence)
+          and subsequence[index] == container[start + index]
+      ):
         index += 1
       longest_match = max(longest_match, index)
 
     if longest_match < len(subsequence):
-      self.fail('%s not an exact subsequence of %s. '
-                'Longest matching prefix: %s' %
-                (subsequence, container, subsequence[:longest_match]), msg)
+      self.fail(
+          f'{subsequence} not an exact subsequence of {container}. '
+          f'Longest matching prefix: {subsequence[:longest_match]}',
+          msg,
+      )
 
   def assertTotallyOrdered(self, *groups, **kwargs):
     """Asserts that total ordering has been implemented correctly.
@@ -1546,76 +1687,93 @@ class TestCase(unittest.TestCase):
 
     Args:
       *groups: A list of groups of elements.  Each group of elements is a list
-        of objects that are equal.  The elements in each group must be less
-        than the elements in the group after it.  For example, these groups are
+        of objects that are equal.  The elements in each group must be less than
+        the elements in the group after it.  For example, these groups are
         totally ordered: ``[None]``, ``[1]``, ``[2, 2]``, ``[3]``.
       **kwargs: optional msg keyword argument can be passed.
     """
 
+    # pylint: disable=g-generic-assert
     def CheckOrder(small, big):
       """Ensures small is ordered before big."""
-      self.assertFalse(small == big,
-                       self._formatMessage(msg, '%r unexpectedly equals %r' %
-                                           (small, big)))
-      self.assertTrue(small != big,
-                      self._formatMessage(msg, '%r unexpectedly equals %r' %
-                                          (small, big)))
+      self.assertFalse(
+          small == big,
+          self._formatMessage(msg, f'{small!r} unexpectedly equals {big!r}'),
+      )
+      self.assertTrue(
+          small != big,
+          self._formatMessage(msg, f'{small!r} unexpectedly equals {big!r}'),
+      )
       self.assertLess(small, big, msg)
-      self.assertFalse(big < small,
-                       self._formatMessage(msg,
-                                           '%r unexpectedly less than %r' %
-                                           (big, small)))
+      self.assertFalse(
+          big < small,
+          self._formatMessage(msg, f'{big!r} unexpectedly less than {small!r}'),
+      )
       self.assertLessEqual(small, big, msg)
-      self.assertFalse(big <= small, self._formatMessage(
-          '%r unexpectedly less than or equal to %r' % (big, small), msg
-      ))
+      self.assertFalse(
+          big <= small,
+          self._formatMessage(
+              f'{big!r} unexpectedly less than or equal to {small!r}',
+              msg,  # pyrefly: ignore[bad-argument-type]
+          ),
+      )
       self.assertGreater(big, small, msg)
-      self.assertFalse(small > big,
-                       self._formatMessage(msg,
-                                           '%r unexpectedly greater than %r' %
-                                           (small, big)))
+      self.assertFalse(
+          small > big,
+          self._formatMessage(
+              msg, f'{small!r} unexpectedly greater than {big!r}'
+          ),
+      )
       self.assertGreaterEqual(big, small)
-      self.assertFalse(small >= big, self._formatMessage(
-          msg,
-          '%r unexpectedly greater than or equal to %r' % (small, big)))
+      self.assertFalse(
+          small >= big,
+          self._formatMessage(
+              msg, f'{small!r} unexpectedly greater than or equal to {big!r}'
+          ),
+      )
 
     def CheckEqual(a, b):
       """Ensures that a and b are equal."""
       self.assertEqual(a, b, msg)
-      self.assertFalse(a != b,
-                       self._formatMessage(msg, '%r unexpectedly unequals %r' %
-                                           (a, b)))
+      self.assertFalse(
+          a != b,
+          self._formatMessage(msg, f'{a!r} unexpectedly unequals {b!r}'),
+      )
 
       # Objects that compare equal must hash to the same value, but this only
       # applies if both objects are hashable.
-      if (isinstance(a, abc.Hashable) and
-          isinstance(b, abc.Hashable)):
+      if isinstance(a, abc.Hashable) and isinstance(b, abc.Hashable):
         self.assertEqual(
-            hash(a), hash(b),
+            hash(a),
+            hash(b),
             self._formatMessage(
-                msg, 'hash %d of %r unexpectedly not equal to hash %d of %r' %
-                (hash(a), a, hash(b), b)))
+                msg,
+                f'hash {hash(a)} of {a!r} unexpectedly not equal to '
+                f'hash {hash(b)} of {b!r}',
+            ),
+        )
 
-      self.assertFalse(a < b,
-                       self._formatMessage(msg,
-                                           '%r unexpectedly less than %r' %
-                                           (a, b)))
-      self.assertFalse(b < a,
-                       self._formatMessage(msg,
-                                           '%r unexpectedly less than %r' %
-                                           (b, a)))
+      self.assertFalse(
+          a < b,
+          self._formatMessage(msg, f'{a!r} unexpectedly less than {b!r}'),
+      )
+      self.assertFalse(
+          b < a,
+          self._formatMessage(msg, f'{b!r} unexpectedly less than {a!r}'),
+      )
       self.assertLessEqual(a, b, msg)
-      self.assertLessEqual(b, a, msg)  # pylint: disable=arguments-out-of-order
-      self.assertFalse(a > b,
-                       self._formatMessage(msg,
-                                           '%r unexpectedly greater than %r' %
-                                           (a, b)))
-      self.assertFalse(b > a,
-                       self._formatMessage(msg,
-                                           '%r unexpectedly greater than %r' %
-                                           (b, a)))
+      self.assertLessEqual(b, a, msg)
+      self.assertFalse(
+          a > b,
+          self._formatMessage(msg, f'{a!r} unexpectedly greater than {b!r}'),
+      )
+      self.assertFalse(
+          b > a,
+          self._formatMessage(msg, f'{b!r} unexpectedly greater than {a!r}'),
+      )
       self.assertGreaterEqual(a, b, msg)
-      self.assertGreaterEqual(b, a, msg)  # pylint: disable=arguments-out-of-order
+      self.assertGreaterEqual(b, a, msg)
+    # pylint: enable=g-generic-assert
 
     msg = kwargs.get('msg')
 
@@ -1624,7 +1782,7 @@ class TestCase(unittest.TestCase):
     for elements in itertools.product(*groups):
       elements = list(elements)
       for index, small in enumerate(elements[:-1]):
-        for big in elements[index + 1:]:
+        for big in elements[index + 1 :]:
           CheckOrder(small, big)
 
     # Check that every element in each group is equal.
@@ -1652,7 +1810,7 @@ class TestCase(unittest.TestCase):
     """
     self.assertDictEqual({**dictionary}, {**dictionary, **subset}, msg)
 
-  def assertDictEqual(self, a, b, msg=None):
+  def assertDictEqual(self, a, b, msg=None):  # pylint: disable=arguments-renamed
     """Raises AssertionError if a and b are not equal dictionaries.
 
     Args:
@@ -1875,8 +2033,7 @@ class TestCase(unittest.TestCase):
 
     if type(first) is not type(second):
       self.fail(
-          'Found different dataclass types: %s != %s'
-          % (type(first), type(second)),
+          f'Found different dataclass types: {type(first)} != {type(second)}',
           msg,
       )
 
@@ -1888,11 +2045,11 @@ class TestCase(unittest.TestCase):
     ]
 
     safe_repr = unittest.util.safe_repr  # pytype: disable=module-attr
-    message = ['%s != %s' % (safe_repr(first), safe_repr(second))]
+    message = [f'{safe_repr(first)} != {safe_repr(second)}']
     if different:
       message.append('Fields that differ:')
       message.extend(
-          '%s: %s != %s' % (k, safe_repr(first_v), safe_repr(second_v))
+          f'{k}: {safe_repr(first_v)} != {safe_repr(second_v)}'
           for k, first_v, second_v in different
       )
     else:
@@ -1910,11 +2067,16 @@ class TestCase(unittest.TestCase):
     self.assertEqual(parsed_a.netloc, parsed_b.netloc, msg)
     self.assertEqual(parsed_a.path, parsed_b.path, msg)
     self.assertEqual(parsed_a.fragment, parsed_b.fragment, msg)
-    self.assertEqual(sorted(parsed_a.params.split(';')),
-                     sorted(parsed_b.params.split(';')), msg)
+    self.assertCountEqual(
+        parsed_a.params.split(';'),
+        parsed_b.params.split(';'),
+        msg,
+    )
     self.assertDictEqual(
         parse.parse_qs(parsed_a.query, keep_blank_values=True),
-        parse.parse_qs(parsed_b.query, keep_blank_values=True), msg)
+        parse.parse_qs(parsed_b.query, keep_blank_values=True),
+        msg,
+    )
 
   def assertSameStructure(self, a, b, aname='a', bname='b', msg=None):
     """Asserts that two values contain the same structural content.
@@ -1942,14 +2104,15 @@ class TestCase(unittest.TestCase):
     # rather than just stopping at the first
     problems = []
 
-    _walk_structure_for_problems(a, b, aname, bname, problems,
-                                 self.assertEqual, self.failureException)
+    _walk_structure_for_problems(
+        a, b, aname, bname, problems, self.assertEqual, self.failureException
+    )
 
     # Avoid spamming the user toooo much
     if self.maxDiff is not None:
       max_problems_to_show = self.maxDiff // 80
       if len(problems) > max_problems_to_show:
-        problems = problems[0:max_problems_to_show-1] + ['...']
+        problems = problems[0 : max_problems_to_show - 1] + ['...']
 
     if problems:
       self.fail('; '.join(problems), msg)
@@ -1968,19 +2131,28 @@ class TestCase(unittest.TestCase):
     try:
       first_structured = json.loads(first)
     except ValueError as e:
-      raise ValueError(self._formatMessage(
-          msg,
-          'could not decode first JSON value %s: %s' % (first, e)))
+      raise ValueError(
+          self._formatMessage(
+              msg, f'could not decode first JSON value {first}: {e}'
+          )
+      ) from e
 
     try:
       second_structured = json.loads(second)
     except ValueError as e:
-      raise ValueError(self._formatMessage(
-          msg,
-          'could not decode second JSON value %s: %s' % (second, e)))
+      raise ValueError(
+          self._formatMessage(
+              msg, f'could not decode second JSON value {second}: {e}'
+          )
+      ) from e
 
-    self.assertSameStructure(first_structured, second_structured,
-                             aname='first', bname='second', msg=msg)
+    self.assertSameStructure(
+        first_structured,
+        second_structured,
+        aname='first',
+        bname='second',
+        msg=msg,
+    )
 
   def _getAssertEqualityFunc(
       self, first: Any, second: Any
@@ -1999,6 +2171,7 @@ class TestCase(unittest.TestCase):
 
   def fail(self, msg=None, user_msg=None) -> NoReturn:
     """Fail immediately with the given standard message and user message."""
+    # pyrefly: ignore[bad-argument-type]
     super().fail(self._formatMessage(user_msg, msg))
 
 
@@ -2015,6 +2188,7 @@ def _sorted_list_difference(
   Args:
     expected:  The list we expected.
     actual:  The list we actually got.
+
   Returns:
     (missing, unexpected)
     missing: items in expected that are not in actual.
@@ -2058,9 +2232,12 @@ def _are_both_of_integer_type(a: object, b: object) -> bool:
 
 
 def _are_both_of_sequence_type(a: object, b: object) -> bool:
-  return isinstance(a, abc.Sequence) and isinstance(
-      b, abc.Sequence) and not isinstance(
-          a, _TEXT_OR_BINARY_TYPES) and not isinstance(b, _TEXT_OR_BINARY_TYPES)
+  return (
+      isinstance(a, abc.Sequence)
+      and isinstance(b, abc.Sequence)
+      and not isinstance(a, _TEXT_OR_BINARY_TYPES)
+      and not isinstance(b, _TEXT_OR_BINARY_TYPES)
+  )
 
 
 def _are_both_of_set_type(a: object, b: object) -> bool:
@@ -2068,8 +2245,7 @@ def _are_both_of_set_type(a: object, b: object) -> bool:
 
 
 def _are_both_of_mapping_type(a: object, b: object) -> bool:
-  return isinstance(a, abc.Mapping) and isinstance(
-      b, abc.Mapping)
+  return isinstance(a, abc.Mapping) and isinstance(b, abc.Mapping)
 
 
 def _walk_structure_for_problems(
@@ -2077,62 +2253,80 @@ def _walk_structure_for_problems(
 ):
   """The recursive comparison behind assertSameStructure."""
   if type(a) != type(b) and not (  # pylint: disable=unidiomatic-typecheck
-      _are_both_of_integer_type(a, b) or _are_both_of_sequence_type(a, b) or
-      _are_both_of_set_type(a, b) or _are_both_of_mapping_type(a, b)):
+      _are_both_of_integer_type(a, b)
+      or _are_both_of_sequence_type(a, b)
+      or _are_both_of_set_type(a, b)
+      or _are_both_of_mapping_type(a, b)
+  ):
     # We do not distinguish between int and long types as 99.99% of Python 2
     # code should never care.  They collapse into a single type in Python 3.
-    problem_list.append('%s is a %r but %s is a %r' %
-                        (aname, type(a), bname, type(b)))
+    problem_list.append(
+        f'{aname} is a {type(a)!r} but {bname} is a {type(b)!r}'
+    )
     # If they have different types there's no point continuing
     return
 
-  if isinstance(a, abc.Set):
-    for k in a:
-      if k not in b:
-        problem_list.append(
-            '%s has %r but %s does not' % (aname, k, bname))
-    for k in b:
-      if k not in a:
-        problem_list.append('%s lacks %r but %s has it' % (aname, k, bname))
+  match a:
+    case abc.Set():
+      for k in a:
+        if k not in b:
+          problem_list.append(f'{aname} has {k!r} but {bname} does not')
+      for k in b:
+        if k not in a:
+          problem_list.append(f'{aname} lacks {k!r} but {bname} has it')
 
-  # NOTE: a or b could be a defaultdict, so we must take care that the traversal
-  # doesn't modify the data.
-  elif isinstance(a, abc.Mapping):
-    for k in a:
-      if k in b:
+    # NOTE: a or b could be a defaultdict, so we must take care that the traversal
+    # doesn't modify the data.
+    case abc.Mapping():
+      for k in a:
+        if k in b:
+          _walk_structure_for_problems(
+              a[k],
+              b[k],
+              f'{aname}[{k!r}]',
+              f'{bname}[{k!r}]',
+              problem_list,
+              leaf_assert_equal_func,
+              failure_exception,
+          )
+        else:
+          problem_list.append(
+              f"{aname} has [{k!r}] with value {a[k]!r} but it's missing in"
+              f' {bname}'
+          )
+      for k in b:
+        if k not in a:
+          problem_list.append(
+              f'{aname} lacks [{k!r}] but {bname} has it with value {b[k]!r}'
+          )
+
+    # Strings/bytes are Sequences but we'll just do those with regular !=
+    case abc.Sequence() if not isinstance(a, _TEXT_OR_BINARY_TYPES):
+      minlen = min(len(a), len(b))
+      for i in range(minlen):
         _walk_structure_for_problems(
-            a[k], b[k], '%s[%r]' % (aname, k), '%s[%r]' % (bname, k),
-            problem_list, leaf_assert_equal_func, failure_exception)
-      else:
+            a[i],
+            b[i],
+            f'{aname}[{i:d}]',
+            f'{bname}[{i:d}]',
+            problem_list,
+            leaf_assert_equal_func,
+            failure_exception,
+        )
+      for i in range(minlen, len(a)):
         problem_list.append(
-            "%s has [%r] with value %r but it's missing in %s" %
-            (aname, k, a[k], bname))
-    for k in b:
-      if k not in a:
+            f'{aname} has [{i:d}] with value {a[i]!r} but {bname} does not'
+        )
+      for i in range(minlen, len(b)):
         problem_list.append(
-            '%s lacks [%r] but %s has it with value %r' %
-            (aname, k, bname, b[k]))
+            f'{aname} lacks [{i:d}] but {bname} has it with value {b[i]!r}'
+        )
 
-  # Strings/bytes are Sequences but we'll just do those with regular !=
-  elif (isinstance(a, abc.Sequence) and
-        not isinstance(a, _TEXT_OR_BINARY_TYPES)):
-    minlen = min(len(a), len(b))
-    for i in range(minlen):
-      _walk_structure_for_problems(
-          a[i], b[i], '%s[%d]' % (aname, i), '%s[%d]' % (bname, i),
-          problem_list, leaf_assert_equal_func, failure_exception)
-    for i in range(minlen, len(a)):
-      problem_list.append('%s has [%i] with value %r but %s does not' %
-                          (aname, i, a[i], bname))
-    for i in range(minlen, len(b)):
-      problem_list.append('%s lacks [%i] but %s has it with value %r' %
-                          (aname, i, bname, b[i]))
-
-  else:
-    try:
-      leaf_assert_equal_func(a, b)
-    except failure_exception:
-      problem_list.append('%s is %r but %s is %r' % (aname, a, bname, b))
+    case _:
+      try:
+        leaf_assert_equal_func(a, b)
+      except failure_exception:
+        problem_list.append(f'{aname} is {a!r} but {bname} is {b!r}')
 
 
 def get_command_string(command):
@@ -2140,6 +2334,7 @@ def get_command_string(command):
 
   Args:
     command: List or string representing the command to run.
+
   Returns:
     A string suitable for use as a shell command.
   """
@@ -2163,16 +2358,17 @@ def get_command_stderr(command, env=None, close_fds=True):
   Args:
     command: List or string representing the command to run.
     env: Dictionary of environment variable settings. If None, no environment
-        variables will be set for the child process. This is to make tests
-        more hermetic. NOTE: this behavior is different than the standard
-        subprocess module.
+      variables will be set for the child process. This is to make tests more
+      hermetic. NOTE: this behavior is different than the standard subprocess
+      module.
     close_fds: Whether or not to close all open fd's in the child after forking.
-        On Windows, this is ignored and close_fds is always False.
+      On Windows, this is ignored and close_fds is always False.
 
   Returns:
     Tuple of (exit status, text printed to stdout and stderr by the command).
   """
-  if env is None: env = {}
+  if env is None:
+    env = {}
   if os.name == 'nt':
     # Windows does not support setting close_fds to True while also redirecting
     # standard handles.
@@ -2217,18 +2413,17 @@ def _quote_long_string(s: str | bytes | bytearray) -> str:
       s = s.decode('utf-8')
     except UnicodeDecodeError:
       s = str(s)
-  return ('8<-----------\n' +
-          s + '\n' +
-          '----------->8\n')
+  return '8<-----------\n' + s + '\n' + '----------->8\n'
 
 
 def print_python_version() -> None:
   # Having this in the test output logs by default helps debugging when all
   # you've got is the log and no other idea of which Python was used.
-  sys.stderr.write('Running tests under Python {0[0]}.{0[1]}.{0[2]}: '
-                   '{1}\n'.format(
-                       sys.version_info,
-                       sys.executable if sys.executable else 'embedded.'))
+  sys.stderr.write(
+      'Running tests under Python {0[0]}.{0[1]}.{0[2]}: {1}\n'.format(
+          sys.version_info, sys.executable if sys.executable else 'embedded.'
+      )
+  )
 
 
 def main(*args: str, **kwargs: Any) -> None:
@@ -2241,9 +2436,9 @@ def main(*args: str, **kwargs: Any) -> None:
 
   Args:
     *args: Positional arguments passed through to
-        ``unittest.TestProgram.__init__``.
+      ``unittest.TestProgram.__init__``.
     **kwargs: Keyword arguments passed through to
-        ``unittest.TestProgram.__init__``.
+      ``unittest.TestProgram.__init__``.
   """
   print_python_version()
   _run_in_app(run_tests, args, kwargs)
@@ -2267,8 +2462,9 @@ def _register_sigterm_with_faulthandler() -> None:
     try:
       faulthandler.register(signal.SIGTERM, chain=True)  # pytype: disable=module-attr
     except Exception as e:  # pylint: disable=broad-except
-      sys.stderr.write('faulthandler.register(SIGTERM) failed '
-                       '%r; ignoring.\n' % e)
+      sys.stderr.write(
+          f'faulthandler.register(SIGTERM) failed {e!r}; ignoring.\n'
+      )
 
 
 def _run_in_app(
@@ -2309,8 +2505,8 @@ def _run_in_app(
 
   Args:
     function: absltest.run_tests or a similar function. It will be called as
-        function(argv, args, kwargs) where argv is a list containing the
-        elements of sys.argv without the command-line flags.
+      function(argv, args, kwargs) where argv is a list containing the elements
+      of sys.argv without the command-line flags.
     args: Positional arguments passed through to unittest.TestProgram.__init__.
     kwargs: Keyword arguments passed through to unittest.TestProgram.__init__.
   """
@@ -2363,9 +2559,13 @@ def _is_suspicious_attribute(
     attr = getattr(testCaseClass, name)
     if inspect.isfunction(attr) or inspect.ismethod(attr):
       args = inspect.getfullargspec(attr)
-      return (len(args.args) == 1 and args.args[0] == 'self' and
-              args.varargs is None and args.varkw is None and
-              not args.kwonlyargs)
+      return (
+          len(args.args) == 1
+          and args.args[0] == 'self'
+          and args.varargs is None
+          and args.varkw is None
+          and not args.kwonlyargs
+      )
   return False
 
 
@@ -2413,7 +2613,7 @@ def skipThisClass(
   if isinstance(reason, type):
     raise TypeError(f'Got {reason!r}, expected reason as string')
 
-  def _skip_class(test_case_class):
+  def _skip_class(test_case_class: Any) -> Any:
     if not issubclass(test_case_class, unittest.TestCase):
       raise TypeError(
           f'Decorating {test_case_class!r}, expected TestCase subclass'
@@ -2424,7 +2624,7 @@ def skipThisClass(
     # a reference to it.
     shadowed_setupclass = test_case_class.__dict__.get('setUpClass', None)
 
-    @classmethod
+    @classmethod  # type: ignore[misc]  # pyrefly: ignore[invalid-decorator]
     def replacement_setupclass(cls, *args, **kwargs):
       # Skip this class if it is the one that was decorated with @skipThisClass
       if cls is test_case_class:
@@ -2438,9 +2638,9 @@ def skipThisClass(
         # Because there's no setUpClass() defined directly on test_case_class,
         # we call super() ourselves to continue execution of the inheritance
         # chain.
-        return super(test_case_class, cls).setUpClass(*args, **kwargs)
+        return super(test_case_class, cls).setUpClass(*args, **kwargs)  # pyrefly: ignore[invalid-argument]
 
-    test_case_class.setUpClass = replacement_setupclass
+    test_case_class.setUpClass = replacement_setupclass  # pyrefly: ignore[bad-assignment]
     return test_case_class
 
   return _skip_class
@@ -2462,6 +2662,9 @@ class TestLoader(unittest.TestLoader):
   name it with 'test' in lowercase. If not, rename the method to not begin
   with 'Test'.""")
 
+  _randomize_ordering_seed: int | None
+  _random: random.Random | None
+
   def __init__(self, *args, **kwds):
     super().__init__(*args, **kwds)
     seed = _get_default_randomize_ordering_seed()
@@ -2480,10 +2683,13 @@ class TestLoader(unittest.TestLoader):
     names = list(super().getTestCaseNames(testCaseClass))
     if self._randomize_ordering_seed is not None and self._random is not None:
       logging.info(
-          'Randomizing test order with seed: %d', self._randomize_ordering_seed)
+          'Randomizing test order with seed: %d', self._randomize_ordering_seed
+      )
       logging.info(
           'To reproduce this order, re-run with '
-          '--test_randomize_ordering_seed=%d', self._randomize_ordering_seed)
+          '--test_randomize_ordering_seed=%d',
+          self._randomize_ordering_seed,
+      )
       self._random.shuffle(names)
     return names
 
@@ -2528,7 +2734,8 @@ def get_default_xml_output_filename() -> str | None:
   elif os.environ.get('TEST_XMLOUTPUTDIR'):
     return os.path.join(
         os.environ['TEST_XMLOUTPUTDIR'],
-        os.path.splitext(os.path.basename(sys.argv[0]))[0] + '.xml')
+        os.path.splitext(os.path.basename(sys.argv[0]))[0] + '.xml',
+    )
   return None
 
 
@@ -2614,13 +2821,15 @@ def _setup_sharding(
   # It may be useful to write the shard file even if the other sharding
   # environment variables are not set. Test runners may use this functionality
   # to query whether a test binary implements the test sharding protocol.
-  if 'TEST_SHARD_STATUS_FILE' in os.environ:
+  status_file = os.environ.get('TEST_SHARD_STATUS_FILE')
+  if status_file is not None:
     try:
-      with open(os.environ['TEST_SHARD_STATUS_FILE'], 'w') as f:
+      with open(status_file, 'w') as f:
         f.write('')
     except OSError:
-      sys.stderr.write('Error opening TEST_SHARD_STATUS_FILE (%s). Exiting.'
-                       % os.environ['TEST_SHARD_STATUS_FILE'])
+      sys.stderr.write(
+          f'Error opening TEST_SHARD_STATUS_FILE ({status_file}). Exiting.'
+      )
       sys.exit(1)
 
   base_loader = custom_loader or TestLoader()
@@ -2632,8 +2841,10 @@ def _setup_sharding(
   shard_index = int(os.environ['TEST_SHARD_INDEX'])
 
   if shard_index < 0 or shard_index >= total_shards:
-    sys.stderr.write('ERROR: Bad sharding values. index=%d, total=%d\n' %
-                     (shard_index, total_shards))
+    sys.stderr.write(
+        f'ERROR: Bad sharding values. index={shard_index},'
+        f' total={total_shards}\n'
+    )
     sys.exit(1)
 
   # Replace the original getTestCaseNames with one that returns
@@ -2647,6 +2858,7 @@ def _setup_sharding(
     if has_shard_test_case_names:
       sharder = getattr(base_loader, 'shardTestCaseNames')
     else:
+      # pyrefly: ignore[bad-argument-type]
       sharder = lambda *args: TestLoader.shardTestCaseNames(base_loader, *args)
 
     names = sharder(
@@ -2723,8 +2935,9 @@ def _run_and_get_tests_result(
   # XML file name is based upon (sorted by priority):
   # --xml_output_file flag, XML_OUTPUT_FILE variable,
   # TEST_XMLOUTPUTDIR variable or RUNNING_UNDER_TEST_DAEMON variable.
-  if FLAGS.xml_output_file:
-    xml_output_file = FLAGS.xml_output_file
+  xml_output_file: str | None
+  if XML_OUTPUT_FILE.value:
+    xml_output_file = XML_OUTPUT_FILE.value
   else:
     xml_output_file = get_default_xml_output_filename()
     if xml_output_file:
@@ -2748,11 +2961,14 @@ def _run_and_get_tests_result(
     # We can reuse testRunner if it supports XML output (e. g. by inheriting
     # from xml_reporter.TextAndXMLTestRunner). Otherwise we need to use
     # xml_reporter.TextAndXMLTestRunner.
-    if (kwargs.get('testRunner') is not None
-        and not hasattr(kwargs['testRunner'], 'set_default_xml_stream')):
-      sys.stderr.write('WARNING: XML_OUTPUT_FILE or --xml_output_file setting '
-                       'overrides testRunner=%r setting (possibly from --pdb)'
-                       % (kwargs['testRunner']))
+    test_runner = kwargs.get('testRunner')
+    if test_runner is not None and not hasattr(
+        test_runner, 'set_default_xml_stream'
+    ):
+      sys.stderr.write(
+          'WARNING: XML_OUTPUT_FILE or --xml_output_file setting overrides'
+          f' testRunner={test_runner!r} (possibly from --pdb)'
+      )
       # Passing a class object here allows TestProgram to initialize
       # instances based on its kwargs and/or parsed command-line args.
       kwargs['testRunner'] = xml_test_runner_class
@@ -2767,23 +2983,25 @@ def _run_and_get_tests_result(
     # If we've used a seed to randomize test case ordering, we want to record it
     # as a top-level attribute in the `testsuites` section of the XML output.
     randomize_ordering_seed = getattr(
-        kwargs['testLoader'], '_randomize_ordering_seed', None)
+        kwargs['testLoader'], '_randomize_ordering_seed', None
+    )
     setter = getattr(kwargs['testRunner'], 'set_testsuites_property', None)
     if randomize_ordering_seed and setter:
       setter('test_randomize_ordering_seed', randomize_ordering_seed)
   elif kwargs.get('testRunner') is None:
     kwargs['testRunner'] = _pretty_print_reporter.TextTestRunner
 
-  if FLAGS.pdb_post_mortem:
+  if app.PDB_POST_MORTEM.value:
     runner = kwargs['testRunner']
     # testRunner can be a class or an instance, which must be tested for
     # differently.
     # Overriding testRunner isn't uncommon, so only enable the debugging
     # integration if the runner claims it does; we don't want to accidentally
     # clobber something on the runner.
-    if ((isinstance(runner, type) and
-         issubclass(runner, _pretty_print_reporter.TextTestRunner)) or
-        isinstance(runner, _pretty_print_reporter.TextTestRunner)):
+    if (
+        isinstance(runner, type)
+        and issubclass(runner, _pretty_print_reporter.TextTestRunner)
+    ) or isinstance(runner, _pretty_print_reporter.TextTestRunner):
       runner.run_for_debugging = True
 
   # Make sure tmpdir exists.
@@ -2807,7 +3025,7 @@ def _run_and_get_tests_result(
     test_program = unittest.TestProgram(*args, **kwargs)
     return test_program.result, fail_when_no_tests_ran
   finally:
-    if xml_buffer:
+    if xml_output_file and xml_buffer:
       try:
         with _open(xml_output_file, 'w') as f:
           f.write(xml_buffer.getvalue())
