@@ -1,12 +1,16 @@
 {% extends "base.html" %}
 
 {% block title %}{{ employee.full_name }} - Details{% endblock %}
+{% block page_title %}{{ employee.full_name }}{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-12">
         <a href="{{ url_for('registration.list_employees') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+        <a href="{{ url_for('registration.edit_employee', employee_id=employee.id) }}" class="btn btn-primary float-end">
+            <i class="fas fa-user-edit"></i> Edit
         </a>
     </div>
 </div>

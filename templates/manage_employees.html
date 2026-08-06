@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 
 {% block title %}Manage Employees{% endblock %}
+{% block page_title %}Manage Employees{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-12">
-        <h2 class="text-white">
+        <h2 class="text-dark">
             <i class="fas fa-users-cog"></i> Manage Employees
             <a href="{{ url_for('registration.index') }}" class="btn btn-success float-end">
                 <i class="fas fa-user-plus"></i> Add New
@@ -133,7 +134,7 @@
 {% block extra_js %}
 <script>
     function editEmployee(id) {
-        window.location.href = '/registration/employee/' + id;
+        window.location.href = '/registration/employee/' + id + '/edit';
     }
 
     function toggleStatus(id, currentStatus) {

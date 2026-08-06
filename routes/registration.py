@@ -485,6 +485,221 @@ def view_employee(employee_id):
         return redirect(url_for('registration.list_employees'))
 
 
+@registration_bp.route('/employee/<int:employee_id>/edit')
+@login_required
+def edit_employee(employee_id):
+    """Show the edit form for an employee"""
+    try:
+        employee = Employee.query.get_or_404(employee_id)
+
+        ranks = db.session.query(Employee.rank).distinct().filter(
+            Employee.rank.isnot(None), Employee.rank != ''
+        ).all()
+        ranks = sorted([r[0] for r in ranks if r[0]])
+
+        units = db.session.query(Employee.unit).distinct().filter(
+            Employee.unit.isnot(None), Employee.unit != ''
+        ).all()
+        units = sorted([u[0] for u in units if u[0]])
+
+        return render_template(
+            'edit_employee.html',
+            employee=employee,
+            ranks=ranks,
+            units=units
+        )
+
+    except Exception as e:
+        app_logger.error(f"Error loading edit form: {e}")
+        flash('Employee not found', 'error')
+        return redirect(url_for('registration.list_employees'))
+
+
+@registration_bp.route('/employee/<int:employee_id>/update', methods=['POST'])
+@login_required
+def update_employee(employee_id):
+    """Update employee details, optionally re-registering the face photo"""
+    try:
+        if current_user.role not in ['admin', 'officer']:
+            return jsonify({
+                'success': False,
+                'message': 'Access denied'
+            }), 403
+
+        employee = Employee.query.get_or_404(employee_id)
+
+        new_army_id = request.form.get('army_id', '').strip()
+        full_name = request.form.get('full_name', '').strip()
+
+        if not new_army_id or not full_name:
+            return jsonify({
+                'success': False,
+                'message': 'Employee ID and Full Name are required'
+            }), 400
+
+        # If Army ID is changing, make sure it doesn't collide with another employee
+        if new_army_id != employee.army_id:
+            existing = Employee.query.filter(
+                Employee.army_id == new_army_id,
+                Employee.id != employee.id
+            ).first()
+            if existing:
+                return jsonify({
+                    'success': False,
+                    'message': f'Employee ID {new_army_id} already exists'
+                }), 400
+
+        old_army_id = employee.army_id
+        old_values = (
+            f"ID: {employee.army_id}, Name: {employee.full_name}, "
+            f"Rank: {employee.rank}, Unit: {employee.unit}"
+        )
+
+        # Update basic fields
+        employee.army_id = new_army_id
+        employee.full_name = full_name
+        employee.rank = request.form.get('rank', '').strip()
+        employee.unit = request.form.get('unit', '').strip()
+        employee.department = request.form.get('department', '').strip()
+        employee.designation = request.form.get('designation', '').strip()
+        employee.phone = request.form.get('phone', '').strip()
+        employee.email = request.form.get('email', '').strip()
+
+        date_of_joining = request.form.get('date_of_joining', '').strip()
+        if date_of_joining:
+            try:
+                employee.date_of_joining = datetime.strptime(date_of_joining, '%Y-%m-%d').date()
+            except ValueError:
+                app_logger.warning(f"Invalid date format: {date_of_joining}")
+        else:
+            employee.date_of_joining = None
+
+        # If the Army ID changed, the face engine and photo folder need to move
+        # to the new ID before any photo update logic runs below.
+        if new_army_id != old_army_id:
+            face_engine.delete_embedding(old_army_id)
+
+            old_folder = os.path.dirname(employee.photo_path) if employee.photo_path else None
+            if old_folder and os.path.exists(old_folder):
+                new_folder = os.path.join(Config.UPLOAD_FOLDER, new_army_id)
+                try:
+                    os.rename(old_folder, new_folder)
+                    if employee.photo_path:
+                        employee.photo_path = os.path.join(
+                            new_folder, os.path.basename(employee.photo_path)
+                        )
+                except Exception as e:
+                    app_logger.warning(f"Could not rename photo folder for ID change: {e}")
+
+            if employee.photo_path and os.path.exists(employee.photo_path):
+                face_engine.register_face(new_army_id, employee.photo_path)
+
+        # Handle optional photo re-registration
+        update_photo = request.form.get('update_face_photo', 'false').lower() == 'true'
+        if update_photo and 'photo' in request.files and request.files['photo'].filename != '':
+            photo = request.files['photo']
+            file_ext = photo.filename.rsplit('.', 1)[1].lower() if '.' in photo.filename else ''
+
+            if file_ext not in ALLOWED_EXTENSIONS:
+                return jsonify({
+                    'success': False,
+                    'message': 'Only PNG, JPG, JPEG files are allowed'
+                }), 400
+
+            upload_folder = os.path.join(Config.UPLOAD_FOLDER, new_army_id)
+            os.makedirs(upload_folder, exist_ok=True)
+
+            filename = secure_filename(f"{new_army_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg")
+            new_photo_path = os.path.join(upload_folder, filename)
+            photo.save(new_photo_path)
+
+            image = cv2.imread(new_photo_path)
+            if image is None:
+                os.remove(new_photo_path)
+                return jsonify({
+                    'success': False,
+                    'message': 'Invalid image file'
+                }), 400
+
+            quality_score, _ = face_engine.get_face_quality_score(image)
+            if quality_score < MIN_QUALITY_THRESHOLD:
+                os.remove(new_photo_path)
+                return jsonify({
+                    'success': False,
+                    'message': f'Photo quality too low ({quality_score:.0%}). Please use a clearer photo.'
+                }), 400
+
+            try:
+                enhanced_image = enhance_face_image(image)
+                cv2.imwrite(new_photo_path, enhanced_image)
+            except Exception as e:
+                app_logger.warning(f"Enhancement failed: {e}, using original")
+
+            # Re-register: delete old embedding(s) and register the new photo
+            success, message, embedding_id = face_engine.update_embedding(new_army_id, new_photo_path)
+            if not success:
+                os.remove(new_photo_path)
+                return jsonify({
+                    'success': False,
+                    'message': f'Face re-registration failed: {message}'
+                }), 400
+
+            # Back up the old photo instead of deleting it outright
+            old_photo_path = employee.photo_path
+            if old_photo_path and os.path.exists(old_photo_path):
+                try:
+                    backup_path = old_photo_path + f'.bak_{int(datetime.now().timestamp())}'
+                    os.rename(old_photo_path, backup_path)
+                except Exception as e:
+                    app_logger.warning(f"Could not back up old photo: {e}")
+
+            employee.photo_path = new_photo_path
+            employee.face_embedding_id = embedding_id
+
+        db.session.flush()
+
+        audit = AuditLog(
+            user_id=current_user.id,
+            action='EMPLOYEE_UPDATE',
+            table_name='employees',
+            record_id=employee.id,
+            old_value=old_values,
+            new_value=f"ID: {employee.army_id}, Name: {employee.full_name}, Rank: {employee.rank}, Unit: {employee.unit}",
+            ip_address=request.remote_addr
+        )
+        db.session.add(audit)
+        db.session.commit()
+
+        # Clear caches so the updated details/photo take effect immediately
+        try:
+            from routes.attendance import employee_cache, attendance_cache
+            if old_army_id in employee_cache:
+                del employee_cache[old_army_id]
+            if employee.army_id in employee_cache:
+                del employee_cache[employee.army_id]
+            if employee.id in attendance_cache:
+                del attendance_cache[employee.id]
+            face_engine.clear_caches()
+        except Exception as cache_err:
+            app_logger.warning(f"Cache clear warning (non-critical): {cache_err}")
+
+        app_logger.info(f"Employee updated: {employee.army_id} - {employee.full_name}")
+
+        return jsonify({
+            'success': True,
+            'message': f'{employee.full_name} updated successfully',
+            'redirect_url': url_for('registration.view_employee', employee_id=employee.id)
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Update error: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'Update error: {str(e)}'
+        }), 500
+
+
 @registration_bp.route('/employee/<int:employee_id>/toggle-status', methods=['POST'])
 @login_required
 def toggle_employee_status(employee_id):
