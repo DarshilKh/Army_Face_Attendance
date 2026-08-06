@@ -43,7 +43,12 @@ def index():
             'month_total': month_attendance
         }
 
-        return render_template('reports.html', stats=stats)
+        units = db.session.query(Employee.unit).distinct().filter(
+            Employee.unit.isnot(None), Employee.unit != ''
+        ).all()
+        units = sorted([u[0] for u in units if u[0]])
+
+        return render_template('reports.html', stats=stats, units=units)
     except Exception as e:
         app_logger.error(f"Error loading reports page: {e}", exc_info=True)
         return render_template('error.html', error_message=str(e)), 500
@@ -53,7 +58,11 @@ def index():
 @login_required
 def analytics():
     """Advanced analytics page (placeholder)"""
-    return render_template('reports.html')
+    units = db.session.query(Employee.unit).distinct().filter(
+        Employee.unit.isnot(None), Employee.unit != ''
+    ).all()
+    units = sorted([u[0] for u in units if u[0]])
+    return render_template('reports.html', units=units)
 
 
 @reports_bp.route('/audit-logs')
@@ -78,19 +87,22 @@ def generate_report():
     Generate and download attendance report.
 
     Reads 'format' from the JSON body ('excel' or 'pdf') and routes to
-    the correct download helper.  Previously this always called
-    download_daily_excel() no matter which format was selected.
+    the correct download helper, passing along the date range, unit
+    filter, and report_type selected on the form.
     """
     try:
         data           = request.get_json()
         report_type    = data.get('format', 'excel')   # 'excel' or 'pdf'
         start_date_str = data.get('start_date')
+        end_date_str   = data.get('end_date') or start_date_str
+        unit           = (data.get('unit') or '').strip() or None
+        range_label    = data.get('report_type', 'custom')  # daily/weekly/monthly/custom
 
         # ── Branching fix ─────────────────────────────────────────────────
         if report_type == 'pdf':
-            return download_daily_pdf(start_date_str)
+            return download_daily_pdf(start_date_str, end_date_str, unit, range_label)
         else:
-            return download_daily_excel(start_date_str)
+            return download_daily_excel(start_date_str, end_date_str, unit, range_label)
         # ─────────────────────────────────────────────────────────────────
 
     except Exception as e:
@@ -250,58 +262,117 @@ def employee_report(army_id):
 
 @reports_bp.route('/download/excel/daily/<date_str>')
 @login_required
-def download_daily_excel(date_str):
-    """Download daily report as Excel"""
+def _fetch_report_records(start_date, end_date, unit=None):
+    """
+    Shared query helper: attendance records for active employees in
+    [start_date, end_date], optionally filtered to one unit.
+    Returns (records, employee_count) where records is a list of
+    (Attendance, Employee) tuples ordered by date then name.
+    """
+    query = db.session.query(Attendance, Employee).join(
+        Employee, Attendance.employee_id == Employee.id
+    ).filter(
+        Attendance.date >= start_date,
+        Attendance.date <= end_date,
+        Employee.is_active == True
+    )
+    if unit:
+        query = query.filter(Employee.unit == unit)
+
+    records = query.order_by(Attendance.date.asc(), Employee.full_name.asc()).all()
+
+    employee_count_query = Employee.query.filter_by(is_active=True)
+    if unit:
+        employee_count_query = employee_count_query.filter_by(unit=unit)
+    employee_count = employee_count_query.count()
+
+    return records, employee_count
+
+
+def download_daily_excel(start_date_str, end_date_str=None, unit=None, range_label='custom'):
+    """
+    Download attendance report as Excel for a date range (a single-day
+    range when start_date == end_date), optionally filtered to a unit.
+    """
     try:
-        report_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date   = datetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else start_date
+        is_single_day = start_date == end_date
+
+        records, employee_count = _fetch_report_records(start_date, end_date, unit)
 
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Daily Report"
+        ws.title = "Attendance Report"
 
-        ws.merge_cells('A1:G1')
-        title_cell           = ws['A1']
-        title_cell.value     = f'Daily Attendance Report - {report_date.strftime("%d %B %Y")}'
+        last_col = 7
+        ws.merge_cells(f'A1:{openpyxl.utils.get_column_letter(last_col)}1')
+        title_cell = ws['A1']
+        if is_single_day:
+            title_cell.value = f'{range_label.title()} Attendance Report - {start_date.strftime("%d %B %Y")}'
+        else:
+            title_cell.value = (
+                f'{range_label.title()} Attendance Report - '
+                f'{start_date.strftime("%d %b %Y")} to {end_date.strftime("%d %b %Y")}'
+            )
         title_cell.font      = Font(size=16, bold=True)
         title_cell.alignment = Alignment(horizontal='center')
+
+        if unit:
+            ws.merge_cells(f'A2:{openpyxl.utils.get_column_letter(last_col)}2')
+            unit_cell = ws['A2']
+            unit_cell.value = f'Unit: {unit}'
+            unit_cell.alignment = Alignment(horizontal='center')
 
         header_fill      = PatternFill(start_color="1F4788", end_color="1F4788", fill_type="solid")
         header_font      = Font(color="FFFFFF", bold=True, size=12)
         header_alignment = Alignment(horizontal="center", vertical="center")
 
-        headers = ['Army ID', 'Name', 'Rank', 'Unit', 'Check In', 'Check Out', 'Status']
+        headers = ['Date', 'Army ID', 'Name', 'Rank', 'Unit', 'Check In', 'Check Out']
         for col, header in enumerate(headers, 1):
-            cell           = ws.cell(row=3, column=col, value=header)
+            cell           = ws.cell(row=4, column=col, value=header)
             cell.fill      = header_fill
             cell.font      = header_font
             cell.alignment = header_alignment
 
-        attendance_records = db.session.query(Attendance, Employee).join(
-            Employee, Attendance.employee_id == Employee.id
-        ).filter(Attendance.date == report_date).all()
-
-        for row, (att, emp) in enumerate(attendance_records, 4):
-            ws.cell(row=row, column=1, value=emp.army_id)
-            ws.cell(row=row, column=2, value=emp.full_name)
-            ws.cell(row=row, column=3, value=emp.rank or 'N/A')
-            ws.cell(row=row, column=4, value=emp.unit or 'N/A')
-            ws.cell(row=row, column=5, value=att.check_in_time.strftime('%I:%M %p'))
+        row = 5
+        for att, emp in records:
+            ws.cell(row=row, column=1, value=att.date.strftime('%d-%b-%Y'))
+            ws.cell(row=row, column=2, value=emp.army_id)
+            ws.cell(row=row, column=3, value=emp.full_name)
+            ws.cell(row=row, column=4, value=emp.rank or 'N/A')
+            ws.cell(row=row, column=5, value=emp.unit or 'N/A')
             ws.cell(row=row, column=6,
+                    value=att.check_in_time.strftime('%I:%M %p') if att.check_in_time else '-')
+            ws.cell(row=row, column=7,
                     value=att.check_out_time.strftime('%I:%M %p') if att.check_out_time else '-')
-            ws.cell(row=row, column=7, value='Present')
+            row += 1
 
-        for col in range(1, 8):
-            ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 15
+        # Summary block below the data
+        working_days = (end_date - start_date).days + 1
+        row += 1
+        ws.cell(row=row, column=1, value='Employees:').font = Font(bold=True)
+        ws.cell(row=row, column=2, value=employee_count)
+        row += 1
+        ws.cell(row=row, column=1, value='Days in range:').font = Font(bold=True)
+        ws.cell(row=row, column=2, value=working_days)
+        row += 1
+        ws.cell(row=row, column=1, value='Attendance records:').font = Font(bold=True)
+        ws.cell(row=row, column=2, value=len(records))
+
+        for col in range(1, last_col + 1):
+            ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 16
 
         buffer = io.BytesIO()
         wb.save(buffer)
         buffer.seek(0)
 
+        filename_suffix = start_date_str if is_single_day else f'{start_date_str}_to_{end_date_str}'
         return send_file(
             buffer,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
-            download_name=f'daily_report_{date_str}.xlsx'
+            download_name=f'{range_label}_report_{filename_suffix}.xlsx'
         )
 
     except Exception as e:
@@ -315,20 +386,27 @@ def download_daily_excel(date_str):
 # ─────────────────────────────────────────────────────────────────────────────
 @reports_bp.route('/download/pdf/daily/<date_str>')
 @login_required
-def download_daily_pdf(date_str):
+def download_daily_pdf(date_str, end_date_str=None, unit=None, range_label='custom'):
     """
-    Download daily report as PDF.
+    Download attendance report as PDF for a date range (a single-day
+    range when start_date == end_date), optionally filtered to a unit.
 
-    This function was missing entirely from the original file despite
-    reportlab being imported.  generate_report() now calls this when
-    format == 'pdf'.
+    When hit directly via the GET route, end_date/unit/report_type can
+    be supplied as query params; generate_report() calls this function
+    directly with explicit arguments for the range selected on the form.
     """
     try:
-        report_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        if end_date_str is None:
+            end_date_str = request.args.get('end_date', date_str)
+        if unit is None:
+            unit = request.args.get('unit') or None
+        range_label = request.args.get('report_type', range_label)
 
-        attendance_records = db.session.query(Attendance, Employee).join(
-            Employee, Attendance.employee_id == Employee.id
-        ).filter(Attendance.date == report_date).all()
+        start_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        end_date   = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        is_single_day = start_date == end_date
+
+        records, employee_count = _fetch_report_records(start_date, end_date, unit)
 
         buffer = io.BytesIO()
         doc    = SimpleDocTemplate(buffer, pagesize=landscape(A4))
@@ -340,32 +418,40 @@ def download_daily_pdf(date_str):
             alignment=TA_CENTER,
             fontSize=16
         )
+        subtitle_style = ParagraphStyle(
+            'SubtitleStyle',
+            parent=styles['Normal'],
+            alignment=TA_CENTER,
+            fontSize=10
+        )
 
         elements = []
 
         # Title
-        elements.append(
-            Paragraph(
-                f'Daily Attendance Report - {report_date.strftime("%d %B %Y")}',
-                title_style
+        if is_single_day:
+            title_text = f'{range_label.title()} Attendance Report - {start_date.strftime("%d %B %Y")}'
+        else:
+            title_text = (
+                f'{range_label.title()} Attendance Report - '
+                f'{start_date.strftime("%d %b %Y")} to {end_date.strftime("%d %b %Y")}'
             )
-        )
+        elements.append(Paragraph(title_text, title_style))
+        if unit:
+            elements.append(Paragraph(f'Unit: {unit}', subtitle_style))
         elements.append(Spacer(1, 20))
 
         # Table data
-        table_data = [
-            ['Army ID', 'Name', 'Rank', 'Unit', 'Check In', 'Check Out', 'Status']
-        ]
+        table_data = [['Date', 'Army ID', 'Name', 'Rank', 'Unit', 'Check In', 'Check Out']]
 
-        for att, emp in attendance_records:
+        for att, emp in records:
             table_data.append([
+                att.date.strftime('%d-%b-%Y'),
                 emp.army_id,
                 emp.full_name,
                 emp.rank or 'N/A',
                 emp.unit or 'N/A',
-                att.check_in_time.strftime('%I:%M %p'),
+                att.check_in_time.strftime('%I:%M %p') if att.check_in_time else '-',
                 att.check_out_time.strftime('%I:%M %p') if att.check_out_time else '-',
-                'Present'
             ])
 
         # Table styling
@@ -381,14 +467,24 @@ def download_daily_pdf(date_str):
 
         elements.append(table)
 
+        working_days = (end_date - start_date).days + 1
+        elements.append(Spacer(1, 16))
+        elements.append(Paragraph(
+            f'Employees: {employee_count} &nbsp;&nbsp; '
+            f'Days in range: {working_days} &nbsp;&nbsp; '
+            f'Attendance records: {len(records)}',
+            subtitle_style
+        ))
+
         doc.build(elements)
         buffer.seek(0)
 
+        filename_suffix = date_str if is_single_day else f'{date_str}_to_{end_date_str}'
         return send_file(
             buffer,
             mimetype='application/pdf',
             as_attachment=True,
-            download_name=f'daily_report_{date_str}.pdf'
+            download_name=f'{range_label}_report_{filename_suffix}.pdf'
         )
 
     except Exception as e:

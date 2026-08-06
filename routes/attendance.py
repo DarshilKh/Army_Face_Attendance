@@ -9,6 +9,8 @@ from flask_login import login_required, current_user
 from models import db
 from models.database import Employee, Attendance, SystemSetting
 from models.face_recognition import face_engine
+from utils.liveness_detection import liveness_detector
+from config import Config
 from utils.logger import app_logger
 import cv2
 import numpy as np
@@ -528,6 +530,28 @@ def mark_attendance():
         last_attendance = get_attendance_today_cached(employee.id)
 
         # ============================================
+        # STEP 7.5: LIVENESS CHECK
+        # ============================================
+        # Was previously hardcoded to 0.85 with no actual check performed.
+        # Now runs the real single-frame liveness detector and, when
+        # LIVENESS_REQUIRED is set, rejects spoofed (photo/screen) attempts.
+
+        liveness_score = 0.0
+        try:
+            liveness_score, _liveness_details = liveness_detector.quick_liveness_check(frame)
+        except Exception as e:
+            app_logger.warning(f"Liveness check error, treating as not live: {e}")
+            liveness_score = 0.0
+
+        if Config.LIVENESS_REQUIRED and liveness_score < Config.LIVENESS_THRESHOLD:
+            return build_error_response(
+                'Liveness check failed - please use a live camera, not a photo or screen',
+                'LIVENESS_FAILED',
+                face_detected=True,
+                bbox=bbox
+            )
+
+        # ============================================
         # STEP 8: ATTENDANCE LOGIC
         # ============================================
 
@@ -584,6 +608,7 @@ def mark_attendance():
 
                 attendance_record.check_out_time = now
                 attendance_record.check_out_photo = photo_path
+                attendance_record.liveness_score_out = liveness_score
 
                 work_hours = calculate_work_hours(
                     attendance_record.check_in_time,
@@ -657,7 +682,7 @@ def mark_attendance():
                 date=today,
                 status=status,
                 check_in_photo=photo_path,
-                liveness_score_in=0.85,
+                liveness_score_in=liveness_score,
                 confidence_score=confidence,
                 ip_address=request.remote_addr,
                 device_info=request.user_agent.string[:200] if request.user_agent else 'Unknown',
