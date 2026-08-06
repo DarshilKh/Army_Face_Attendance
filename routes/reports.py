@@ -37,10 +37,10 @@ def index():
         ).count()
 
         stats = {
-            'today_present': today_attendance,
+            'today_present':   today_attendance,
             'total_employees': total_employees,
-            'today_absent': total_employees - today_attendance,
-            'month_total': month_attendance
+            'today_absent':    total_employees - today_attendance,
+            'month_total':     month_attendance
         }
 
         units = db.session.query(Employee.unit).distinct().filter(
@@ -74,12 +74,6 @@ def audit_logs():
     return render_template('reports.html', audit_logs=logs)
 
 
-# ── Fix 1: generate_report() now branches on format instead of always
-#    calling download_daily_excel() regardless of what the user selected.
-# ── Fix 2: download_daily_pdf() is now implemented (was imported but
-#    never written — reportlab was a dead import before this change).
-# ─────────────────────────────────────────────────────────────────────
-
 @reports_bp.route('/generate', methods=['POST'])
 @login_required
 def generate_report():
@@ -92,18 +86,16 @@ def generate_report():
     """
     try:
         data           = request.get_json()
-        report_type    = data.get('format', 'excel')   # 'excel' or 'pdf'
+        report_type    = data.get('format', 'excel')
         start_date_str = data.get('start_date')
         end_date_str   = data.get('end_date') or start_date_str
         unit           = (data.get('unit') or '').strip() or None
-        range_label    = data.get('report_type', 'custom')  # daily/weekly/monthly/custom
+        range_label    = data.get('report_type', 'custom')
 
-        # ── Branching fix ─────────────────────────────────────────────────
         if report_type == 'pdf':
             return download_daily_pdf(start_date_str, end_date_str, unit, range_label)
         else:
             return download_daily_excel(start_date_str, end_date_str, unit, range_label)
-        # ─────────────────────────────────────────────────────────────────
 
     except Exception as e:
         app_logger.error(f"Error generating report: {e}", exc_info=True)
@@ -135,11 +127,9 @@ def daily_report():
                 'rank':         emp.rank or 'N/A',
                 'unit':         emp.unit or 'N/A',
                 'check_in':     attendance.check_in_time.strftime('%I:%M %p')
-                                if attendance and attendance.check_in_time
-                                else 'Absent',
+                                if attendance and attendance.check_in_time else 'Absent',
                 'check_out':    attendance.check_out_time.strftime('%I:%M %p')
-                                if attendance and attendance.check_out_time
-                                else '-',
+                                if attendance and attendance.check_out_time else '-',
                 'status':       'Present' if attendance else 'Absent',
                 'status_class': 'success' if attendance else 'danger'
             })
@@ -171,8 +161,8 @@ def daily_report():
 def monthly_report():
     """Generate monthly attendance report"""
     try:
-        month            = request.args.get('month', datetime.now().strftime('%Y-%m'))
-        year, month_num  = map(int, month.split('-'))
+        month           = request.args.get('month', datetime.now().strftime('%Y-%m'))
+        year, month_num = map(int, month.split('-'))
 
         start_date = datetime(year, month_num, 1)
         end_date   = datetime(year + 1, 1, 1) if month_num == 12 else datetime(year, month_num + 1, 1)
@@ -260,12 +250,15 @@ def employee_report(army_id):
         return render_template('error.html', error_message=str(e)), 500
 
 
-@reports_bp.route('/download/excel/daily/<date_str>')
-@login_required
+# ── Private helper — NOT a Flask route.  The old @reports_bp.route decorator
+#    that used to sit here got orphaned during earlier edits; leaving it in
+#    place would turn this internal helper into a URL endpoint. Removed.
+# ─────────────────────────────────────────────────────────────────────────────
 def _fetch_report_records(start_date, end_date, unit=None):
     """
     Shared query helper: attendance records for active employees in
     [start_date, end_date], optionally filtered to one unit.
+
     Returns (records, employee_count) where records is a list of
     (Attendance, Employee) tuples ordered by date then name.
     """
@@ -289,14 +282,15 @@ def _fetch_report_records(start_date, end_date, unit=None):
     return records, employee_count
 
 
+# Not exposed as a URL any more — called directly from generate_report().
 def download_daily_excel(start_date_str, end_date_str=None, unit=None, range_label='custom'):
     """
     Download attendance report as Excel for a date range (a single-day
     range when start_date == end_date), optionally filtered to a unit.
     """
     try:
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        end_date   = datetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else start_date
+        start_date    = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date      = datetime.strptime(end_date_str, '%Y-%m-%d').date() if end_date_str else start_date
         is_single_day = start_date == end_date
 
         records, employee_count = _fetch_report_records(start_date, end_date, unit)
@@ -321,7 +315,7 @@ def download_daily_excel(start_date_str, end_date_str=None, unit=None, range_lab
         if unit:
             ws.merge_cells(f'A2:{openpyxl.utils.get_column_letter(last_col)}2')
             unit_cell = ws['A2']
-            unit_cell.value = f'Unit: {unit}'
+            unit_cell.value     = f'Unit: {unit}'
             unit_cell.alignment = Alignment(horizontal='center')
 
         header_fill      = PatternFill(start_color="1F4788", end_color="1F4788", fill_type="solid")
@@ -348,7 +342,7 @@ def download_daily_excel(start_date_str, end_date_str=None, unit=None, range_lab
                     value=att.check_out_time.strftime('%I:%M %p') if att.check_out_time else '-')
             row += 1
 
-        # Summary block below the data
+        # Summary block
         working_days = (end_date - start_date).days + 1
         row += 1
         ws.cell(row=row, column=1, value='Employees:').font = Font(bold=True)
@@ -380,9 +374,9 @@ def download_daily_excel(start_date_str, end_date_str=None, unit=None, range_lab
         return jsonify({'error': str(e)}), 500
 
 
-# ── Fix 2: PDF generation — reportlab was fully imported at the top of the
-#    file in the original code but this function was never written, making
-#    the import dead code and PDF downloads impossible.
+# ── PDF generation.  Still exposed as a GET route so the "Download PDF for
+#    date X" pattern keeps working, but generate_report() also calls it
+#    directly with explicit arguments (bypassing the URL layer entirely).
 # ─────────────────────────────────────────────────────────────────────────────
 @reports_bp.route('/download/pdf/daily/<date_str>')
 @login_required
@@ -402,8 +396,8 @@ def download_daily_pdf(date_str, end_date_str=None, unit=None, range_label='cust
             unit = request.args.get('unit') or None
         range_label = request.args.get('report_type', range_label)
 
-        start_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        end_date   = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        start_date    = datetime.strptime(date_str, '%Y-%m-%d').date()
+        end_date      = datetime.strptime(end_date_str, '%Y-%m-%d').date()
         is_single_day = start_date == end_date
 
         records, employee_count = _fetch_report_records(start_date, end_date, unit)
@@ -427,7 +421,6 @@ def download_daily_pdf(date_str, end_date_str=None, unit=None, range_label='cust
 
         elements = []
 
-        # Title
         if is_single_day:
             title_text = f'{range_label.title()} Attendance Report - {start_date.strftime("%d %B %Y")}'
         else:
@@ -440,7 +433,6 @@ def download_daily_pdf(date_str, end_date_str=None, unit=None, range_label='cust
             elements.append(Paragraph(f'Unit: {unit}', subtitle_style))
         elements.append(Spacer(1, 20))
 
-        # Table data
         table_data = [['Date', 'Army ID', 'Name', 'Rank', 'Unit', 'Check In', 'Check Out']]
 
         for att, emp in records:
@@ -454,7 +446,6 @@ def download_daily_pdf(date_str, end_date_str=None, unit=None, range_label='cust
                 att.check_out_time.strftime('%I:%M %p') if att.check_out_time else '-',
             ])
 
-        # Table styling
         table = Table(table_data, repeatRows=1)
         table.setStyle(TableStyle([
             ('BACKGROUND',     (0, 0), (-1, 0),  colors.HexColor('#1F4788')),
