@@ -84,7 +84,7 @@
         margin-bottom: 20px;
     }
 
-    #cameraFeed {
+    #cameraFeed, #networkFeed {
         width: 100%;
         max-width: 640px;
         height: auto;
@@ -243,6 +243,7 @@
                         <div class="camera-section">
                             <div class="position-relative text-center">
                                 <video id="cameraFeed" autoplay playsinline muted></video>
+                                <img id="networkFeed" style="display:none; max-width:100%;" alt="Network Camera Feed">
                                 <canvas id="photoCanvas" style="display:none;"></canvas>
                                 <div class="capture-indicator" id="captureFlash">✓ Captured!</div>
                             </div>
@@ -411,6 +412,7 @@
 <script>
 let currentStep = 1;
 let cameraStream = null;
+let usingNetworkCamera = false;  // Track which camera source is active
 let capturedPhotos = {
     front: null,
     left: null,
@@ -476,19 +478,54 @@ function validateStep(step) {
 // Camera Functions
 async function startCamera() {
     try {
-        showLoading('Starting camera...');
+        showLoading('Checking camera sources...');
 
-        cameraStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                facingMode: 'user'
+        // Step 1: Check if a network camera is available via backend API
+        let cameraStatus = null;
+        try {
+            const statusResponse = await fetch('/api/camera/status');
+            cameraStatus = await statusResponse.json();
+        } catch (e) {
+            console.warn('Could not check camera status API:', e);
+        }
+
+        usingNetworkCamera = !!(cameraStatus && cameraStatus.source === 'network' && !cameraStatus.use_browser_webcam);
+
+        if (usingNetworkCamera) {
+            // Verify the snapshot endpoint actually responds before committing to network mode
+            try {
+                const testResponse = await fetch('/api/camera/snapshot');
+                if (!testResponse.ok) throw new Error(`Snapshot endpoint returned ${testResponse.status}`);
+            } catch (e) {
+                console.warn('Network camera snapshot test failed, falling back to browser webcam:', e);
+                usingNetworkCamera = false;
             }
-        });
+        }
 
-        const video = document.getElementById('cameraFeed');
-        video.srcObject = cameraStream;
-        await video.play();
+        if (usingNetworkCamera) {
+            // === NETWORK CAMERA MODE ===
+            showLoading('Connecting to network camera...');
+            document.getElementById('cameraFeed').style.display = 'none';
+            const networkFeed = document.getElementById('networkFeed');
+            networkFeed.style.display = 'block';
+            networkFeed.src = '/api/camera/stream?' + Date.now(); // cache bust
+        } else {
+            // === SYSTEM WEBCAM MODE (FALLBACK) ===
+            document.getElementById('networkFeed').style.display = 'none';
+            document.getElementById('cameraFeed').style.display = 'block';
+
+            cameraStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'user'
+                }
+            });
+
+            const video = document.getElementById('cameraFeed');
+            video.srcObject = cameraStream;
+            await video.play();
+        }
 
         // Show/hide buttons
         document.getElementById('startCameraBtn').style.display = 'none';
@@ -507,6 +544,12 @@ function stopCamera() {
         cameraStream.getTracks().forEach(track => track.stop());
         document.getElementById('cameraFeed').srcObject = null;
     }
+    if (usingNetworkCamera) {
+        const networkFeed = document.getElementById('networkFeed');
+        networkFeed.src = '';
+        networkFeed.style.display = 'none';
+    }
+    usingNetworkCamera = false;
 
     // Reset buttons
     document.getElementById('startCameraBtn').style.display = 'inline-block';
@@ -516,17 +559,40 @@ function stopCamera() {
     document.getElementById('stopCameraBtn').style.display = 'none';
 }
 
-function capturePhoto(angle) {
-    const video = document.getElementById('cameraFeed');
-    const canvas = document.getElementById('photoCanvas');
-    const ctx = canvas.getContext('2d');
+async function capturePhoto(angle) {
+    let photoData;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    if (usingNetworkCamera) {
+        // Pull a fresh, full-resolution snapshot from the network camera
+        try {
+            const snapshotResponse = await fetch('/api/camera/snapshot?' + Date.now());
+            if (!snapshotResponse.ok) {
+                alert('Failed to grab snapshot from network camera (HTTP ' + snapshotResponse.status + ')');
+                return;
+            }
+            const blob = await snapshotResponse.blob();
+            photoData = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            alert('Network camera capture failed: ' + e.message);
+            return;
+        }
+    } else {
+        const video = document.getElementById('cameraFeed');
+        const canvas = document.getElementById('photoCanvas');
+        const ctx = canvas.getContext('2d');
 
-    ctx.drawImage(video, 0, 0);
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
-    const photoData = canvas.toDataURL('image/jpeg', 0.95);
+        ctx.drawImage(video, 0, 0);
+
+        photoData = canvas.toDataURL('image/jpeg', 0.95);
+    }
+
     capturedPhotos[angle] = photoData;
 
     // Update preview
