@@ -43,18 +43,18 @@ DEFAULT_FULL_DAY_HOURS = 8.0
 import threading
 
 # Session tracking
-last_recognized_cache = {}  # {session_id: employee_id}
+last_recognized_cache = {}
 last_recognized_lock = threading.Lock()
 
 # Employee object cache (10 min TTL)
-employee_cache = {}  # {army_id: (employee_dict, timestamp)}
+employee_cache = {}
 employee_cache_lock = threading.Lock()
-EMPLOYEE_CACHE_TTL = 600  # 10 minutes
+EMPLOYEE_CACHE_TTL = 600
 
 # Attendance cache (1 min TTL)
-attendance_cache = {}  # {employee_id: (attendance_data, timestamp)}
+attendance_cache = {}
 attendance_cache_lock = threading.Lock()
-ATTENDANCE_CACHE_TTL = 60  # 1 minute
+ATTENDANCE_CACHE_TTL = 60
 
 
 # ============================================
@@ -62,30 +62,18 @@ ATTENDANCE_CACHE_TTL = 60  # 1 minute
 # ============================================
 
 def decode_base64_image(image_data: str) -> Optional[np.ndarray]:
-    """
-    Decode base64 image - ULTRA FAST
-
-    Optimizations:
-    - Fast base64 decode
-    - Reduced resolution for speed
-    - Minimal validation
-    """
+    """Decode base64 image - ULTRA FAST"""
     try:
-        # Remove data URI prefix if present
         if ',' in image_data:
             image_data = image_data.split(',')[1]
 
-        # Decode base64
         image_bytes = base64.b64decode(image_data)
         nparr = np.frombuffer(image_bytes, np.uint8)
-
-        # Decode image
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
         if frame is None:
             return None
 
-        # Resize if too large (optimization)
         height, width = frame.shape[:2]
         if width > 1280:
             scale = 1280 / width
@@ -102,11 +90,7 @@ def decode_base64_image(image_data: str) -> Optional[np.ndarray]:
 
 
 def get_face_bbox(face_obj) -> Optional[List[int]]:
-    """
-    Extract bounding box from face object - FAST
-
-    Returns: [x, y, width, height]
-    """
+    """Extract bounding box from face object - FAST"""
     try:
         if face_obj and hasattr(face_obj, 'bbox'):
             bbox = face_obj.bbox.astype(int)
@@ -123,42 +107,35 @@ def get_face_bbox(face_obj) -> Optional[List[int]]:
 # ============================================
 
 def get_employee_cached(army_id: str) -> Optional[Employee]:
-    """
-    Get employee with aggressive caching - ULTRA FAST
-    """
+    """Get employee with aggressive caching - ULTRA FAST"""
     try:
         current_time = datetime.now().timestamp()
 
-        # Check cache
         with employee_cache_lock:
             if army_id in employee_cache:
                 employee_data, cached_time = employee_cache[army_id]
 
-                # Valid cache?
                 if current_time - cached_time < EMPLOYEE_CACHE_TTL:
-                    # Hydrate an active SQLAlchemy model for use (Bug #10 fix)
-                    emp = Employee(**employee_data)
-                    # We merge to attach it to the current session
-                    return db.session.merge(emp, load=False)
+                    # Return a plain, detached object. Every caller only reads
+                    # scalar attributes — no lazy loads, no relationship access.
+                    return Employee(**employee_data)
                 else:
-                    # Expired
                     del employee_cache[army_id]
 
-        # Query database - optimized
         employee = Employee.query.filter_by(
             army_id=army_id,
             is_active=True
         ).first()
 
-        # Cache result as dict (Bug #10 fix)
         if employee:
             emp_dict = {
-                'id': employee.id,
-                'army_id': employee.army_id,
-                'full_name': employee.full_name,
-                'rank': employee.rank,
-                'unit': employee.unit,
-                'is_active': employee.is_active
+                'id':         employee.id,
+                'army_id':    employee.army_id,
+                'full_name':  employee.full_name,
+                'rank':       employee.rank,
+                'unit':       employee.unit,
+                'is_active':  employee.is_active,
+                'photo_path': employee.photo_path
             }
             with employee_cache_lock:
                 employee_cache[army_id] = (emp_dict, current_time)
@@ -171,34 +148,25 @@ def get_employee_cached(army_id: str) -> Optional[Employee]:
 
 
 def get_attendance_today_cached(employee_id: int) -> Optional[Dict]:
-    """
-    Get today's attendance with caching - FAST
-
-    Cache TTL: 1 minute (short because attendance changes frequently)
-    """
+    """Get today's attendance with caching - FAST"""
     try:
         current_time = datetime.now().timestamp()
 
-        # Check cache
         with attendance_cache_lock:
             if employee_id in attendance_cache:
                 attendance_data, cached_time = attendance_cache[employee_id]
 
-                # Valid cache?
                 if current_time - cached_time < ATTENDANCE_CACHE_TTL:
                     return attendance_data
                 else:
-                    # Expired
                     del attendance_cache[employee_id]
 
-        # Query database
         today = date.today()
         attendance = Attendance.query.filter_by(
             employee_id=employee_id,
             date=today
         ).first()
 
-        # Build data
         if attendance:
             attendance_data = {
                 'id': attendance.id,
@@ -212,7 +180,6 @@ def get_attendance_today_cached(employee_id: int) -> Optional[Dict]:
         else:
             attendance_data = None
 
-        # Cache result
         with attendance_cache_lock:
             attendance_cache[employee_id] = (attendance_data, current_time)
 
@@ -231,23 +198,17 @@ def invalidate_attendance_cache(employee_id: int):
 
 
 def save_attendance_photo(employee_army_id: str, frame: np.ndarray) -> str:
-    """
-    Save attendance photo - FAST with compression
-    """
+    """Save attendance photo - FAST with compression"""
     try:
         current_time = datetime.now()
 
-        # Generate filename
         photo_filename = f"{employee_army_id}_{current_time.strftime('%Y%m%d_%H%M%S')}.jpg"
 
-        # Create folder structure
         photo_folder = os.path.join('static', 'uploads', 'attendance', str(date.today()))
         os.makedirs(photo_folder, exist_ok=True)
 
-        # Full path
         photo_path = os.path.join(photo_folder, photo_filename)
 
-        # Save with compression
         cv2.imwrite(photo_path, frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
 
         return photo_path
@@ -441,7 +402,7 @@ def mark_attendance():
         # DEBUG LOGGING
         # ============================================
 
-        if app_logger.level <= 20:  # INFO level
+        if app_logger.level <= 20:
             print(f"\n{'='*60}", file=sys.stderr)
             print(f"🔍 ATTENDANCE REQUEST", file=sys.stderr)
             print(f"  Frame shape: {frame.shape}", file=sys.stderr)
@@ -535,6 +496,11 @@ def mark_attendance():
         # Was previously hardcoded to 0.85 with no actual check performed.
         # Now runs the real single-frame liveness detector and, when
         # LIVENESS_REQUIRED is set, rejects spoofed (photo/screen) attempts.
+        #
+        # Debug prints added so the terminal shows exactly what score the
+        # detector produced vs. the configured threshold — makes it obvious
+        # when liveness is silently rejecting real people (threshold too high)
+        # vs. genuinely blocking a photo attack.
 
         liveness_score = 0.0
         try:
@@ -543,7 +509,14 @@ def mark_attendance():
             app_logger.warning(f"Liveness check error, treating as not live: {e}")
             liveness_score = 0.0
 
+        print(
+            f"  Liveness score: {liveness_score:.2f} "
+            f"(threshold: {Config.LIVENESS_THRESHOLD}, "
+            f"required: {Config.LIVENESS_REQUIRED})"
+        )
+
         if Config.LIVENESS_REQUIRED and liveness_score < Config.LIVENESS_THRESHOLD:
+            print(f"  ❌ REJECTED by liveness check")
             return build_error_response(
                 'Liveness check failed - please use a live camera, not a photo or screen',
                 'LIVENESS_FAILED',
@@ -757,9 +730,7 @@ def index():
 @attendance_bp.route('/view')
 @login_required
 def view_attendance():
-    """
-    View attendance records - OPTIMIZED QUERY
-    """
+    """View attendance records - OPTIMIZED QUERY"""
     date_filter   = request.args.get('date',   date.today().isoformat())
     unit_filter   = request.args.get('unit',   '')
     status_filter = request.args.get('status', '')
@@ -770,8 +741,6 @@ def view_attendance():
     except ValueError:
         filter_date = date.today()
 
-    # Active-employee filter ensures deactivated employees are excluded from
-    # the view and from all stats derived from attendance_records.
     query = db.session.query(Attendance, Employee).join(
         Employee, Attendance.employee_id == Employee.id
     ).filter(
@@ -827,28 +796,17 @@ def view_attendance():
 @attendance_bp.route('/stats/today')
 @login_required
 def stats_today():
-    """
-    Get today's stats - FAST
-
-    Bug fix: join Employee and filter is_active=True so records tied to
-    deactivated employees are excluded from every dashboard card.
-    The original code used a plain Attendance.query.filter_by(date=today)
-    with no join at all, meaning deactivated employees' rows were counted
-    in every stat (check_ins, check_outs, present, late, half_day, absent,
-    attendance_rate).
-    """
+    """Get today's stats - FAST"""
     try:
         today = date.today()
 
         total_employees = Employee.query.filter_by(is_active=True).count()
 
-        # ── Fixed: was Attendance.query.filter_by(date=today) — no join,
-        #    no is_active guard, so deactivated employee rows were included.
         today_attendance = db.session.query(Attendance).join(
             Employee, Attendance.employee_id == Employee.id
         ).filter(
             Attendance.date == today,
-            Employee.is_active == True          # ← exclude deactivated employees
+            Employee.is_active == True
         ).all()
 
         return jsonify({
@@ -876,12 +834,7 @@ def stats_today():
 @attendance_bp.route('/recent')
 @login_required
 def recent_activity():
-    """
-    Recent attendance activity - FAST
-
-    Includes is_active guard so deactivated employees are excluded from
-    the live feed.
-    """
+    """Recent attendance activity - FAST"""
     try:
         today = date.today()
         limit = int(request.args.get('limit', 10))
@@ -890,7 +843,7 @@ def recent_activity():
             Employee, Attendance.employee_id == Employee.id
         ).filter(
             Attendance.date == today,
-            Employee.is_active == True          # ← exclude deactivated employees
+            Employee.is_active == True
         ).order_by(
             Attendance.created_at.desc()
         ).limit(limit).all()

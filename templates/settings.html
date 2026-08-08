@@ -390,7 +390,7 @@ async function clearCache() {
     if (confirm('Are you sure you want to clear all cache?')) {
         showLoading('Clearing cache...');
         try {
-            const response = await fetch('/attendance/cache/clear', { method: 'POST' });
+            const response = await fetch('/attendance/clear_cache', { method: 'POST' });
             const result   = await response.json();
             hideLoading();
             alert(result.success ? '✓ Cache cleared successfully!' : '✗ ' + result.message);
