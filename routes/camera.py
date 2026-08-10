@@ -31,8 +31,11 @@ def camera_snapshot():
     success, frame, source = camera_manager.capture_frame()
 
     if success and frame is not None:
+        # DEBUG: log the actual resolution we're receiving from the camera
+        print(f"📐 Frame from '{source}': {frame.shape[1]}x{frame.shape[0]} (WxH)")
+
         # Encode frame as JPEG
-        ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
         if ret:
             return Response(
                 buffer.tobytes(),

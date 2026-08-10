@@ -40,7 +40,11 @@ import threading
 class RTSPStreamReader:
     def __init__(self, url):
         self.url = url
-        self.cap = cv2.VideoCapture(url)
+        # Force TCP transport for RTSP — UDP drops packets under any network
+        # load and produces stuttery/torn frames.  Must be set BEFORE opening.
+        import os
+        os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp'
+        self.cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # honored by some backends
         self._latest_frame = None
         self._lock = threading.Lock()
@@ -63,13 +67,15 @@ class RTSPStreamReader:
                     consecutive_failures += 1
                     # After 30 consecutive failures (~1s at 30fps), try reconnecting
                     if consecutive_failures >= 30:
-                        app_logger.warning(f"⚠️ RTSP reader: {consecutive_failures} consecutive read failures, reconnecting")
+                        app_logger.warning(
+                            f"⚠️ RTSP reader: {consecutive_failures} consecutive read failures, reconnecting"
+                        )
                         try:
                             self.cap.release()
                         except Exception:
                             pass
                         time.sleep(0.5)
-                        self.cap = cv2.VideoCapture(self.url)
+                        self.cap = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
                         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                         consecutive_failures = 0
             except Exception as e:
@@ -218,7 +224,9 @@ class CameraManager:
         except Exception as e:
             app_logger.warning(f"❌ Network camera OpenCV error: {type(e).__name__}: {e}")
 
-        app_logger.warning(f"❌ Network camera NOT available: {Config.CAMERA_URL} — All connection methods failed")
+        app_logger.warning(
+            f"❌ Network camera NOT available: {Config.CAMERA_URL} — All connection methods failed"
+        )
         return False
 
     def get_camera_status(self):
@@ -345,7 +353,9 @@ class CameraManager:
                     self._system_cap.release()
                     self._system_cap = None
             else:
-                app_logger.warning(f"❌ System webcam: Could not open camera index {Config.DEFAULT_CAMERA_INDEX}")
+                app_logger.warning(
+                    f"❌ System webcam: Could not open camera index {Config.DEFAULT_CAMERA_INDEX}"
+                )
                 self._system_cap.release()
                 self._system_cap = None
         except Exception as e:

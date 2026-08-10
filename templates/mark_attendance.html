@@ -29,9 +29,7 @@
         min-height: 480px;   /* Reserve space so the panel doesn't collapse
                                 when videoFeed is hidden (network camera mode)
                                 and the <img id="networkFeed"> hasn't received
-                                its first snapshot yet. Without this the whole
-                                container height goes to 0 for the first ~1.5s
-                                after clicking Start. */
+                                its first snapshot yet. */
     }
 
     #videoFeed {
@@ -331,7 +329,7 @@
                 <video id="videoFeed" autoplay playsinline muted></video>
                 <!-- Network camera feed (hidden by default, shown when network cam is active) -->
                 <img id="networkFeed"
-                    style="display:none; width:100%; height:100%; object-fit:cover; border-radius:15px; position:absolute; top:0; left:0; z-index:1;"
+                    style="display:none; width:100%; height:100%; object-fit:contain; border-radius:15px; position:absolute; top:0; left:0; z-index:1;"
                     alt="Network Camera Feed">
                 <canvas id="detectionCanvas"></canvas>
 
@@ -400,13 +398,29 @@
     let detectionCtx    = detectionCanvas.getContext('2d');
     let mediaStream     = null;
     let isRunning       = false;
-    let detectionInterval = null;
     let lastDisplayedEmployee = null;
     let currentEmployeeCard   = null;
 
+    // ── Self-scheduling detection-loop control flag.  Replaces the old
+    //    setInterval-based approach (see startDetectionLoop() below for why).
+    let detectionLoopActive = false;
+
     // Configuration
     const CONFIG = {
-        DETECTION_INTERVAL: 1500,
+        // ── MIN_CYCLE_GAP replaces the old fixed DETECTION_INTERVAL.
+        //    Old design used setInterval(1500ms), which fires on a fixed
+        //    clock regardless of whether the previous async cycle finished.
+        //    If we dropped that to 500ms and a cycle ever took >500ms,
+        //    requests would stack up on the single-threaded Flask dev
+        //    server — processed serially, arriving out of order.
+        //
+        //    New design uses a self-scheduling loop: each cycle schedules
+        //    the NEXT one only after it fully completes, so cycles can
+        //    never overlap and the loop naturally paces itself to whatever
+        //    the backend can handle.  MIN_CYCLE_GAP is just a floor to
+        //    prevent hammering the server with zero gap if a cycle ever
+        //    finishes near-instantly (e.g. cached response).
+        MIN_CYCLE_GAP: 100,
         DISPLAY_DURATION: 5000,
         CONFIDENCE_THRESHOLD: 0.6,
         BOX_COLOR_DETECTED: '#3B82F6',
@@ -448,7 +462,6 @@
         try {
             showStatus('Checking camera sources...', 'detecting');
 
-            // Step 1: Check if network camera is available via backend API
             let cameraStatus = null;
             try {
                 const statusResponse = await fetch('/api/camera/status');
@@ -458,13 +471,11 @@
                 console.warn('Could not check camera status API:', e);
             }
 
-            // Step 2: Use network camera if available, otherwise fall back to system webcam
             if (cameraStatus && cameraStatus.source === 'network' && !cameraStatus.use_browser_webcam) {
                 console.log('🎥 Using NETWORK camera feed');
                 usingNetworkCamera = true;
                 showStatus('Connecting to network camera...', 'detecting');
 
-                // Test the snapshot endpoint first
                 try {
                     const testResponse = await fetch('/api/camera/snapshot');
                     if (!testResponse.ok) {
@@ -478,31 +489,11 @@
             }
 
             if (usingNetworkCamera) {
-                // === SHOW NETWORK CAMERA FEED ===
-                // Hide browser video element, show network camera <img> element
                 videoFeed.style.display = 'none';
                 const networkFeed = document.getElementById('networkFeed');
                 networkFeed.style.display = 'block';
-
-                // ── Bug fix ────────────────────────────────────────────────
-                // The old code did:
-                //     networkFeed.src = '/api/camera/stream?' + Date.now();
-                // pointing at a separate MJPEG stream endpoint.  That
-                // endpoint was unreliable — often it never yielded a
-                // rendered frame, leaving the panel black even while the
-                // recognition loop was successfully pulling snapshots
-                // from /api/camera/snapshot on its own.
-                //
-                // Simpler + strictly correct approach: the detection loop
-                // below is already fetching a fresh /api/camera/snapshot
-                // every cycle for recognition.  We just paint THAT frame
-                // straight onto <img id="networkFeed">.  Result: what you
-                // see on screen is literally the exact frame the backend
-                // is analyzing — no stream, no drift, no black panel.
-                // ─────────────────────────────────────────────────────────
                 console.log('✓ Network camera feed will update via detection loop');
             } else {
-                // === SYSTEM WEBCAM MODE (FALLBACK) ===
                 console.log('🎥 Using SYSTEM webcam (browser getUserMedia)');
                 showStatus('Initializing system webcam...', 'detecting');
 
@@ -556,10 +547,11 @@
     function stopLiveAttendance() {
         isRunning = false;
 
-        if (detectionInterval) {
-            clearInterval(detectionInterval);
-            detectionInterval = null;
-        }
+        // Stop the self-scheduling detection loop.  The next runDetectionCycle()
+        // callback will see detectionLoopActive === false and return without
+        // rescheduling, so the loop cleanly winds down after the in-flight
+        // request (if any) completes.
+        detectionLoopActive = false;
 
         if (mediaStream) {
             mediaStream.getTracks().forEach(track => track.stop());
@@ -603,24 +595,47 @@
     }
 
     // ============================================
-    // DETECTION LOOP - OPTIMIZED
+    // DETECTION LOOP - SELF-SCHEDULING (no overlap possible)
+    // ============================================
+    //
+    // Old design (setInterval at fixed interval): fires on a fixed clock
+    // regardless of whether the previous cycle finished.  If any cycle
+    // exceeded the interval, requests would stack up on the single-threaded
+    // Flask dev server, be processed serially, and responses could arrive
+    // out of order.
+    //
+    // New design: each cycle awaits its own completion, then schedules the
+    // NEXT cycle via setTimeout.  Guarantees:
+    //   • Cycles can never overlap.
+    //   • Loop naturally paces itself to whatever the backend can handle.
+    //   • No guessing of a "safe" interval — it just runs as fast as possible.
+    //   • MIN_CYCLE_GAP acts as a floor so we don't hammer the server with
+    //     zero gap on ultra-fast responses.
     // ============================================
     function startDetectionLoop() {
-        detectionInterval = setInterval(async () => {
-            if (!isRunning) return;
-            try {
-                await detectAndRecognizeFaces();
-            } catch (error) {
-                console.error('Detection error:', error);
-            }
-        }, CONFIG.DETECTION_INTERVAL);
+        detectionLoopActive = true;
+        runDetectionCycle();
+    }
+
+    async function runDetectionCycle() {
+        if (!detectionLoopActive || !isRunning) return;
+
+        try {
+            await detectAndRecognizeFaces();
+        } catch (error) {
+            console.error('Detection error:', error);
+        }
+
+        // Schedule the next cycle only after this one fully completes.
+        if (detectionLoopActive && isRunning) {
+            setTimeout(runDetectionCycle, CONFIG.MIN_CYCLE_GAP);
+        }
     }
 
     async function detectAndRecognizeFaces() {
         let imageData;
 
         if (usingNetworkCamera) {
-            // === NETWORK CAMERA: Get frame from backend snapshot API ===
             try {
                 const snapshotResponse = await fetch('/api/camera/snapshot');
                 if (!snapshotResponse.ok) {
@@ -635,20 +650,6 @@
                     reader.readAsDataURL(blob);
                 });
 
-                // ── Bug fix ────────────────────────────────────────────────
-                // Old code created an off-screen <canvas>, drew the snapshot
-                // onto it (for no reason — nothing else read that canvas),
-                // then set videoFeed.poster = imageData, which only shows
-                // when the <video> element has no active stream and is
-                // routinely overridden by the browser on some engines.  The
-                // <img id="networkFeed"> that's actually visible on screen
-                // was never updated, so the panel stayed black.
-                //
-                // Fix: paint the fresh snapshot directly onto the visible
-                // <img id="networkFeed">, then use a tiny throwaway Image
-                // just to learn the frame's natural dimensions so the
-                // overlay canvas keeps matching size.
-                // ─────────────────────────────────────────────────────────
                 const networkFeed = document.getElementById('networkFeed');
                 networkFeed.src = imageData;
 
@@ -667,7 +668,6 @@
                 return;
             }
         } else {
-            // === SYSTEM WEBCAM: Capture from browser video element ===
             const canvas = document.createElement('canvas');
             canvas.width  = videoFeed.videoWidth;
             canvas.height = videoFeed.videoHeight;
@@ -713,7 +713,7 @@
     }
 
     // ============================================
-    // RECOGNITION HANDLERS - NEW
+    // RECOGNITION HANDLERS
     // ============================================
     function handleSuccessfulRecognition(data) {
         const employeeId = data.employee.army_id;
@@ -791,7 +791,7 @@
     }
 
     // ============================================
-    // DRAWING FUNCTIONS - OPTIMIZED
+    // DRAWING FUNCTIONS
     // ============================================
     function drawFaceBox(data, color) {
         clearCanvas();
@@ -832,7 +832,7 @@
     }
 
     // ============================================
-    // UI UPDATE FUNCTIONS - OPTIMIZED
+    // UI UPDATE FUNCTIONS
     // ============================================
     function displayRecognitionResult(data) {
         const feed = document.getElementById('activityFeed');
