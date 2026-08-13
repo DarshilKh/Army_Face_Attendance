@@ -190,7 +190,7 @@ def _load_settings():
     defaults = {
         'camera_source':       str(Config.DEFAULT_CAMERA_INDEX),
         'camera_url':          Config.CAMERA_URL or '',
-        'resolution':          f"{Config.CAMERA_RESOLUTION[0]}x{Config.CAMERA_RESOLUTION[1]}",
+        'resolution':          f"{Config.CAMERA_WIDTH}x{Config.CAMERA_HEIGHT}",
         'fps':                 str(Config.CAMERA_FPS),
         'threshold':           str(Config.FACE_THRESHOLD),
         'min_face_size':       str(Config.MIN_FACE_SIZE),
@@ -216,6 +216,18 @@ def _load_settings():
         app_logger.warning(f"Could not load DB settings, using defaults: {e}")
 
     return defaults
+
+
+def apply_db_settings_on_startup():
+    """Load saved settings from the DB and apply them to Config — called
+    once at app startup so Settings changes survive a server restart
+    instead of only living in memory until the next reload."""
+    try:
+        settings = _load_settings()
+        _apply_settings_to_config(settings)
+        app_logger.info("✓ Applied saved settings from database")
+    except Exception as e:
+        app_logger.warning(f"Could not apply DB settings on startup: {e}")
 
 
 @auth_bp.route('/settings/save', methods=['POST'])
@@ -282,6 +294,12 @@ def save_settings():
 def _apply_settings_to_config(data):
     """Apply saved settings to runtime Config for immediate effect"""
     from config import Config
+    # ── Fix 4a: wire log-level changes through to the live logger so that
+    #    a Settings-page change takes effect immediately without a restart.
+    from utils.logger import set_log_level
+
+    if 'log_level' in data:
+        set_log_level(data['log_level'])
 
     config_map = {
         'threshold':           ('FACE_THRESHOLD',        float),
@@ -305,6 +323,47 @@ def _apply_settings_to_config(data):
                 setattr(Config, attr_name, converter(value))
             except (ValueError, TypeError) as e:
                 app_logger.warning(f"Could not apply setting {key}={value}: {e}")
+
+    # Camera source/URL/resolution need custom handling — they don't map to
+    # a single Config attribute 1:1 like the simple settings above.
+    camera_settings_changed = False
+
+    if 'camera_source' in data:
+        source = str(data['camera_source'])
+        if source == 'url':
+            # IP camera mode — the URL field drives Config.CAMERA_URL directly,
+            # same variable the network-camera logic in utils/camera.py already reads.
+            Config.CAMERA_URL = (data.get('camera_url') or '').strip()
+        else:
+            # Built-in / External Camera N — use the system webcam at this
+            # index, and clear CAMERA_URL so camera_manager doesn't try to
+            # reach a (now irrelevant) network camera first.
+            try:
+                Config.DEFAULT_CAMERA_INDEX = int(source)
+            except (ValueError, TypeError):
+                Config.DEFAULT_CAMERA_INDEX = 0
+            Config.CAMERA_URL = ''
+        camera_settings_changed = True
+
+    if 'resolution' in data:
+        try:
+            width_str, height_str = str(data['resolution']).lower().split('x')
+            Config.CAMERA_WIDTH = int(width_str)
+            Config.CAMERA_HEIGHT = int(height_str)
+            camera_settings_changed = True
+        except (ValueError, AttributeError):
+            app_logger.warning(f"Invalid resolution format: {data.get('resolution')}")
+
+    if 'fps' in data:
+        camera_settings_changed = True
+
+    if camera_settings_changed:
+        # Force an immediate re-check with the new settings instead of
+        # waiting up to 30s (or keeping a stale connection open at the old
+        # resolution/source).
+        from utils.camera import camera_manager
+        camera_manager.reset()
+        app_logger.info("🔄 Camera settings changed — camera manager reset for immediate re-check")
 
 
 @auth_bp.route('/change-password', methods=['GET', 'POST'])

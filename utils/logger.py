@@ -10,6 +10,19 @@ os.makedirs('logs', exist_ok=True)
 app_logger = logging.getLogger('ArmyAttendance')
 app_logger.setLevel(logging.INFO)
 
+
+def set_log_level(level_name):
+    """Apply a log level (e.g. 'DEBUG', 'WARNING') to the logger and all its
+    handlers at runtime — called from Settings so changes take effect live."""
+    level = getattr(logging, str(level_name).upper(), None)
+    if not isinstance(level, int):
+        app_logger.warning(f"Invalid log level '{level_name}', ignoring")
+        return
+    app_logger.setLevel(level)
+    for handler in app_logger.handlers:
+        handler.setLevel(level)
+
+
 # Clear existing handlers
 app_logger.handlers.clear()
 

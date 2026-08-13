@@ -50,16 +50,21 @@ def create_app():
         except Exception as e:
             app_logger.error(f"✗ Failed to initialize face recognition engine: {e}")
 
-    # Initialize camera manager - test network camera availability
-    try:
-        from utils.camera import camera_manager
-        cam_status = camera_manager.get_camera_status()
-        if cam_status['source'] == 'network':
-            app_logger.info(f"✓ Camera: Network camera ACTIVE at {Config.CAMERA_URL}")
-        else:
-            app_logger.info(f"✓ Camera: System webcam ACTIVE (network camera at {Config.CAMERA_URL} unavailable)")
-    except Exception as e:
-        app_logger.error(f"✗ Camera initialization error: {e}")
+    # Initialize camera manager - test network camera availability in the
+    # background so a slow/unreachable camera can never delay server startup.
+    def _check_camera_in_background():
+        try:
+            from utils.camera import camera_manager
+            cam_status = camera_manager.get_camera_status()
+            if cam_status['source'] == 'network':
+                app_logger.info(f"✓ Camera: Network camera ACTIVE at {Config.CAMERA_URL}")
+            else:
+                app_logger.info(f"✓ Camera: System webcam ACTIVE (network camera at {Config.CAMERA_URL} unavailable)")
+        except Exception as e:
+            app_logger.error(f"✗ Camera initialization error: {e}")
+
+    import threading
+    threading.Thread(target=_check_camera_in_background, daemon=True).start()
 
     # ==================== CACHE BUSTING ====================
     # Prevent browser from caching old files
@@ -265,6 +270,13 @@ if __name__ == '__main__':
         try:
             db.create_all()
             app_logger.info("✓ Database tables created/verified")
+
+            # ── Fix 5: replay saved Settings into Config on every startup so
+            #    changes made via the Settings page are not lost when the dev
+            #    server restarts (previously they only lived in memory for the
+            #    duration of the process that saved them).
+            from routes.auth import apply_db_settings_on_startup
+            apply_db_settings_on_startup()
         except Exception as e:
             app_logger.error(f"✗ Database error: {e}")
 

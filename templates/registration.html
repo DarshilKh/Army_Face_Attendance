@@ -172,6 +172,16 @@
 {% endblock %}
 
 {% block content %}
+<div class="row justify-content-center mb-3">
+    <div class="col-lg-10">
+        <div class="d-flex justify-content-end">
+            <a href="{{ url_for('registration.bulk_import_page') }}" class="btn btn-primary">
+                <i class="fas fa-file-import me-1"></i> Switch to Bulk Import
+            </a>
+        </div>
+    </div>
+</div>
+
 <div class="row justify-content-center">
     <div class="col-lg-10">
         <div class="registration-wizard">
@@ -233,14 +243,25 @@
                         <div class="photo-instructions">
                             <strong><i class="fas fa-info-circle me-2"></i>Instructions:</strong>
                             <ul class="mb-0 mt-2">
-                                <li>Capture 3 photos: Front, Left Profile, Right Profile</li>
+                                <li>Capture or upload 3 photos: Front, Left Profile, Right Profile</li>
                                 <li>Good lighting is essential for quality photos</li>
                                 <li>Keep your face clearly visible in each shot</li>
                                 <li>Remove glasses and accessories if possible</li>
                             </ul>
                         </div>
 
-                        <div class="camera-section">
+                        <div class="text-center mb-4">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary active" id="modeCamButton" onclick="setPhotoMode('camera')">
+                                    <i class="fas fa-video me-2"></i>Use Camera
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" id="modeUploadButton" onclick="setPhotoMode('upload')">
+                                    <i class="fas fa-upload me-2"></i>Upload Photos
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="camera-section" id="cameraModeSection">
                             <div class="position-relative text-center">
                                 <video id="cameraFeed" autoplay playsinline muted></video>
                                 <img id="networkFeed" style="display:none; max-width:100%;" alt="Network Camera Feed">
@@ -269,31 +290,55 @@
                                     <i class="fas fa-stop me-2"></i>Stop Camera
                                 </button>
                             </div>
+                        </div>
 
-                            <!-- Photo Previews -->
-                            <div class="text-center mt-4">
-                                <div class="angle-preview" id="frontPreview">
-                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect fill='%23E5E7EB' width='150' height='150'/%3E%3Ctext fill='%236B7280' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14'%3EFront%3C/text%3E%3C/svg%3E"
-                                         alt="Front" id="frontImg">
-                                    <div class="angle-preview-label">
-                                        <i class="fas fa-circle" style="font-size:8px;"></i> Front Face
-                                    </div>
+                        <div class="camera-section" id="uploadModeSection" style="display:none;">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Front Face (required)</label>
+                                    <input type="file" class="form-control" id="uploadFrontInput" accept=".png,.jpg,.jpeg"
+                                           onchange="handlePhotoUpload('front', this.files[0])">
                                 </div>
-
-                                <div class="angle-preview" id="leftPreview">
-                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect fill='%23E5E7EB' width='150' height='150'/%3E%3Ctext fill='%236B7280' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14'%3ELeft%3C/text%3E%3C/svg%3E"
-                                         alt="Left" id="leftImg">
-                                    <div class="angle-preview-label">
-                                        <i class="fas fa-circle" style="font-size:8px;"></i> Left Profile
-                                    </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Left Profile (recommended)</label>
+                                    <input type="file" class="form-control" id="uploadLeftInput" accept=".png,.jpg,.jpeg"
+                                           onchange="handlePhotoUpload('left', this.files[0])">
                                 </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Right Profile (recommended)</label>
+                                    <input type="file" class="form-control" id="uploadRightInput" accept=".png,.jpg,.jpeg"
+                                           onchange="handlePhotoUpload('right', this.files[0])">
+                                </div>
+                            </div>
+                            <div class="text-muted small mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Front photo is required; adding left/right profiles improves recognition accuracy, same as camera capture.
+                            </div>
+                        </div>
 
-                                <div class="angle-preview" id="rightPreview">
-                                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect fill='%23E5E7EB' width='150' height='150'/%3E%3Ctext fill='%236B7280' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14'%3ERight%3C/text%3E%3C/svg%3E"
-                                         alt="Right" id="rightImg">
-                                    <div class="angle-preview-label">
-                                        <i class="fas fa-circle" style="font-size:8px;"></i> Right Profile
-                                    </div>
+                        <!-- Photo Previews (shared by both modes) -->
+                        <div class="text-center mt-4">
+                            <div class="angle-preview" id="frontPreview">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect fill='%23E5E7EB' width='150' height='150'/%3E%3Ctext fill='%236B7280' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14'%3EFront%3C/text%3E%3C/svg%3E"
+                                     alt="Front" id="frontImg">
+                                <div class="angle-preview-label">
+                                    <i class="fas fa-circle" style="font-size:8px;"></i> Front Face
+                                </div>
+                            </div>
+
+                            <div class="angle-preview" id="leftPreview">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect fill='%23E5E7EB' width='150' height='150'/%3E%3Ctext fill='%236B7280' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14'%3ELeft%3C/text%3E%3C/svg%3E"
+                                     alt="Left" id="leftImg">
+                                <div class="angle-preview-label">
+                                    <i class="fas fa-circle" style="font-size:8px;"></i> Left Profile
+                                </div>
+                            </div>
+
+                            <div class="angle-preview" id="rightPreview">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect fill='%23E5E7EB' width='150' height='150'/%3E%3Ctext fill='%236B7280' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='14'%3ERight%3C/text%3E%3C/svg%3E"
+                                     alt="Right" id="rightImg">
+                                <div class="angle-preview-label">
+                                    <i class="fas fa-circle" style="font-size:8px;"></i> Right Profile
                                 </div>
                             </div>
                         </div>
@@ -419,6 +464,51 @@ let capturedPhotos = {
     right: null
 };
 
+// Upload mode state (alternative to camera capture)
+let photoMode = 'camera';  // 'camera' | 'upload'
+let uploadedPhotos = {
+    front: null,
+    left: null,
+    right: null
+};
+
+function setPhotoMode(mode) {
+    photoMode = mode;
+
+    document.getElementById('modeCamButton').classList.toggle('active', mode === 'camera');
+    document.getElementById('modeUploadButton').classList.toggle('active', mode === 'upload');
+    document.getElementById('cameraModeSection').style.display = (mode === 'camera') ? 'block' : 'none';
+    document.getElementById('uploadModeSection').style.display = (mode === 'upload') ? 'block' : 'none';
+
+    // Switching modes clears any captured/uploaded photos and previews so
+    // there's no ambiguity about which source a photo came from
+    capturedPhotos = { front: null, left: null, right: null };
+    uploadedPhotos = { front: null, left: null, right: null };
+    ['front', 'left', 'right'].forEach(angle => {
+        document.getElementById(`${angle}Preview`).classList.remove('captured');
+    });
+    document.getElementById('step2NextBtn').disabled = true;
+
+    if (mode === 'camera' && cameraStream) {
+        stopCamera();
+    }
+}
+
+function handlePhotoUpload(angle, file) {
+    if (!file) {
+        uploadedPhotos[angle] = null;
+        document.getElementById(`${angle}Preview`).classList.remove('captured');
+    } else {
+        uploadedPhotos[angle] = file;
+        const previewUrl = URL.createObjectURL(file);
+        document.getElementById(`${angle}Img`).src = previewUrl;
+        document.getElementById(`${angle}Preview`).classList.add('captured');
+    }
+
+    // Front photo is required; left/right are optional but recommended
+    document.getElementById('step2NextBtn').disabled = !uploadedPhotos.front;
+}
+
 // Navigation Functions
 function nextStep(step) {
     // Validate current step
@@ -466,9 +556,16 @@ function validateStep(step) {
     }
 
     if (step === 2) {
-        if (!capturedPhotos.front || !capturedPhotos.left || !capturedPhotos.right) {
-            alert('Please capture all 3 photos (Front, Left, Right)');
-            return false;
+        if (photoMode === 'upload') {
+            if (!uploadedPhotos.front) {
+                alert('Please upload at least the Front photo (Left/Right are recommended but optional)');
+                return false;
+            }
+        } else {
+            if (!capturedPhotos.front || !capturedPhotos.left || !capturedPhotos.right) {
+                alert('Please capture all 3 photos (Front, Left, Right)');
+                return false;
+            }
         }
     }
 
@@ -633,10 +730,11 @@ function populateReview() {
     document.getElementById('reviewPhone').textContent = formData.get('phone') || '-';
     document.getElementById('reviewEmail').textContent = formData.get('email') || '-';
 
-    // Show photos
-    document.getElementById('reviewFront').src = capturedPhotos.front;
-    document.getElementById('reviewLeft').src = capturedPhotos.left;
-    document.getElementById('reviewRight').src = capturedPhotos.right;
+    // Show photos (works for both camera capture and file upload — both
+    // populate the same #front/left/rightImg preview elements)
+    document.getElementById('reviewFront').src = document.getElementById('frontImg').src;
+    document.getElementById('reviewLeft').src = document.getElementById('leftImg').src;
+    document.getElementById('reviewRight').src = document.getElementById('rightImg').src;
 }
 
 // Form Submission
@@ -647,10 +745,19 @@ document.getElementById('registrationForm').addEventListener('submit', async fun
 
     const formData = new FormData(this);
 
-    // Add photos
-    formData.append('photo_front', capturedPhotos.front);
-    formData.append('photo_left', capturedPhotos.left);
-    formData.append('photo_right', capturedPhotos.right);
+    // Add photos — camera mode sends base64 strings (existing backend path),
+    // upload mode sends actual File objects (new backend path); only the
+    // angles that have a photo are appended in upload mode, since front is
+    // required but left/right are optional.
+    if (photoMode === 'upload') {
+        if (uploadedPhotos.front) formData.append('photo_front', uploadedPhotos.front);
+        if (uploadedPhotos.left)  formData.append('photo_left',  uploadedPhotos.left);
+        if (uploadedPhotos.right) formData.append('photo_right', uploadedPhotos.right);
+    } else {
+        formData.append('photo_front', capturedPhotos.front);
+        formData.append('photo_left', capturedPhotos.left);
+        formData.append('photo_right', capturedPhotos.right);
+    }
 
     try {
         const response = await fetch('{{ url_for("registration.register_employee") }}', {

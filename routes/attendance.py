@@ -36,6 +36,37 @@ DEFAULT_LATE_THRESHOLD = 15  # minutes
 DEFAULT_HALF_DAY_HOURS = 4.0
 DEFAULT_FULL_DAY_HOURS = 8.0
 
+
+def get_work_start_time():
+    """Read WORK_START_TIME live from Config so Settings changes take effect
+    immediately, falling back to the hardcoded default if unset/unparsable."""
+    try:
+        return datetime.strptime(Config.WORK_START_TIME, '%H:%M:%S').time()
+    except (ValueError, TypeError, AttributeError):
+        return DEFAULT_WORK_START
+
+
+def get_late_threshold():
+    try:
+        return int(Config.LATE_THRESHOLD_MINUTES)
+    except (ValueError, TypeError):
+        return DEFAULT_LATE_THRESHOLD
+
+
+def get_half_day_hours():
+    try:
+        return float(Config.HALF_DAY_HOURS)
+    except (ValueError, TypeError):
+        return DEFAULT_HALF_DAY_HOURS
+
+
+def get_full_day_hours():
+    try:
+        return float(Config.FULL_DAY_HOURS)
+    except (ValueError, TypeError):
+        return DEFAULT_FULL_DAY_HOURS
+
+
 # ============================================
 # GLOBAL CACHES - ULTRA FAST
 # ============================================
@@ -239,10 +270,12 @@ def determine_attendance_status(work_hours: float, late_minutes: int = 0) -> str
     - 4-8 hours: half_day
     - Late > threshold: late
     """
-    if work_hours < DEFAULT_HALF_DAY_HOURS:
+    # ── Change 1: read thresholds live from Config via the getter helpers
+    #    so that Settings-page changes take effect without a server restart.
+    if work_hours < get_half_day_hours():
         return 'half_day'
-    elif work_hours >= DEFAULT_FULL_DAY_HOURS:
-        return 'present' if late_minutes <= DEFAULT_LATE_THRESHOLD else 'late'
+    elif work_hours >= get_full_day_hours():
+        return 'present' if late_minutes <= get_late_threshold() else 'late'
     else:
         return 'half_day'
 
@@ -591,7 +624,10 @@ def mark_attendance():
 
                 late_minutes = 0
                 if attendance_record.status == 'late':
-                    work_start = datetime.combine(today, DEFAULT_WORK_START)
+                    # ── Change 2: use get_work_start_time() so the checkout
+                    #    late-minutes calculation respects the configured start
+                    #    time rather than the hardcoded 08:00 constant.
+                    work_start = datetime.combine(today, get_work_start_time())
                     late_minutes = max(0, int(
                         (attendance_record.check_in_time - work_start).total_seconds() / 60
                     ))
@@ -645,9 +681,11 @@ def mark_attendance():
 
             photo_path = save_attendance_photo(employee.army_id, frame)
 
-            work_start = datetime.combine(today, DEFAULT_WORK_START)
+            # ── Change 3: use get_work_start_time() and get_late_threshold()
+            #    so the check-in late calculation respects live Config values.
+            work_start = datetime.combine(today, get_work_start_time())
             late_minutes = max(0, int((now - work_start).total_seconds() / 60))
-            status = 'late' if late_minutes > DEFAULT_LATE_THRESHOLD else 'present'
+            status = 'late' if late_minutes > get_late_threshold() else 'present'
 
             attendance_record = Attendance(
                 employee_id=employee.id,

@@ -74,8 +74,15 @@ class FaceRecognitionEngine:
 
                 self.app.prepare(ctx_id=0, det_size=Config.DETECTION_SIZE)      # ← 0 = first GPU
 
-                # Configuration
-                self.face_threshold = Config.FACE_THRESHOLD
+                # ── Fix 2, part A: stop caching the threshold at startup.
+                #    The old line `self.face_threshold = Config.FACE_THRESHOLD`
+                #    captured the value once at import time, so any Settings-page
+                #    change required a server restart to take effect.
+                #
+                #    Replaced with a harmless reference-only alias; the actual
+                #    threshold is now always read live via the property below.
+                self._face_threshold_init = Config.FACE_THRESHOLD  # unused, kept for reference only
+
                 self.embeddings_file = 'face_embeddings/embeddings.pkl'
                 self.embeddings_db = self._load_embeddings()
 
@@ -142,6 +149,18 @@ class FaceRecognitionEngine:
             except Exception as e:
                 app_logger.error(f"Engine init failed: {e}", exc_info=True)
                 raise
+
+    # ── Fix 2, part B: live-reading property ─────────────────────────────────
+    # All internal code that previously read `self.face_threshold` now goes
+    # through this property and gets the current Config value every time, so
+    # a Settings-page change takes effect on the very next recognition cycle.
+    @property
+    def face_threshold(self):
+        """Always reflects the current Config value, so Settings changes
+        take effect immediately without needing a restart."""
+        return Config.FACE_THRESHOLD
+
+    # ─────────────────────────────────────────────────────────────────────────
 
     def _load_embeddings(self) -> Dict:
         """Load embeddings - FAST"""

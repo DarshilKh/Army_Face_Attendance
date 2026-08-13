@@ -7,6 +7,7 @@ from flask import Blueprint, Response, jsonify
 from flask_login import login_required
 from utils.camera import camera_manager
 from utils.logger import app_logger
+from config import Config
 import cv2
 import time
 
@@ -75,7 +76,7 @@ def camera_stream():
                     app_logger.info(f"🎥 MJPEG stream: {frame_count} frames served from {source} camera")
 
                 # Encode as JPEG
-                ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+                ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 90])
                 if ret:
                     yield (b'--frame\r\n'
                            b'Content-Type: image/jpeg\r\n\r\n' +
@@ -88,8 +89,9 @@ def camera_stream():
                     app_logger.error("❌ MJPEG stream: Too many consecutive errors, stopping stream")
                     break
 
-            # Control frame rate (~10 FPS for network efficiency)
-            time.sleep(0.1)
+            # Control frame rate from Settings (falls back to a sane default
+            # if CAMERA_FPS is ever misconfigured as 0 or negative)
+            time.sleep(1.0 / max(Config.CAMERA_FPS, 1))
 
         app_logger.info(f"🎥 MJPEG stream ended after {frame_count} frames")
 

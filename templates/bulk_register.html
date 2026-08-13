@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Employee Import{% endblock %}
+{% block page_title %}Bulk Employee Import{% endblock %}
+
+{% block extra_css %}
+<style>
+    .bulk-wrapper {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .page-intro {
+        margin-bottom: 30px;
+    }
+
+    .page-intro h2 {
+        font-weight: 700;
+        color: #1F2937;
+        margin-bottom: 8px;
+    }
+
+    .page-intro p {
+        color: #6B7280;
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    .step-card {
+        background: white;
+        border-radius: 12px;
+        padding: 28px 32px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid #E5E7EB;
+    }
+
+    .step-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .step-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #4F46E5;
+        color: white;
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-right: 14px;
+        flex-shrink: 0;
+    }
+
+    .step-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1F2937;
+        margin: 0;
+    }
+
+    .step-body {
+        color: #4B5563;
+    }
+
+    .field-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #6B7280;
+        margin-bottom: 10px;
+    }
+
+    .chip-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 18px;
+    }
+
+    .info-chip {
+        background: #F3F4F6;
+        color: #374151;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.82rem;
+        border: 1px solid #E5E7EB;
+    }
+
+    .info-chip.required { background: #FEF2F2; color: #991B1B; border-color: #FECACA; }
+    .info-chip.optional { background: #EFF6FF; color: #1E40AF; border-color: #BFDBFE; }
+
+    .tip {
+        font-size: 0.88rem;
+        color: #6B7280;
+        margin-top: 8px;
+    }
+
+    .tip i {
+        color: #10B981;
+        margin-right: 6px;
+    }
+
+    .example-box {
+        background: #F9FAFB;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin: 12px 0 16px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.87rem;
+        color: #4B5563;
+    }
+
+    .example-box div {
+        padding: 3px 0;
+    }
+
+    .example-box i {
+        margin-right: 8px;
+    }
+
+    .results-table th, .results-table td { vertical-align: middle; }
+    .badge-success-soft { background: #D1FAE5; color: #065F46; padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.85rem; }
+    .badge-fail-soft    { background: #FEE2E2; color: #991B1B; padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.85rem; }
+
+    .summary-stat {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 8px;
+        margin-right: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    .summary-stat.total   { background: #EEF2FF; color: #4F46E5; }
+    .summary-stat.success { background: #D1FAE5; color: #065F46; }
+    .summary-stat.fail    { background: #FEE2E2; color: #991B1B; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bulk-wrapper">
+
+    <div class="mb-3">
+        <a href="{{ url_for('registration.list_employees') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Back to Employees
+        </a>
+    </div>
+
+    <div class="page-intro">
+        <h2><i class="fas fa-users me-2 text-primary"></i>Bulk Employee Import</h2>
+        <p>Register many employees at once using a CSV file and a ZIP of photos. Failed rows don't block the rest.</p>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="step-card">
+        <div class="step-header">
+            <span class="step-badge">1</span>
+            <h5 class="step-title">Download the CSV template</h5>
+        </div>
+        <div class="step-body">
+            <div class="field-label">Required</div>
+            <div class="chip-group">
+                <span class="info-chip required">army_id</span>
+                <span class="info-chip required">full_name</span>
+            </div>
+
+            <div class="field-label">Optional</div>
+            <div class="chip-group">
+                <span class="info-chip optional">rank</span>
+                <span class="info-chip optional">unit</span>
+                <span class="info-chip optional">department</span>
+                <span class="info-chip optional">designation</span>
+                <span class="info-chip optional">phone</span>
+                <span class="info-chip optional">email</span>
+                <span class="info-chip optional">date_of_joining</span>
+            </div>
+
+            <div class="tip">
+                <i class="fas fa-info-circle"></i>Date format: <strong>YYYY-MM-DD</strong> (e.g., 2024-01-15)
+            </div>
+
+            <a href="{{ url_for('registration.bulk_import_template') }}" class="btn btn-primary mt-3">
+                <i class="fas fa-download me-2"></i>Download Template
+            </a>
+        </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-card">
+        <div class="step-header">
+            <span class="step-badge">2</span>
+            <h5 class="step-title">Prepare a ZIP of photos</h5>
+        </div>
+        <div class="step-body">
+            <p class="mb-2">Name each photo with the <strong>Army ID</strong> and <strong>angle</strong>:</p>
+
+            <div class="example-box">
+                <div><i class="fas fa-image text-success"></i>EMP101_front.jpg</div>
+                <div><i class="fas fa-image text-primary"></i>EMP101_left.jpg</div>
+                <div><i class="fas fa-image text-primary"></i>EMP101_right.jpg</div>
+            </div>
+
+            <div class="tip"><i class="fas fa-check-circle"></i><strong>Front</strong> photo is required per employee</div>
+            <div class="tip"><i class="fas fa-check-circle"></i><strong>Left / Right</strong> improve recognition accuracy</div>
+            <div class="tip"><i class="fas fa-check-circle"></i>Subfolders inside the ZIP are OK</div>
+        </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-card">
+        <div class="step-header">
+            <span class="step-badge">3</span>
+            <h5 class="step-title">Upload files and import</h5>
+        </div>
+        <div class="step-body">
+            <form id="bulkImportForm">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="field-label">
+                            <i class="fas fa-file-csv text-success me-1"></i>Employee CSV
+                        </div>
+                        <input type="file" class="form-control" id="csvFileInput" accept=".csv" required>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="field-label">
+                            <i class="fas fa-file-archive text-warning me-1"></i>Photos ZIP
+                        </div>
+                        <input type="file" class="form-control" id="zipFileInput" accept=".zip" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-4" id="bulkImportBtn">
+                    <i class="fas fa-upload me-2"></i>Import Employees
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="step-card" id="resultsCard" style="display:none;">
+        <div class="step-header">
+            <span class="step-badge" style="background:#10B981;"><i class="fas fa-check"></i></span>
+            <h5 class="step-title">Import Results</h5>
+        </div>
+        <div class="step-body">
+            <div id="resultsSummary" class="mb-3"></div>
+            <div class="table-responsive">
+                <table class="table results-table">
+                    <thead>
+                        <tr>
+                            <th>Row</th>
+                            <th>Army ID</th>
+                            <th>Status</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('bulkImportForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const csvFile = document.getElementById('csvFileInput').files[0];
+    const zipFile = document.getElementById('zipFileInput').files[0];
+
+    if (!csvFile || !zipFile) {
+        alert('Please select both a CSV file and a photos ZIP file');
+        return;
+    }
+
+    const btn = document.getElementById('bulkImportBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Importing... this may take a while for large batches';
+
+    const formData = new FormData();
+    formData.append('csv_file', csvFile);
+    formData.append('photos_zip', zipFile);
+
+    try {
+        const response = await fetch('{{ url_for("registration.bulk_import_employees") }}', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        showResults(result);
+
+    } catch (error) {
+        alert('✗ Import failed: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-upload me-2"></i>Import Employees';
+    }
+});
+
+function showResults(result) {
+    const resultsCard = document.getElementById('resultsCard');
+    const summary = document.getElementById('resultsSummary');
+    const body = document.getElementById('resultsBody');
+
+    if (!result.success) {
+        summary.innerHTML = `<div class="alert alert-danger">✗ ${escapeHtml(result.message || 'Import failed')}</div>`;
+        body.innerHTML = '';
+        resultsCard.style.display = 'block';
+        resultsCard.scrollIntoView({ behavior: 'smooth' });
+        return;
+    }
+
+    summary.innerHTML = `
+        <span class="summary-stat total"><i class="fas fa-users me-1"></i>${result.total} Processed</span>
+        <span class="summary-stat success"><i class="fas fa-check-circle me-1"></i>${result.succeeded} Succeeded</span>
+        <span class="summary-stat fail"><i class="fas fa-times-circle me-1"></i>${result.failed} Failed</span>
+    `;
+
+    body.innerHTML = result.results.map(r => `
+        <tr>
+            <td>${r.row}</td>
+            <td><strong>${escapeHtml(r.army_id || '-')}</strong></td>
+            <td>
+                ${r.success
+                    ? '<span class="badge-success-soft"><i class="fas fa-check me-1"></i>Registered</span>'
+                    : '<span class="badge-fail-soft"><i class="fas fa-times me-1"></i>Failed</span>'}
+            </td>
+            <td>${escapeHtml(r.message || '')}</td>
+        </tr>
+    `).join('');
+
+    resultsCard.style.display = 'block';
+    resultsCard.scrollIntoView({ behavior: 'smooth' });
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

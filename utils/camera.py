@@ -44,7 +44,13 @@ class RTSPStreamReader:
         # load and produces stuttery/torn frames.  Must be set BEFORE opening.
         import os
         os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp'
-        self.cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
+        try:
+            self.cap = cv2.VideoCapture(
+                url, cv2.CAP_FFMPEG,
+                (cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 5000, cv2.CAP_PROP_READ_TIMEOUT_MSEC, 5000)
+            )
+        except TypeError:
+            self.cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # honored by some backends
         self._latest_frame = None
         self._lock = threading.Lock()
@@ -75,7 +81,13 @@ class RTSPStreamReader:
                         except Exception:
                             pass
                         time.sleep(0.5)
-                        self.cap = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
+                        try:
+                            self.cap = cv2.VideoCapture(
+                                self.url, cv2.CAP_FFMPEG,
+                                (cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 5000, cv2.CAP_PROP_READ_TIMEOUT_MSEC, 5000)
+                            )
+                        except TypeError:
+                            self.cap = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
                         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
                         consecutive_failures = 0
             except Exception as e:
@@ -204,7 +216,17 @@ class CameraManager:
         try:
             app_logger.info(f"   Trying OpenCV VideoCapture for network camera: {Config.CAMERA_URL}")
             cam_source = Config.get_camera_source()
-            cap = cv2.VideoCapture(cam_source if isinstance(cam_source, str) else Config.CAMERA_URL)
+            source_url = cam_source if isinstance(cam_source, str) else Config.CAMERA_URL
+            try:
+                # 5s open + read timeout — without this, an unreachable camera
+                # can hang here effectively indefinitely (OpenCV 4.5.4+ needed
+                # for this constructor form; falls back below on older builds).
+                cap = cv2.VideoCapture(
+                    source_url, cv2.CAP_FFMPEG,
+                    (cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 5000, cv2.CAP_PROP_READ_TIMEOUT_MSEC, 5000)
+                )
+            except TypeError:
+                cap = cv2.VideoCapture(source_url)
             if cap.isOpened():
                 ret, frame = cap.read()
                 cap.release()
@@ -343,6 +365,13 @@ class CameraManager:
         try:
             if getattr(self, '_system_cap', None) is None:
                 self._system_cap = cv2.VideoCapture(Config.DEFAULT_CAMERA_INDEX)
+                # Apply resolution/FPS from Settings — cameras that don't
+                # support the exact requested mode will silently fall back
+                # to their closest native mode, which is standard OpenCV
+                # behavior and not an error.
+                self._system_cap.set(cv2.CAP_PROP_FRAME_WIDTH, Config.CAMERA_WIDTH)
+                self._system_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Config.CAMERA_HEIGHT)
+                self._system_cap.set(cv2.CAP_PROP_FPS, Config.CAMERA_FPS)
 
             if self._system_cap.isOpened():
                 ret, frame = self._system_cap.read()
