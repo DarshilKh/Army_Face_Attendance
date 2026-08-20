@@ -580,8 +580,8 @@ def mark_attendance():
             check_in_datetime = last_attendance['check_in_datetime']
             hours_since = (now - check_in_datetime).total_seconds() / 3600
 
-            if hours_since < DEFAULT_HALF_DAY_HOURS:
-                remaining = DEFAULT_HALF_DAY_HOURS - hours_since
+            if hours_since < get_half_day_hours():
+                remaining = get_half_day_hours() - hours_since
                 hours_int = int(remaining)
                 mins_int = int((remaining - hours_int) * 60)
 
