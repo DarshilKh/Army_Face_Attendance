@@ -160,6 +160,13 @@ class FaceRecognitionEngine:
         take effect immediately without needing a restart."""
         return Config.FACE_THRESHOLD
 
+    @property
+    def duplicate_threshold(self):
+        """Similarity above which a new registration is rejected as a
+        duplicate of an existing employee — same live-reload pattern as
+        face_threshold above, tunable from Settings without a restart."""
+        return Config.DUPLICATE_FACE_THRESHOLD
+
     # ─────────────────────────────────────────────────────────────────────────
 
     def _load_embeddings(self) -> Dict:
@@ -358,129 +365,114 @@ class FaceRecognitionEngine:
     # COMBINED DETECTION + RECOGNITION (Main Method)
     # ============================================
 
-    def recognize_face(self, image: np.ndarray, return_all_matches: bool = False,
-                      last_attendance_today: Optional[Dict] = None) -> Tuple:
+    def _recognize_single_face(self, face) -> Tuple:
         """
-        OPTIMIZED 2-STAGE Recognition
+        Core per-face cache/similarity/cooldown logic — the part of
+        recognize_face() that doesn't depend on how many faces are in the
+        frame. Shared by recognize_face() (top-1) and recognize_faces_multi()
+        (top-N), so there's exactly one place this logic lives.
 
-        STAGE 1: Instant detection → Show box immediately
-        STAGE 2: Async recognition → Update name
+        Returns (employee_id, confidence, face_object, status_message) where
+        status_message is one of "NO_MATCH", "COOLDOWN", "SUCCESS".
+        """
+        embedding = face.normed_embedding
+        det_confidence = float(face.det_score) if hasattr(face, 'det_score') else 0.9
 
-        ALWAYS RETURNS 4 VALUES:
-        (employee_id, confidence, face_object, status_message)
+        face_hash = self._generate_face_hash(embedding)
+        cached = self._check_cache(face_hash)
 
-        Status messages:
-        - "SUCCESS" - Can check-in
-        - "READY_FOR_CHECKOUT" - Can checkout (4+ hours)
-        - "TOO_EARLY_FOR_CHECKOUT:X.X" - Wait X hours
-        - "ALREADY_COMPLETED" - Done for today
-        - "COOLDOWN" - UI cooldown (1 sec)
-        - "NO_FACE" - No face detected
-        - "NO_MATCH" - Face detected but not recognized
-        - "NO_REGISTERED_FACES" - No faces in database
+        if cached:
+            employee_id = cached['employee_id']
+            confidence = cached['confidence']
+        else:
+            if self.embeddings_array is None or len(self.embeddings_array) == 0:
+                return (None, 0.0, face, "NO_MATCH")
+
+            # ⚡ VECTORIZED RECOGNITION - ULTRA FAST
+            similarities = cosine_similarity([embedding], self.embeddings_array)[0]
+
+            best_idx = np.argmax(similarities)
+            best_similarity = similarities[best_idx]
+            distance = 1 - best_similarity
+
+            if distance > self.face_threshold:
+                return (None, 0.0, face, "NO_MATCH")
+
+            employee_id = self.employee_ids[best_idx]
+            confidence = best_similarity * det_confidence
+
+            self._update_cache(face_hash, employee_id, confidence, face)
+
+        # UI cooldown check (1 second) — per employee, independent of how
+        # many faces are being processed this cycle.
+        current_time = time.time()
+        last_time = self.last_detection_time.get(employee_id, 0)
+
+        if current_time - last_time < self.detection_cooldown:
+            return (employee_id, confidence, face, "COOLDOWN")
+
+        self.last_detection_time[employee_id] = current_time
+
+        return (employee_id, confidence, face, "SUCCESS")
+
+    def recognize_faces_multi(self, image: np.ndarray, max_faces: int = 3) -> List[Tuple]:
+        """
+        Same detection + per-face recognition as recognize_face(), but
+        processes up to max_faces of the largest detected faces in one call
+        instead of just the single largest one — so a small cluster of
+        people in frame together (e.g. walking through one gate at once)
+        all get recognized in the same cycle instead of being queued one at
+        a time across several polling cycles.
+
+        Detection (the GPU-heavy step) still runs exactly once per call
+        regardless of max_faces — only the lightweight embedding/similarity
+        step repeats per extra face.
+
+        Returns a list of (employee_id, confidence, face_object,
+        status_message) tuples, largest face first. When there's nothing to
+        process (no image, no registered faces, no face found, or an
+        error), returns a single-item list carrying that status instead of
+        an empty list, so callers can iterate uniformly either way.
         """
         try:
-            # ============================================
-            # VALIDATION
-            # ============================================
-
             if image is None or image.size == 0:
-                return (None, 0.0, None, "INVALID_IMAGE")
+                return [(None, 0.0, None, "INVALID_IMAGE")]
 
-            # Check if ANY embeddings exist
             if len(self.embeddings_db) == 0:
-                return (None, 0.0, None, "NO_REGISTERED_FACES")
-
-            # ============================================
-            # STAGE 1: INSTANT DETECTION
-            # ============================================
+                return [(None, 0.0, None, "NO_REGISTERED_FACES")]
 
             faces = self.detect_faces_instant(image)
 
             if len(faces) == 0:
-                return (None, 0.0, None, "NO_FACE")
+                return [(None, 0.0, None, "NO_FACE")]
 
-            # Get largest face
-            face = max(faces, key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]))
+            faces_sorted = sorted(
+                faces,
+                key=lambda f: (f.bbox[2] - f.bbox[0]) * (f.bbox[3] - f.bbox[1]),
+                reverse=True
+            )[:max_faces]
 
-            # Extract embedding
-            embedding = face.normed_embedding
-            det_confidence = float(face.det_score) if hasattr(face, 'det_score') else 0.9
-
-            # ============================================
-            # STAGE 2: CACHED OR ASYNC RECOGNITION
-            # ============================================
-
-            # Check cache first
-            face_hash = self._generate_face_hash(embedding)
-            cached = self._check_cache(face_hash)
-
-            if cached:
-                # Cache hit - instant return
-                employee_id = cached['employee_id']
-                confidence = cached['confidence']
-                face_obj = face
-            else:
-                # Cache miss - do recognition
-                if self.embeddings_array is None or len(self.embeddings_array) == 0:
-                    return (None, 0.0, face, "NO_MATCH")
-
-                # ⚡ VECTORIZED RECOGNITION - ULTRA FAST
-                similarities = cosine_similarity([embedding], self.embeddings_array)[0]
-
-                best_idx = np.argmax(similarities)
-                best_similarity = similarities[best_idx]
-                distance = 1 - best_similarity
-
-                if distance > self.face_threshold:
-                    return (None, 0.0, face, "NO_MATCH")
-
-                employee_id = self.employee_ids[best_idx]
-                confidence = best_similarity * det_confidence
-                face_obj = face
-
-                # Update cache
-                self._update_cache(face_hash, employee_id, confidence, face_obj)
-
-            # ============================================
-            # STAGE 3: UI COOLDOWN CHECK (1 second)
-            # ============================================
-
-            current_time = time.time()
-            last_time = self.last_detection_time.get(employee_id, 0)
-
-            if current_time - last_time < self.detection_cooldown:
-                return (employee_id, confidence, face_obj, "COOLDOWN")
-
-            self.last_detection_time[employee_id] = current_time
-
-            # ============================================
-            # STAGE 4: ATTENDANCE LOGIC
-            # ============================================
-
-            if last_attendance_today:
-                check_in_time = last_attendance_today.get('check_in_time')
-                check_out_time = last_attendance_today.get('check_out_time')
-
-                if check_in_time:
-                    now = datetime.now()
-                    check_in_dt = datetime.combine(now.date(), check_in_time)
-                    hours_since = (now - check_in_dt).total_seconds() / 3600
-
-                    if check_out_time:
-                        return (employee_id, confidence, face_obj, "ALREADY_COMPLETED")
-                    elif hours_since < self.checkout_minimum_hours:
-                        remaining = self.checkout_minimum_hours - hours_since
-                        return (employee_id, confidence, face_obj, f"TOO_EARLY_FOR_CHECKOUT:{remaining:.1f}")
-                    else:
-                        return (employee_id, confidence, face_obj, "READY_FOR_CHECKOUT")
-
-            # First time or can check-in
-            return (employee_id, confidence, face_obj, "SUCCESS")
+            return [self._recognize_single_face(f) for f in faces_sorted]
 
         except Exception as e:
-            app_logger.error(f"Recognition error: {e}", exc_info=True)
-            return (None, 0.0, None, f"ERROR:{str(e)}")
+            app_logger.error(f"Multi-face recognition error: {e}", exc_info=True)
+            return [(None, 0.0, None, f"ERROR:{str(e)}")]
+
+    def recognize_face(self, image: np.ndarray, return_all_matches: bool = False,
+                      last_attendance_today: Optional[Dict] = None) -> Tuple:
+        """
+        Single-face recognition — kept for any caller that only wants one
+        result. Internally just recognize_faces_multi(image, max_faces=1),
+        so there's no separate copy of the recognition logic to drift out
+        of sync.
+
+        ALWAYS RETURNS 4 VALUES: (employee_id, confidence, face_object, status_message)
+
+        Status messages: "SUCCESS", "COOLDOWN", "NO_FACE", "NO_MATCH",
+        "NO_REGISTERED_FACES", "INVALID_IMAGE", "ERROR:..."
+        """
+        results = self.recognize_faces_multi(image, max_faces=1)
+        return results[0] if results else (None, 0.0, None, "NO_FACE")
 
     # ============================================
     # CACHE FUNCTIONS
@@ -559,7 +551,7 @@ class FaceRecognitionEngine:
                     similarities = cosine_similarity([embedding], other_embeddings)[0]
                     max_similarity = np.max(similarities)
 
-                    if max_similarity > 0.75:  # 75% similar = duplicate to someone else
+                    if max_similarity > self.duplicate_threshold:
                         return False, f"Face already registered to someone else ({max_similarity:.0%} similar)", None
 
             # Store
