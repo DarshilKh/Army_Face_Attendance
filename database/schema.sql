@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS attendance (
     liveness_score_in FLOAT,
     liveness_score_out FLOAT,
     confidence_score FLOAT,
+    late_minutes INT,
     work_hours FLOAT DEFAULT 0.0,
     ip_address VARCHAR(45),
     device_info VARCHAR(255),
@@ -110,6 +111,27 @@ CREATE TABLE IF NOT EXISTS face_attempts (
     INDEX idx_attempt_time (attempt_time),
     INDEX idx_success (success)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Cameras Table (multi entry-point support)
+CREATE TABLE IF NOT EXISTS cameras (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    location VARCHAR(100),
+    camera_type ENUM('webcam', 'ip') NOT NULL DEFAULT 'webcam',
+    url VARCHAR(255),
+    username VARCHAR(100),
+    password VARCHAR(100),
+    width INT DEFAULT 1280,
+    height INT DEFAULT 720,
+    fps INT DEFAULT 15,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO cameras (name, location, camera_type, is_active) VALUES
+('System Webcam', 'Default', 'webcam', TRUE);
 
 -- System Settings Table
 CREATE TABLE IF NOT EXISTS system_settings (
