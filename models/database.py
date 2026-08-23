@@ -66,6 +66,7 @@ class Attendance(db.Model):
     liveness_score_in = db.Column(db.Float)
     liveness_score_out = db.Column(db.Float)
     confidence_score = db.Column(db.Float)
+    late_minutes = db.Column(db.Integer)
     work_hours = db.Column(db.Float, default=0.0)
     ip_address = db.Column(db.String(45))
     device_info = db.Column(db.String(255))
@@ -103,6 +104,44 @@ class FaceAttempt(db.Model):
     ip_address = db.Column(db.String(45))
     failure_reason = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Camera(db.Model):
+    __tablename__ = 'cameras'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    location = db.Column(db.String(100))
+    camera_type = db.Column(db.Enum('webcam', 'ip'), nullable=False, default='webcam')
+    url = db.Column(db.String(255))
+    username = db.Column(db.String(100))
+    password = db.Column(db.String(100))
+    width = db.Column(db.Integer, default=1280)
+    height = db.Column(db.Integer, default=720)
+    fps = db.Column(db.Integer, default=15)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def to_dict(self, include_credentials=False):
+        data = {
+            'id': self.id,
+            'name': self.name,
+            'location': self.location,
+            'camera_type': self.camera_type,
+            'width': self.width,
+            'height': self.height,
+            'fps': self.fps,
+            'is_active': self.is_active,
+            'has_url': bool(self.url),
+        }
+        if include_credentials:
+            data.update({
+                'url': self.url,
+                'username': self.username,
+                'password': self.password,
+            })
+        return data
 
 
 class SystemSetting(db.Model):
