@@ -188,11 +188,8 @@ def _load_settings():
     from config import Config
 
     defaults = {
-        'camera_source':       str(Config.DEFAULT_CAMERA_INDEX),
-        'camera_url':          Config.CAMERA_URL or '',
-        'resolution':          f"{Config.CAMERA_WIDTH}x{Config.CAMERA_HEIGHT}",
-        'fps':                 str(Config.CAMERA_FPS),
         'threshold':           str(Config.FACE_THRESHOLD),
+        'duplicate_threshold':  str(Config.DUPLICATE_FACE_THRESHOLD),
         'min_face_size':       str(Config.MIN_FACE_SIZE),
         'liveness_detection':  str(Config.LIVENESS_REQUIRED).lower(),
         'work_start':          Config.WORK_START_TIME,
@@ -303,6 +300,7 @@ def _apply_settings_to_config(data):
 
     config_map = {
         'threshold':           ('FACE_THRESHOLD',        float),
+        'duplicate_threshold':  ('DUPLICATE_FACE_THRESHOLD', float),
         'min_face_size':       ('MIN_FACE_SIZE',         int),
         'liveness_detection':  ('LIVENESS_REQUIRED',     lambda v: str(v).lower() in ('true', '1', 'on')),
         'work_start':          ('WORK_START_TIME',       str),
@@ -313,7 +311,6 @@ def _apply_settings_to_config(data):
         'session_timeout':     ('SESSION_TIMEOUT',       int),
         'max_login_attempts':  ('MAX_LOGIN_ATTEMPTS',    int),
         'log_level':           ('LOG_LEVEL',             str),
-        'fps':                 ('CAMERA_FPS',            int),
     }
 
     for key, value in data.items():
@@ -324,46 +321,10 @@ def _apply_settings_to_config(data):
             except (ValueError, TypeError) as e:
                 app_logger.warning(f"Could not apply setting {key}={value}: {e}")
 
-    # Camera source/URL/resolution need custom handling — they don't map to
-    # a single Config attribute 1:1 like the simple settings above.
-    camera_settings_changed = False
-
-    if 'camera_source' in data:
-        source = str(data['camera_source'])
-        if source == 'url':
-            # IP camera mode — the URL field drives Config.CAMERA_URL directly,
-            # same variable the network-camera logic in utils/camera.py already reads.
-            Config.CAMERA_URL = (data.get('camera_url') or '').strip()
-        else:
-            # Built-in / External Camera N — use the system webcam at this
-            # index, and clear CAMERA_URL so camera_manager doesn't try to
-            # reach a (now irrelevant) network camera first.
-            try:
-                Config.DEFAULT_CAMERA_INDEX = int(source)
-            except (ValueError, TypeError):
-                Config.DEFAULT_CAMERA_INDEX = 0
-            Config.CAMERA_URL = ''
-        camera_settings_changed = True
-
-    if 'resolution' in data:
-        try:
-            width_str, height_str = str(data['resolution']).lower().split('x')
-            Config.CAMERA_WIDTH = int(width_str)
-            Config.CAMERA_HEIGHT = int(height_str)
-            camera_settings_changed = True
-        except (ValueError, AttributeError):
-            app_logger.warning(f"Invalid resolution format: {data.get('resolution')}")
-
-    if 'fps' in data:
-        camera_settings_changed = True
-
-    if camera_settings_changed:
-        # Force an immediate re-check with the new settings instead of
-        # waiting up to 30s (or keeping a stale connection open at the old
-        # resolution/source).
-        from utils.camera import camera_manager
-        camera_manager.reset()
-        app_logger.info("🔄 Camera settings changed — camera manager reset for immediate re-check")
+    # Camera configuration is no longer part of this form — cameras are
+    # managed individually via Settings > Cameras (routes/camera.py CRUD),
+    # each with its own URL/credentials/resolution/FPS stored in the
+    # `cameras` table.
 
 
 @auth_bp.route('/change-password', methods=['GET', 'POST'])
