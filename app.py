@@ -50,21 +50,35 @@ def create_app():
         except Exception as e:
             app_logger.error(f"✗ Failed to initialize face recognition engine: {e}")
 
-    # Initialize camera manager - test network camera availability in the
-    # background so a slow/unreachable camera can never delay server startup.
-    def _check_camera_in_background():
+    # Test every registered IP camera's availability in the background so a
+    # slow/unreachable camera can never delay server startup. Webcam-type
+    # cameras are skipped — they're accessed client-side, nothing to probe here.
+    def _check_cameras_in_background():
         try:
-            from utils.camera import camera_manager
-            cam_status = camera_manager.get_camera_status()
-            if cam_status['source'] == 'network':
-                app_logger.info(f"✓ Camera: Network camera ACTIVE at {Config.CAMERA_URL}")
-            else:
-                app_logger.info(f"✓ Camera: System webcam ACTIVE (network camera at {Config.CAMERA_URL} unavailable)")
+            with app.app_context():
+                from models.database import Camera
+                from utils.camera import camera_manager, CameraConfig
+
+                ip_cameras = Camera.query.filter_by(camera_type='ip', is_active=True).all()
+                if not ip_cameras:
+                    app_logger.info("✓ Camera: No active IP cameras configured (add some in Settings > Cameras)")
+                    return
+
+                for cam in ip_cameras:
+                    cfg = CameraConfig(
+                        id=cam.id, url=cam.url or '', username=cam.username or '',
+                        password=cam.password or '', width=cam.width, height=cam.height, fps=cam.fps
+                    )
+                    status = camera_manager.get_status(cfg)
+                    if status['available']:
+                        app_logger.info(f"✓ Camera '{cam.name}' ({cam.location}) ACTIVE at {cam.url}")
+                    else:
+                        app_logger.warning(f"⚠ Camera '{cam.name}' ({cam.location}) unreachable at {cam.url}")
         except Exception as e:
             app_logger.error(f"✗ Camera initialization error: {e}")
 
     import threading
-    threading.Thread(target=_check_camera_in_background, daemon=True).start()
+    threading.Thread(target=_check_cameras_in_background, daemon=True).start()
 
     # ==================== CACHE BUSTING ====================
     # Prevent browser from caching old files
