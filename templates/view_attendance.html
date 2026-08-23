@@ -3,177 +3,400 @@
 {% block title %}View Attendance{% endblock %}
 {% block page_title %}Attendance Records{% endblock %}
 
-{% block content %}
-<div class="row mb-4">
-    <div class="col-md-12">
-        <h2 class="text-dark">
-            <i class="fas fa-clipboard-list"></i> Attendance Records
-        </h2>
-    </div>
-</div>
+{% block extra_css %}
+<style>
+    .main-content {
+        padding-top: 20px !important;
+        padding-bottom: 20px !important;
+    }
 
+    .stat-card {
+        padding: 16px 18px !important;
+    }
+
+    .stat-card h3 {
+        font-size: 1.75rem !important;
+        margin-bottom: 4px !important;
+        font-weight: 700;
+    }
+
+    .stat-card p {
+        margin: 0 !important;
+        font-size: 0.88rem !important;
+        opacity: 0.7;
+    }
+
+    .filter-card .card-body {
+        padding: 14px 16px;
+    }
+
+    .filter-card .form-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #6B7280;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .filter-card .form-control,
+    .filter-card .form-select {
+        font-size: 0.9rem;
+        border-radius: 8px;
+        border-color: #E5E7EB;
+    }
+
+    .records-card .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 16px;
+        font-size: 0.92rem;
+        font-weight: 600;
+    }
+
+    .records-card .card-body {
+        padding: 0;
+    }
+
+    .btn-export {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #D1FAE5;
+        background: #ECFDF5;
+        color: #059669;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transition: all 0.15s ease;
+    }
+
+    .btn-export:hover {
+        background: #D1FAE5;
+        color: #047857;
+        border-color: #A7F3D0;
+    }
+
+    .att-table {
+        margin-bottom: 0;
+        font-size: 0.86rem;
+    }
+
+    .att-table thead th {
+        background: #F9FAFB;
+        color: #6B7280;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        border-bottom: 1px solid #E5E7EB;
+        white-space: nowrap;
+        padding: 10px 12px;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .att-table tbody td {
+        padding: 10px 12px;
+        vertical-align: middle;
+        border-color: #F3F4F6;
+        color: #374151;
+    }
+
+    .att-table tbody tr:hover {
+        background: #F9FAFB;
+    }
+
+    .att-photo {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #E5E7EB;
+    }
+
+    .btn-view {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: 1px solid #E0E7FF;
+        background: #EEF2FF;
+        color: #4F46E5;
+        text-decoration: none;
+        transition: all 0.15s ease;
+    }
+
+    .btn-view:hover {
+        background: #E0E7FF;
+        color: #4338CA;
+    }
+
+    .btn-undo {
+        border-color: #FDE68A;
+        background: #FFFBEB;
+        color: #B45309;
+    }
+
+    .btn-undo:hover {
+        background: #FDE68A;
+        color: #92400E;
+    }
+
+    .btn-delete-record {
+        border-color: #FECACA;
+        background: #FEF2F2;
+        color: #DC2626;
+    }
+
+    .btn-delete-record:hover {
+        background: #FECACA;
+        color: #991B1B;
+    }
+
+    .empty-state {
+        text-align: center;
+        color: #9CA3AF;
+        padding: 28px 12px !important;
+    }
+
+    .badge-soft-success {
+        background: #ECFDF5;
+        color: #059669;
+        border: 1px solid #A7F3D0;
+    }
+
+    .badge-soft-warning {
+        background: #FFFBEB;
+        color: #D97706;
+        border: 1px solid #FDE68A;
+    }
+
+    .badge-soft-info {
+        background: #EFF6FF;
+        color: #2563EB;
+        border: 1px solid #BFDBFE;
+    }
+
+    .badge-soft-danger {
+        background: #FEF2F2;
+        color: #DC2626;
+        border: 1px solid #FECACA;
+    }
+
+    .badge-soft-muted {
+        background: #F3F4F6;
+        color: #4B5563;
+        border: 1px solid #E5E7EB;
+    }
+
+    .id-pill {
+        background: #F3F4F6;
+        color: #374151;
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
 <!-- Statistics -->
-<div class="row mb-3">
+<div class="row g-3 mb-3">
     <div class="col-md-3">
-        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="stat-card" style="border-left-color:#4F46E5;">
             <h3>{{ stats.total_employees }}</h3>
-            <p><i class="fas fa-users"></i> Total Employees</p>
+            <p><i class="fas fa-users" style="color:#4F46E5;"></i> Total Employees</p>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+        <div class="stat-card" style="border-left-color:#10B981;">
             <h3>{{ stats.total_present }}</h3>
-            <p><i class="fas fa-check-circle"></i> Present</p>
+            <p><i class="fas fa-check-circle" style="color:#10B981;"></i> Present</p>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+        <div class="stat-card" style="border-left-color:#EF4444;">
             <h3>{{ stats.total_absent }}</h3>
-            <p><i class="fas fa-times-circle"></i> Absent</p>
+            <p><i class="fas fa-times-circle" style="color:#EF4444;"></i> Absent</p>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+        <div class="stat-card" style="border-left-color:#3B82F6;">
             <h3>{{ stats.attendance_rate }}%</h3>
-            <p><i class="fas fa-chart-pie"></i> Attendance Rate</p>
+            <p><i class="fas fa-chart-pie" style="color:#3B82F6;"></i> Attendance Rate</p>
         </div>
     </div>
 </div>
 
 <!-- Filters -->
-<div class="row mb-3">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <form method="GET" action="{{ url_for('attendance.view_attendance') }}" class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Date</label>
-                        <input type="date" class="form-control" name="date"
-                               value="{{ filter_date.isoformat() }}" onchange="this.form.submit()">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Unit</label>
-                        <select class="form-select" name="unit" onchange="this.form.submit()">
-                            <option value="">All Units</option>
-                            {% for unit in units %}
-                            <option value="{{ unit }}" {% if request.args.get('unit') == unit %}selected{% endif %}>
-                                {{ unit }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" name="status" onchange="this.form.submit()">
-                            <option value="">All Status</option>
-                            <option value="present" {% if request.args.get('status') == 'present' %}selected{% endif %}>Present</option>
-                            <option value="late" {% if request.args.get('status') == 'late' %}selected{% endif %}>Late</option>
-                            <option value="half_day" {% if request.args.get('status') == 'half_day' %}selected{% endif %}>Half Day</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Search</label>
-                        <input type="text" class="form-control" name="search"
-                               placeholder="Army ID / Name" value="{{ request.args.get('search', '') }}">
-                    </div>
-                </form>
+<div class="card filter-card mb-3">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('attendance.view_attendance') }}" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Date</label>
+                <input type="date" class="form-control" name="date"
+                       value="{{ filter_date.isoformat() }}" onchange="this.form.submit()">
             </div>
-        </div>
+            <div class="col-md-3">
+                <label class="form-label">Unit</label>
+                <select class="form-select" name="unit" onchange="this.form.submit()">
+                    <option value="">All Units</option>
+                    {% for unit in units %}
+                    <option value="{{ unit }}" {% if request.args.get('unit') == unit %}selected{% endif %}>
+                        {{ unit }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    <option value="present" {% if request.args.get('status') == 'present' %}selected{% endif %}>Present</option>
+                    <option value="late" {% if request.args.get('status') == 'late' %}selected{% endif %}>Late</option>
+                    <option value="half_day" {% if request.args.get('status') == 'half_day' %}selected{% endif %}>Half Day</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" name="search"
+                           placeholder="Army ID / Name" value="{{ request.args.get('search', '') }}">
+                    <button class="btn btn-outline-secondary" type="submit" title="Search">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
 <!-- Attendance Table -->
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-table"></i> Attendance for {{ filter_date.strftime('%d %B %Y') }}
-                <button class="btn btn-sm btn-success float-end" onclick="exportToExcel()">
-                    <i class="fas fa-file-excel"></i> Export to Excel
-                </button>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped" id="attendanceTable">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>#</th>
-                                <th>Photo</th>
-                                <th>Army ID</th>
-                                <th>Name</th>
-                                <th>Rank</th>
-                                <th>Unit</th>
-                                <th>Check-in</th>
-                                <th>Check-out</th>
-                                <th>Duration</th>
-                                <th>Status</th>
-                                <th>Confidence</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for attendance, employee in attendance_records %}
-                            <tr>
-                                <td>{{ loop.index }}</td>
-                                <td>
-                                    <img src="/{{ employee.photo_path }}" alt="{{ employee.full_name }}"
-                                         class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
-                                </td>
-                                <td><strong>{{ employee.army_id }}</strong></td>
-                                <td>{{ employee.full_name }}</td>
-                                <td>{{ employee.rank or 'N/A' }}</td>
-                                <td>{{ employee.unit or 'N/A' }}</td>
-                                <td>{{ attendance.check_in_time.strftime('%I:%M %p') }}</td>
-                                <td>
-                                    {% if attendance.check_out_time %}
-                                        {{ attendance.check_out_time.strftime('%I:%M %p') }}
-                                    {% else %}
-                                        <span class="badge bg-warning">Not marked</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if attendance.check_out_time %}
-                                        {% set duration = (attendance.check_out_time - attendance.check_in_time).total_seconds() / 3600 %}
-                                        {{ '%dh %dm' | format(duration|int, ((duration % 1) * 60)|int) }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if attendance.status == 'present' %}
-                                        <span class="badge bg-success">Present</span>
-                                    {% elif attendance.status == 'late' %}
-                                        <span class="badge bg-warning">Late</span>
-                                    {% elif attendance.status == 'half_day' %}
-                                        <span class="badge bg-info">Half Day</span>
-                                    {% else %}
-                                        <span class="badge bg-secondary">{{ attendance.status }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if attendance.confidence_score %}
-                                        {{ '%.1f%%' | format(attendance.confidence_score * 100) }}
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-info" onclick="viewDetails({{ attendance.id }})">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </td>
-                            </tr>
+<div class="card records-card">
+    <div class="card-header">
+        <span>
+            <i class="fas fa-table me-2"></i>
+            Attendance for {{ filter_date.strftime('%d %B %Y') }}
+        </span>
+        <button type="button" class="btn-export" onclick="exportToExcel()">
+            <i class="fas fa-file-excel"></i> Export Excel
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table att-table" id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Photo</th>
+                        <th>Army ID</th>
+                        <th>Name</th>
+                        <th>Rank</th>
+                        <th>Unit</th>
+                        <th>Gate</th>
+                        <th>Check-in</th>
+                        <th>Check-out</th>
+                        <th>Duration</th>
+                        <th>Status</th>
+                        <th>Late By</th>
+                        <th>Confidence</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attendance, employee in attendance_records %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <img src="/{{ employee.photo_path }}" alt="{{ employee.full_name }}"
+                                 class="att-photo"
+                                 onerror="this.src='https://ui-avatars.com/api/?name={{ employee.full_name | urlencode }}&background=EEF2FF&color=4F46E5'">
+                        </td>
+                        <td><span class="id-pill">{{ employee.army_id }}</span></td>
+                        <td class="fw-semibold">{{ employee.full_name }}</td>
+                        <td>{{ employee.rank or 'N/A' }}</td>
+                        <td>{{ employee.unit or 'N/A' }}</td>
+                        <td>{{ attendance.location or '-' }}</td>
+                        <td class="fw-semibold">{{ attendance.check_in_time.strftime('%I:%M %p') }}</td>
+                        <td>
+                            {% if attendance.check_out_time %}
+                                {{ attendance.check_out_time.strftime('%I:%M %p') }}
                             {% else %}
-                            <tr>
-                                <td colspan="12" class="text-center">
-                                    <i class="fas fa-info-circle"></i> No attendance records found
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                <span class="badge badge-soft-warning">Not marked</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if attendance.check_out_time %}
+                                {% set duration = (attendance.check_out_time - attendance.check_in_time).total_seconds() / 3600 %}
+                                {{ '%dh %dm' | format(duration|int, ((duration % 1) * 60)|int) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if attendance.status == 'present' %}
+                                <span class="badge badge-soft-success">Present</span>
+                            {% elif attendance.status == 'late' %}
+                                <span class="badge badge-soft-warning">Late</span>
+                            {% elif attendance.status == 'half_day' %}
+                                <span class="badge badge-soft-info">Half Day</span>
+                            {% else %}
+                                <span class="badge badge-soft-muted">{{ attendance.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set late_val = late_minutes_display.get(attendance.id) %}
+                            {% if attendance.status == 'late' and late_val %}
+                                <span class="badge badge-soft-danger">{{ late_val }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if attendance.confidence_score %}
+                                {{ '%.1f%%' | format(attendance.confidence_score * 100) }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a class="btn-view" href="{{ url_for('registration.view_employee', employee_id=employee.id) }}" title="View employee">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if current_user.role == 'admin' %}
+                                    {% if attendance.check_out_time %}
+                                    <button type="button" class="btn-view btn-undo" title="Undo check-out"
+                                            onclick="undoCheckout({{ attendance.id }}, this)">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn-view btn-delete-record" title="Delete this record"
+                                            onclick="deleteAttendanceRecord({{ attendance.id }}, this)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="14" class="empty-state">
+                            <i class="fas fa-info-circle me-1"></i> No attendance records found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -188,8 +411,58 @@
         XLSX.writeFile(wb, 'Attendance_{{ filter_date.isoformat() }}.xlsx');
     }
 
-    function viewDetails(attendanceId) {
-        alert('Attendance ID: ' + attendanceId + '\nDetailed view coming soon!');
+    // ============================================
+    // ATTENDANCE CORRECTIONS (admin only)
+    // ============================================
+    async function undoCheckout(attendanceId, btn) {
+        if (!confirm(
+            'Undo this check-out?\n\n' +
+            'This clears the check-out time and puts the record back to ' +
+            '"checked in, not checked out" — the employee can check out ' +
+            'again later once actually eligible. The check-in itself is ' +
+            'not affected. This is logged in the audit trail.'
+        )) return;
+
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/attendance/record/${attendanceId}/undo_checkout`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('✗ ' + data.message);
+                btn.disabled = false;
+            }
+        } catch (e) {
+            alert('✗ Failed: ' + e.message);
+            btn.disabled = false;
+        }
+    }
+
+    async function deleteAttendanceRecord(attendanceId, btn) {
+        if (!confirm(
+            'Delete this entire attendance record?\n\n' +
+            'This removes the check-in AND check-out for this day completely ' +
+            '— use this only if the whole entry is wrong (e.g. the wrong ' +
+            'person was recognized). If only the check-out was a mistake, ' +
+            'use "Undo check-out" instead. This is logged in the audit trail ' +
+            'but cannot be undone from here.'
+        )) return;
+
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/attendance/record/${attendanceId}/delete`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('✗ ' + data.message);
+                btn.disabled = false;
+            }
+        } catch (e) {
+            alert('✗ Failed: ' + e.message);
+            btn.disabled = false;
+        }
     }
 </script>
 {% endblock %}
