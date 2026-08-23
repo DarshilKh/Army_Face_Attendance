@@ -20,71 +20,89 @@
         margin: 0 auto;
     }
 
-    /* Video Feed Section */
-    .video-container {
+    /* Camera Grid — one tile per active camera, all running simultaneously */
+    .camera-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .camera-grid.empty {
+        display: block;
+    }
+
+    .camera-grid-placeholder {
+        background: white;
+        border-radius: 15px;
+        padding: 60px 20px;
+        text-align: center;
+        color: #9CA3AF;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .camera-tile {
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .camera-tile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #F8FAFC;
+        border-bottom: 1px solid #E5E7EB;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #1F2937;
+    }
+
+    .camera-tile-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .camera-tile-status {
+        flex-shrink: 0;
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: #E5E7EB;
+        color: #374151;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+
+    .camera-tile-status[data-status="live"]      { background: #D1FAE5; color: #065F46; }
+    .camera-tile-status[data-status="detecting"] { background: #DBEAFE; color: #1E40AF; }
+    .camera-tile-status[data-status="error"]     { background: #FEE2E2; color: #991B1B; }
+
+    .camera-tile-video {
         position: relative;
         background: #000;
-        border-radius: 15px;
-        overflow: hidden;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        min-height: 480px;   /* Reserve space so the panel doesn't collapse
-                                when videoFeed is hidden (network camera mode)
-                                and the <img id="networkFeed"> hasn't received
-                                its first snapshot yet. */
+        aspect-ratio: 16 / 9;
     }
 
-    #videoFeed {
-        width: 100%;
-        height: auto;
-        display: block;
-        max-height: 600px;
-        object-fit: contain;
-    }
-
-    /* Face Detection Overlay */
-    #detectionCanvas {
+    .camera-tile-video video,
+    .camera-tile-video img,
+    .camera-tile-video canvas {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        pointer-events: none;
+        object-fit: contain;
     }
 
-    /* Status Indicators */
-    .status-indicator {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        padding: 12px 24px;
-        border-radius: 50px;
-        font-weight: 700;
-        font-size: 1rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        z-index: 10;
-        animation: fadeIn 0.3s;
-    }
+    .camera-tile-video canvas { pointer-events: none; }
 
-    .status-live      { background: #10B981; color: white; }
-    .status-detecting { background: #3B82F6; color: white; animation: pulse 1.5s infinite; }
-    .status-processing{ background: #F59E0B; color: white; }
-    .status-warning   { background: #F59E0B; color: white; }
-    .status-error     { background: #EF4444; color: white; }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50%      { opacity: 0.7; }
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.9); }
-        to   { opacity: 1; transform: scale(1); }
-    }
-
-    @keyframes fadeOut {
-        from { opacity: 1; transform: scale(1); }
-        to   { opacity: 0; transform: scale(0.9); }
-    }
+    .camera-tile-video.face-matched { animation: faceMatch 0.6s ease-out; }
 
     /* Live Stats Bar - Slim */
     .live-stats-bar {
@@ -129,12 +147,16 @@
     }
 
     .employee-card.checkout { border-left-color: #3B82F6; }
-    .employee-card.warning  { border-left-color: #F59E0B; background: #FFFBEB; }
     .employee-card.removing { animation: fadeOut 0.3s ease forwards; }
 
     @keyframes slideInRight {
         from { opacity: 0; transform: translateX(50px); }
         to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes fadeOut {
+        from { opacity: 1; transform: scale(1); }
+        to   { opacity: 0; transform: scale(0.9); }
     }
 
     .employee-card-header {
@@ -156,6 +178,7 @@
 
     .employee-name { font-size: 1.5rem; font-weight: 700; color: #1F2937; margin: 0; }
     .employee-id   { font-size: 0.9rem; color: #6B7280; margin: 0; }
+    .employee-gate { font-size: 0.8rem; color: #4F46E5; font-weight: 600; margin: 0; }
 
     .employee-details {
         display: grid;
@@ -196,7 +219,7 @@
 
     /* Activity Feed */
     .activity-feed {
-        max-height: 600px;
+        max-height: 480px;
         overflow-y: auto;
         padding-right: 10px;
     }
@@ -235,46 +258,30 @@
     .instructions-card {
         background: linear-gradient(135deg, #F9FAFB, #E5E7EB);
         border-radius: 12px;
-        padding: 20px;
+        padding: 12px 16px;
         border-left: 4px solid #4F46E5;
+    }
+
+    .instructions-card h6 { margin-bottom: 8px !important; }
+
+    .instructions-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 16px;
     }
 
     .instruction-item {
         display: flex;
         align-items: center;
-        margin-bottom: 12px;
-        font-size: 0.95rem;
+        margin-bottom: 0;
+        font-size: 0.85rem;
     }
 
     .instruction-item i { margin-right: 12px; font-size: 1.2rem; width: 25px; }
 
-    /* Loading Overlay */
-    .processing-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.7);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 20;
-        border-radius: 15px;
+    @media (max-width: 576px) {
+        .instructions-grid { grid-template-columns: 1fr; }
     }
-
-    .processing-overlay.active { display: flex; }
-
-    .spinner-border {
-        width: 3rem;
-        height: 3rem;
-        border: 4px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Responsive */
     @media (max-width: 768px) {
@@ -282,6 +289,7 @@
         .stat-value       { font-size: 1rem; }
         .employee-name    { font-size: 1.2rem; }
         .employee-photo   { width: 60px; height: 60px; }
+        .camera-grid      { grid-template-columns: 1fr; }
     }
 
     /* Animation for face match */
@@ -290,8 +298,6 @@
         70%  { box-shadow: 0 0 0 30px rgba(16, 185, 129, 0);   }
         100% { box-shadow: 0 0 0 0    rgba(16, 185, 129, 0);   }
     }
-
-    .face-matched { animation: faceMatch 0.6s ease-out; }
 </style>
 {% endblock %}
 
@@ -326,8 +332,8 @@
             <div class="control-panel">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
-                        <h5 class="mb-0"><i class="fas fa-video"></i> Live Camera Feed</h5>
-                        <small class="text-muted">Auto-detection enabled • Smart cooldown active</small>
+                        <h5 class="mb-0"><i class="fas fa-video"></i> Live Camera Feeds</h5>
+                        <small class="text-muted" id="cameraCountLabel">Every active camera runs at once • Smart cooldown active</small>
                     </div>
                     <div>
                         <button id="startBtn" class="btn btn-control btn-start" onclick="startLiveAttendance()">
@@ -335,50 +341,40 @@
                         </button>
                         <button id="stopBtn" class="btn btn-control btn-stop" onclick="stopLiveAttendance()"
                             style="display:none;">
-                            <i class="fas fa-stop-circle"></i> Stop
+                            <i class="fas fa-stop-circle"></i> Stop All
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Video Container -->
-            <div class="video-container">
-                <video id="videoFeed" autoplay playsinline muted></video>
-                <!-- Network camera feed (hidden by default, shown when network cam is active) -->
-                <img id="networkFeed"
-                    style="display:none; width:100%; height:100%; object-fit:contain; border-radius:15px; position:absolute; top:0; left:0; z-index:1;"
-                    alt="Network Camera Feed">
-                <canvas id="detectionCanvas"></canvas>
-
-                <!-- Status Indicator -->
-                <div id="statusIndicator" class="status-indicator" style="display:none;">
-                    <i class="fas fa-circle"></i> <span id="statusText">Initializing...</span>
-                </div>
-
-                <!-- Processing Overlay -->
-                <div id="processingOverlay" class="processing-overlay">
-                    <div class="spinner-border"></div>
+            <!-- Camera Grid -->
+            <div id="cameraGrid" class="camera-grid empty">
+                <div class="camera-grid-placeholder">
+                    <i class="fas fa-video-slash fa-3x mb-3 opacity-50"></i>
+                    <p class="mb-0">Click "Start Live Attendance" to begin monitoring every active camera.</p>
                 </div>
             </div>
 
             <!-- Instructions -->
-            <div class="instructions-card mt-3">
-                <h6 class="mb-3"><i class="fas fa-info-circle"></i> Live Attendance Instructions</h6>
-                <div class="instruction-item">
-                    <i class="fas fa-check-circle text-success"></i>
-                    <span>Stand in front of camera with good lighting</span>
-                </div>
-                <div class="instruction-item">
-                    <i class="fas fa-user-check text-primary"></i>
-                    <span>Face auto-detected and recognized instantly</span>
-                </div>
-                <div class="instruction-item">
-                    <i class="fas fa-clock text-info"></i>
-                    <span>Check-in once, check-out after 4+ hours work</span>
-                </div>
-                <div class="instruction-item">
-                    <i class="fas fa-shield-alt text-warning"></i>
-                    <span>Real faces only - photo/screen detection active</span>
+            <div class="instructions-card mt-2">
+                <h6><i class="fas fa-info-circle"></i> Live Attendance Instructions</h6>
+                <div class="instructions-grid">
+                    <div class="instruction-item">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <span>Stand in front of any camera with good lighting</span>
+                    </div>
+                    <div class="instruction-item">
+                        <i class="fas fa-user-check text-primary"></i>
+                        <span>Face auto-detected and recognized instantly</span>
+                    </div>
+                    <div class="instruction-item">
+                        <i class="fas fa-clock text-info"></i>
+                        <span>Check-in once, check-out after 4+ hours work</span>
+                    </div>
+                    <div class="instruction-item">
+                        <i class="fas fa-shield-alt text-warning"></i>
+                        <span>Real faces only - photo/screen detection active</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -395,9 +391,26 @@
                     <div id="activityFeed" class="activity-feed p-3">
                         <div class="text-center text-muted py-5">
                             <i class="fas fa-user-clock fa-3x mb-3 opacity-50"></i>
-                            <p>Start camera to see live activity</p>
+                            <p>Start cameras to see live activity</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Profile Modal -->
+<div class="modal fade" id="profileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Employee Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="profileModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary"></div>
                 </div>
             </div>
         </div>
@@ -408,38 +421,24 @@
 {% block extra_js %}
 <script>
     // ============================================
-    // GLOBAL VARIABLES
+    // GLOBAL STATE
     // ============================================
-    let videoFeed       = document.getElementById('videoFeed');
-    let detectionCanvas = document.getElementById('detectionCanvas');
-    let detectionCtx    = detectionCanvas.getContext('2d');
-    let mediaStream     = null;
-    let isRunning       = false;
-    let lastDisplayedEmployee = null;
-    let currentEmployeeCard   = null;
+    let isRunning   = false;
+    let activeTiles = [];   // CameraTile instances currently running
+    let profileModal = null;
 
-    // ── Self-scheduling detection-loop control flag.  Replaces the old
-    //    setInterval-based approach (see startDetectionLoop() below for why).
-    let detectionLoopActive = false;
-
-    // Configuration
     const CONFIG = {
-        // ── MIN_CYCLE_GAP replaces the old fixed DETECTION_INTERVAL.
-        //    Old design used setInterval(1500ms), which fires on a fixed
-        //    clock regardless of whether the previous async cycle finished.
-        //    If we dropped that to 500ms and a cycle ever took >500ms,
-        //    requests would stack up on the single-threaded Flask dev
-        //    server — processed serially, arriving out of order.
-        //
-        //    New design uses a self-scheduling loop: each cycle schedules
-        //    the NEXT one only after it fully completes, so cycles can
-        //    never overlap and the loop naturally paces itself to whatever
-        //    the backend can handle.  MIN_CYCLE_GAP is just a floor to
-        //    prevent hammering the server with zero gap if a cycle ever
-        //    finishes near-instantly (e.g. cached response).
-        MIN_CYCLE_GAP: 100,
-        DISPLAY_DURATION: 5000,
-        CONFIDENCE_THRESHOLD: 0.6,
+        // Each camera tile self-schedules its own cycle (never overlaps its
+        // own previous request). Every cycle now processes up to
+        // MAX_FACES_PER_CYCLE faces server-side (routes/attendance.py) in a
+        // single request rather than just one, so this can run noticeably
+        // faster than a naive "N cameras × top speed" estimate would
+        // suggest — the per-cycle cost grows with faces-in-frame, not with
+        // just camera count. 500ms keeps it feeling responsive per gate
+        // while still leaving headroom for several concurrent cameras;
+        // lower it further if your hardware has room, raise it if several
+        // gates are busy at once and GPU load becomes the bottleneck.
+        TILE_CYCLE_GAP: 500,
         BOX_COLOR_DETECTED: '#3B82F6',
         BOX_COLOR_MATCHED:  '#10B981',
         BOX_COLOR_UNKNOWN:  '#EF4444',
@@ -454,409 +453,378 @@
         setInterval(updateClock, 1000);
         loadTodayStats();
         setInterval(loadTodayStats, 10000);
+        profileModal = new bootstrap.Modal(document.getElementById('profileModal'));
     });
 
-    // ============================================
-    // CLOCK FUNCTIONS
-    // ============================================
     function updateClock() {
         const now = new Date();
-        const timeString = now.toLocaleTimeString('en-US', {
-            hour:   '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', {
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
-        document.getElementById('currentTime').textContent = timeString;
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str || '';
+        return div.innerHTML;
+    }
+
+    // '2 hr 30 min' style formatting for late-by display, instead of raw minutes.
+    function formatLateMinutes(minutes) {
+        if (!minutes || minutes <= 0) return '';
+        const hours = Math.floor(minutes / 60);
+        const mins  = minutes % 60;
+        if (hours && mins) return `${hours} hr ${mins} min`;
+        if (hours) return `${hours} hr`;
+        return `${mins} min`;
     }
 
     // ============================================
-    // CAMERA FUNCTIONS - Network Camera Priority
+    // CAMERA TILE — one per active camera, each runs its own
+    // independent detection loop so every gate marks attendance
+    // simultaneously instead of requiring one camera to be picked.
     // ============================================
-    let usingNetworkCamera = false;
-    let networkCameraImg   = null;
+    class CameraTile {
+        constructor(camera) {
+            this.id = camera.id;
+            this.type = camera.camera_type;
+            this.label = camera.location ? `${camera.name} — ${camera.location}` : camera.name;
+            this.mediaStream = null;
+            this.loopActive = false;
+            this.facesCount = 0;
 
-    async function startLiveAttendance() {
-        try {
-            showStatus('Checking camera sources...', 'detecting');
+            this.root = null;
+            this.video = null;
+            this.networkFeed = null;
+            this.canvas = null;
+            this.ctx = null;
+            this.statusBadge = null;
+        }
 
-            let cameraStatus = null;
+        buildElement() {
+            const el = document.createElement('div');
+            el.className = 'camera-tile';
+            el.innerHTML = `
+                <div class="camera-tile-header">
+                    <span class="camera-tile-name" title="${escapeHtml(this.label)}">
+                        <i class="fas fa-video"></i> ${escapeHtml(this.label)}
+                    </span>
+                    <span class="camera-tile-status" data-status="idle">Starting…</span>
+                </div>
+                <div class="camera-tile-video">
+                    <video autoplay playsinline muted style="display:none;"></video>
+                    <img class="tile-network-feed" style="display:none;" alt="${escapeHtml(this.label)}">
+                    <canvas></canvas>
+                </div>
+            `;
+            this.root = el;
+            this.video = el.querySelector('video');
+            this.networkFeed = el.querySelector('.tile-network-feed');
+            this.canvas = el.querySelector('canvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.statusBadge = el.querySelector('.camera-tile-status');
+            return el;
+        }
+
+        setStatus(text, kind) {
+            this.statusBadge.textContent = text;
+            this.statusBadge.dataset.status = kind || 'idle';
+        }
+
+        async start() {
             try {
-                const statusResponse = await fetch('/api/camera/status');
-                cameraStatus = await statusResponse.json();
-                console.log('Camera status:', cameraStatus);
+                this.setStatus('Connecting…', 'detecting');
+
+                if (this.type === 'ip') {
+                    const testResponse = await fetch(`/api/camera/${this.id}/snapshot`);
+                    if (!testResponse.ok) throw new Error(`snapshot status ${testResponse.status}`);
+                    this.networkFeed.style.display = 'block';
+                    this.networkFeed.src = `/api/camera/${this.id}/stream?` + Date.now();
+                } else {
+                    this.mediaStream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 1280, max: 1920 },
+                            height: { ideal: 720, max: 1080 },
+                            facingMode: 'user'
+                        }
+                    });
+                    this.video.style.display = 'block';
+                    this.video.srcObject = this.mediaStream;
+                    await new Promise((resolve) => {
+                        this.video.onloadedmetadata = () => { this.video.play(); resolve(); };
+                    });
+                }
+
+                this.setStatus('Live', 'live');
+                this.loopActive = true;
+                this.runCycle();
             } catch (e) {
-                console.warn('Could not check camera status API:', e);
+                console.error(`Camera "${this.label}" failed to start:`, e);
+                this.setStatus('Offline', 'error');
             }
+        }
 
-            if (cameraStatus && cameraStatus.source === 'network' && !cameraStatus.use_browser_webcam) {
-                console.log('🎥 Using NETWORK camera feed');
-                usingNetworkCamera = true;
-                showStatus('Connecting to network camera...', 'detecting');
-
-                try {
-                    const testResponse = await fetch('/api/camera/snapshot');
-                    if (!testResponse.ok) {
-                        throw new Error(`Snapshot endpoint returned ${testResponse.status}`);
-                    }
-                    console.log('✓ Network camera snapshot endpoint verified');
-                } catch (e) {
-                    console.warn('Network camera snapshot test failed, falling back to browser webcam:', e);
-                    usingNetworkCamera = false;
-                }
+        stop() {
+            this.loopActive = false;
+            if (this.mediaStream) {
+                this.mediaStream.getTracks().forEach(t => t.stop());
+                this.mediaStream = null;
             }
-
-            if (usingNetworkCamera) {
-                videoFeed.style.display = 'none';
-                const networkFeed = document.getElementById('networkFeed');
-                networkFeed.style.display = 'block';
-
-                // ── Change 1: restore the independent MJPEG stream for smooth
-                //    live display.  This runs decoupled from the recognition loop
-                //    so motion isn't bottlenecked on backend recognition speed.
-                networkFeed.src = '/api/camera/stream?' + Date.now();
-                console.log('✓ Network camera MJPEG stream started');
-            } else {
-                console.log('🎥 Using SYSTEM webcam (browser getUserMedia)');
-                showStatus('Initializing system webcam...', 'detecting');
-
-                document.getElementById('networkFeed').style.display = 'none';
-                videoFeed.style.display = 'block';
-
-                mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width:      { ideal: 1280, max: 1920 },
-                        height:     { ideal: 720,  max: 1080 },
-                        facingMode: 'user',
-                        frameRate:  { ideal: 30,   max: 60 }
-                    }
-                });
-
-                videoFeed.srcObject = mediaStream;
-
-                await new Promise((resolve) => {
-                    videoFeed.onloadedmetadata = () => {
-                        videoFeed.play();
-                        resolve();
-                    };
-                });
-            }
-
-            setupCanvas();
-
-            document.getElementById('startBtn').style.display = 'none';
-            document.getElementById('stopBtn').style.display  = 'inline-block';
-
-            const sourceLabel = usingNetworkCamera ? 'Network Camera' : 'System Webcam';
-            showStatus(`Live - ${sourceLabel} - Auto Detection Active`, 'live');
-            isRunning = true;
-
-            clearActivityFeed();
-
-            lastDisplayedEmployee = null;
-            currentEmployeeCard   = null;
-
-            startDetectionLoop();
-
-            console.log(`✓ Live attendance started (source: ${sourceLabel})`);
-
-        } catch (error) {
-            console.error('Camera error:', error);
-            alert('Camera access denied. Please allow camera permissions and try again.');
-            hideStatus();
-        }
-    }
-
-    function stopLiveAttendance() {
-        isRunning = false;
-
-        // Stop the self-scheduling detection loop.  The next runDetectionCycle()
-        // callback will see detectionLoopActive === false and return without
-        // rescheduling, so the loop cleanly winds down after the in-flight
-        // request (if any) completes.
-        detectionLoopActive = false;
-
-        if (mediaStream) {
-            mediaStream.getTracks().forEach(track => track.stop());
-            videoFeed.srcObject = null;
+            if (this.networkFeed) this.networkFeed.src = '';
         }
 
-        const networkFeed = document.getElementById('networkFeed');
-        networkFeed.src = '';
-        networkFeed.style.display = 'none';
-
-        videoFeed.style.display = 'block';
-
-        usingNetworkCamera = false;
-        networkCameraImg   = null;
-
-        detectionCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
-
-        clearEmployeeDisplay();
-
-        document.getElementById('startBtn').style.display = 'inline-block';
-        document.getElementById('stopBtn').style.display  = 'none';
-        hideStatus();
-
-        console.log('✓ Live attendance stopped');
-    }
-
-    function setupCanvas() {
-        if (usingNetworkCamera) {
-            detectionCanvas.width  = 1280;
-            detectionCanvas.height = 720;
-            const videoRect = videoFeed.getBoundingClientRect();
-            detectionCanvas.style.width  = videoRect.width  + 'px';
-            detectionCanvas.style.height = videoRect.height + 'px';
-        } else {
-            const videoRect = videoFeed.getBoundingClientRect();
-            detectionCanvas.width  = videoFeed.videoWidth;
-            detectionCanvas.height = videoFeed.videoHeight;
-            detectionCanvas.style.width  = videoRect.width  + 'px';
-            detectionCanvas.style.height = videoRect.height + 'px';
-        }
-    }
-
-    // ============================================
-    // DETECTION LOOP - SELF-SCHEDULING (no overlap possible)
-    // ============================================
-    //
-    // Old design (setInterval at fixed interval): fires on a fixed clock
-    // regardless of whether the previous cycle finished.  If any cycle
-    // exceeded the interval, requests would stack up on the single-threaded
-    // Flask dev server, be processed serially, and responses could arrive
-    // out of order.
-    //
-    // New design: each cycle awaits its own completion, then schedules the
-    // NEXT cycle via setTimeout.  Guarantees:
-    //   • Cycles can never overlap.
-    //   • Loop naturally paces itself to whatever the backend can handle.
-    //   • No guessing of a "safe" interval — it just runs as fast as possible.
-    //   • MIN_CYCLE_GAP acts as a floor so we don't hammer the server with
-    //     zero gap on ultra-fast responses.
-    // ============================================
-    function startDetectionLoop() {
-        detectionLoopActive = true;
-        runDetectionCycle();
-    }
-
-    async function runDetectionCycle() {
-        if (!detectionLoopActive || !isRunning) return;
-
-        try {
-            await detectAndRecognizeFaces();
-        } catch (error) {
-            console.error('Detection error:', error);
-        }
-
-        // Schedule the next cycle only after this one fully completes.
-        if (detectionLoopActive && isRunning) {
-            setTimeout(runDetectionCycle, CONFIG.MIN_CYCLE_GAP);
-        }
-    }
-
-    async function detectAndRecognizeFaces() {
-        let imageData;
-
-        if (usingNetworkCamera) {
+        async runCycle() {
+            if (!this.loopActive) return;
             try {
-                const snapshotResponse = await fetch('/api/camera/snapshot');
-                if (!snapshotResponse.ok) {
-                    console.warn('Network camera snapshot failed, status:', snapshotResponse.status);
-                    return;
-                }
-                const blob = await snapshotResponse.blob();
+                await this.detectAndRecognize();
+            } catch (e) {
+                console.error(`Camera "${this.label}" cycle error:`, e);
+            }
+            if (this.loopActive) {
+                setTimeout(() => this.runCycle(), CONFIG.TILE_CYCLE_GAP);
+            }
+        }
 
+        async detectAndRecognize() {
+            let imageData;
+
+            if (this.type === 'ip') {
+                const res = await fetch(`/api/camera/${this.id}/snapshot`);
+                if (!res.ok) return;
+                const blob = await res.blob();
                 imageData = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.onloadend = () => resolve(reader.result);
                     reader.readAsDataURL(blob);
                 });
 
-                // ── Change 2: display now comes from the independent MJPEG stream
-                //    started in startLiveAttendance() — this snapshot is only used
-                //    for recognition + sizing the detection-box overlay.
-                const img = new Image();
-                img.onload = () => {
-                    if (detectionCanvas.width  !== img.width ||
-                        detectionCanvas.height !== img.height) {
-                        detectionCanvas.width  = img.width;
-                        detectionCanvas.height = img.height;
-                    }
-                };
-                img.src = imageData;
+                // Keep the canvas buffer sized to the actual snapshot so
+                // bbox coordinates (in that same pixel space) draw correctly
+                // with no separate scale factor needed.
+                await new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        if (this.canvas.width !== img.width || this.canvas.height !== img.height) {
+                            this.canvas.width = img.width;
+                            this.canvas.height = img.height;
+                        }
+                        resolve();
+                    };
+                    img.onerror = resolve;
+                    img.src = imageData;
+                });
+            } else {
+                if (!this.video.videoWidth) return;
+                const captureCanvas = document.createElement('canvas');
+                captureCanvas.width = this.video.videoWidth;
+                captureCanvas.height = this.video.videoHeight;
+                captureCanvas.getContext('2d').drawImage(this.video, 0, 0);
+                imageData = captureCanvas.toDataURL('image/jpeg', 0.8);
 
+                if (this.canvas.width !== this.video.videoWidth || this.canvas.height !== this.video.videoHeight) {
+                    this.canvas.width = this.video.videoWidth;
+                    this.canvas.height = this.video.videoHeight;
+                }
+            }
+
+            let data;
+            try {
+                const response = await fetch('{{ url_for("attendance.mark_attendance") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: imageData,
+                        auto_mode: true,
+                        camera_id: this.id,
+                        location: this.label
+                    })
+                });
+                data = await response.json();
             } catch (e) {
-                console.error('Network camera frame capture failed:', e);
+                console.error(`Camera "${this.label}" recognition request failed:`, e);
+                this.clearCanvas();
                 return;
             }
-        } else {
-            const canvas = document.createElement('canvas');
-            canvas.width  = videoFeed.videoWidth;
-            canvas.height = videoFeed.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(videoFeed, 0, 0);
 
-            imageData = canvas.toDataURL('image/jpeg', 0.8);
+            // Redraw fresh every cycle — up to MAX_FACES_PER_CYCLE results
+            // come back per request now, so the canvas is fully cleared and
+            // whatever's actually in this cycle's results gets drawn, rather
+            // than tracking "did the recognized face change" like the old
+            // single-face design had to.
+            this.clearCanvas();
+
+            let anySuccess = false;
+            for (const result of (data.results || [])) {
+                this.handleResult(result);
+                if (result.success) anySuccess = true;
+            }
+
+            if (anySuccess) {
+                loadTodayStats();
+                playSound('success');
+                const videoEl = this.root.querySelector('.camera-tile-video');
+                videoEl.classList.add('face-matched');
+                setTimeout(() => videoEl.classList.remove('face-matched'), 600);
+            }
+
+            this.updateStatusBadge(data.results || []);
+            this.facesCount = data.faces_count || 0;
+            updateAggregateFacesCount();
         }
 
+        handleResult(result) {
+            const status = result.status || '';
+
+            if (result.success) {
+                addActivityCard(result, this.label);
+                this.drawFaceBox(result, CONFIG.BOX_COLOR_MATCHED);
+                return;
+            }
+
+            switch (status) {
+                case 'COOLDOWN':
+                    if (result.face_detected && result.bbox) this.drawFaceBox(result, CONFIG.BOX_COLOR_DETECTED);
+                    break;
+
+                // Already marked for today's current window — go completely
+                // silent (no box, no card, no status) until the person is
+                // next eligible to check in/out. Backend never even runs
+                // liveness for these cases (see process_recognized_face()
+                // in routes/attendance.py) since they can't write to the DB.
+                case 'ALREADY_COMPLETED':
+                case 'TOO_EARLY_CHECKOUT':
+                case 'ALREADY_CHECKED_IN':
+                case 'DUPLICATE_ATTENDANCE':
+                    break;
+
+                case 'NO_FACE':
+                    break;
+
+                case 'NO_MATCH':
+                    if (result.face_detected && result.bbox) {
+                        this.drawFaceBox(result, CONFIG.BOX_COLOR_UNKNOWN);
+                    }
+                    break;
+
+                default:
+                    if (result.face_detected && result.bbox) {
+                        this.drawFaceBox(result, CONFIG.BOX_COLOR_DETECTED);
+                    }
+            }
+        }
+
+        updateStatusBadge(results) {
+            const success = results.find(r => r.success);
+            if (success) {
+                this.setStatus(success.type === 'checkin' ? 'Checked in' : 'Checked out', 'live');
+                return;
+            }
+            const facesShown = results.filter(r => r.face_detected).length;
+            this.setStatus(facesShown > 0 ? `Live · ${facesShown} face${facesShown > 1 ? 's' : ''}` : 'Live', 'live');
+        }
+
+        drawFaceBox(data, color) {
+            if (!data.bbox) return;
+
+            const [x, y, width, height] = data.bbox;
+
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = 4;
+            this.ctx.strokeRect(x, y, width, height);
+
+            if (data.employee) {
+                const label = data.employee.name;
+                const confidence = Math.round(data.confidence || 0);
+                const labelHeight = 30;
+
+                this.ctx.fillStyle = color;
+                this.ctx.fillRect(x, Math.max(0, y - labelHeight), width, labelHeight);
+
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = 'bold 16px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(`${label} (${confidence}%)`, x + width / 2, Math.max(14, y - 8));
+            }
+        }
+
+        clearCanvas() {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+    }
+
+    // ============================================
+    // START / STOP ALL CAMERAS
+    // ============================================
+    async function startLiveAttendance() {
+        let cameras;
         try {
-            const response = await fetch('{{ url_for("attendance.mark_attendance") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    image: imageData,
-                    auto_mode: true,
-                    camera_source: usingNetworkCamera ? 'network' : 'system'
-                })
-            });
-
-            const data = await response.json();
-
-            console.log('Response:', data.status || data.message);
-
-            if (data.clear_frame && data.is_new_face) {
-                console.log('🔄 New face detected - clearing old display');
-                clearEmployeeDisplay();
-            }
-
-            if (data.success) {
-                handleSuccessfulRecognition(data);
-            } else {
-                handleRecognitionStatus(data);
-            }
-
-            document.getElementById('liveDetectedCount').textContent = data.faces_count || 0;
-
-        } catch (error) {
-            console.error('Recognition request failed:', error);
-            document.getElementById('liveDetectedCount').textContent = '0';
-            clearCanvas();
+            const res = await fetch('/api/cameras?active_only=1');
+            const data = await res.json();
+            cameras = data.success ? data.cameras : [];
+        } catch (e) {
+            alert('Could not load cameras: ' + e.message);
+            return;
         }
+
+        if (!cameras.length) {
+            alert('No active cameras configured. Add one in Settings > Cameras first.');
+            return;
+        }
+
+        const grid = document.getElementById('cameraGrid');
+        grid.classList.remove('empty');
+        grid.innerHTML = '';
+
+        activeTiles = cameras.map(cam => new CameraTile(cam));
+        activeTiles.forEach(tile => grid.appendChild(tile.buildElement()));
+
+        document.getElementById('cameraCountLabel').textContent =
+            `Monitoring ${activeTiles.length} camera${activeTiles.length === 1 ? '' : 's'} • Smart cooldown active`;
+
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display  = 'inline-block';
+        isRunning = true;
+
+        clearActivityFeed();
+
+        // Start every tile concurrently — each gate goes live independently,
+        // one camera failing to open doesn't block the others.
+        await Promise.all(activeTiles.map(tile => tile.start()));
+
+        console.log(`✓ Live attendance started on ${activeTiles.length} camera(s)`);
+    }
+
+    function stopLiveAttendance() {
+        isRunning = false;
+        activeTiles.forEach(tile => tile.stop());
+        activeTiles = [];
+
+        const grid = document.getElementById('cameraGrid');
+        grid.classList.add('empty');
+        grid.innerHTML = `
+            <div class="camera-grid-placeholder">
+                <i class="fas fa-video-slash fa-3x mb-3 opacity-50"></i>
+                <p class="mb-0">Click "Start Live Attendance" to begin monitoring every active camera.</p>
+            </div>
+        `;
+
+        document.getElementById('cameraCountLabel').textContent = 'Every active camera runs at once • Smart cooldown active';
+        document.getElementById('startBtn').style.display = 'inline-block';
+        document.getElementById('stopBtn').style.display  = 'none';
+        document.getElementById('liveDetectedCount').textContent = '0';
+
+        console.log('✓ Live attendance stopped');
+    }
+
+    function updateAggregateFacesCount() {
+        const total = activeTiles.reduce((sum, tile) => sum + (tile.facesCount || 0), 0);
+        document.getElementById('liveDetectedCount').textContent = total;
     }
 
     // ============================================
-    // RECOGNITION HANDLERS
+    // ACTIVITY FEED (shared across all cameras, tagged by gate)
     // ============================================
-    function handleSuccessfulRecognition(data) {
-        const employeeId = data.employee.army_id;
-
-        if (lastDisplayedEmployee !== employeeId) {
-            clearEmployeeDisplay();
-            lastDisplayedEmployee = employeeId;
-        }
-
-        displayRecognitionResult(data);
-
-        loadTodayStats();
-
-        drawFaceBox(data, CONFIG.BOX_COLOR_MATCHED);
-
-        playSound('success');
-
-        videoFeed.classList.add('face-matched');
-        setTimeout(() => videoFeed.classList.remove('face-matched'), 600);
-
-        if (data.type === 'checkin') {
-            showStatus(`✓ Check-in: ${data.employee.name}`, 'live');
-        } else {
-            showStatus(`✓ Check-out: ${data.employee.name}`, 'live');
-        }
-    }
-
-    function handleRecognitionStatus(data) {
-        const status = data.status || '';
-
-        switch (status) {
-            case 'COOLDOWN':
-                if (data.face_detected && data.bbox) {
-                    drawFaceBox(data, CONFIG.BOX_COLOR_DETECTED);
-                }
-                break;
-
-            case 'ALREADY_COMPLETED':
-                if (data.employee) {
-                    drawFaceBox(data, CONFIG.BOX_COLOR_WARNING);
-                    displayWarningCard(data, 'Attendance already completed today');
-                }
-                break;
-
-            case 'TOO_EARLY_CHECKOUT':
-                if (data.employee) {
-                    drawFaceBox(data, CONFIG.BOX_COLOR_WARNING);
-                    const msg = data.message || 'Too early for checkout';
-                    displayWarningCard(data, msg);
-                }
-                break;
-
-            case 'NO_FACE':
-                clearCanvas();
-                if (lastDisplayedEmployee) {
-                    setTimeout(() => {
-                        if (!isRunning) return;
-                        clearEmployeeDisplay();
-                    }, 2000);
-                }
-                break;
-
-            case 'NO_MATCH':
-                if (data.face_detected && data.bbox) {
-                    drawFaceBox(data, CONFIG.BOX_COLOR_UNKNOWN);
-                    showStatus('Unknown face detected', 'warning');
-                }
-                break;
-
-            default:
-                if (data.face_detected && data.bbox) {
-                    drawFaceBox(data, CONFIG.BOX_COLOR_DETECTED);
-                }
-        }
-    }
-
-    // ============================================
-    // DRAWING FUNCTIONS
-    // ============================================
-    function drawFaceBox(data, color) {
-        clearCanvas();
-
-        if (!data.bbox) return;
-
-        const [x, y, width, height] = data.bbox;
-
-        const scaleX = detectionCanvas.width  / videoFeed.videoWidth;
-        const scaleY = detectionCanvas.height / videoFeed.videoHeight;
-
-        const scaledX      = x * scaleX;
-        const scaledY      = y * scaleY;
-        const scaledWidth  = width  * scaleX;
-        const scaledHeight = height * scaleY;
-
-        detectionCtx.strokeStyle = color;
-        detectionCtx.lineWidth = 4;
-        detectionCtx.strokeRect(scaledX, scaledY, scaledWidth, scaledHeight);
-
-        if (data.employee) {
-            const label      = data.employee.name;
-            const confidence = Math.round(data.confidence || 0);
-
-            detectionCtx.fillStyle = color;
-            const labelHeight = 30;
-            detectionCtx.fillRect(scaledX, scaledY - labelHeight, scaledWidth, labelHeight);
-
-            detectionCtx.fillStyle = 'white';
-            detectionCtx.font = 'bold 16px Arial';
-            detectionCtx.textAlign = 'center';
-            detectionCtx.fillText(`${label} (${confidence}%)`, scaledX + scaledWidth / 2, scaledY - 8);
-        }
-    }
-
-    function clearCanvas() {
-        detectionCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
-    }
-
-    // ============================================
-    // UI UPDATE FUNCTIONS
-    // ============================================
-    function displayRecognitionResult(data) {
+    function addActivityCard(data, gateLabel) {
         const feed = document.getElementById('activityFeed');
 
         if (feed.querySelector('.text-center')) {
@@ -866,10 +834,17 @@
         const card = document.createElement('div');
         card.className = `employee-card ${data.type === 'checkout' ? 'checkout' : ''}`;
         card.dataset.employeeId = data.employee.army_id;
+        card.style.cursor = 'pointer';
+        card.title = 'Click for full profile';
+        card.onclick = () => openProfileModal(data.employee.id);
 
         const photoUrl  = data.employee.photo || '/static/img/default-avatar.png';
         const timeValue = data.attendance.check_in || data.attendance.check_out || 'Now';
         const workHours = data.attendance.work_hours ? `${data.attendance.work_hours}h` : 'N/A';
+        const lateMinutes = data.attendance.late_minutes;
+        const lateChip = lateMinutes > 0
+            ? `<span class="badge bg-danger ms-2"><i class="fas fa-exclamation-circle"></i> ${formatLateMinutes(lateMinutes)} late</span>`
+            : '';
 
         card.innerHTML = `
         <div class="employee-card-header">
@@ -877,11 +852,13 @@
             <div class="flex-grow-1">
                 <h5 class="employee-name">${data.employee.name}</h5>
                 <p class="employee-id">ID: ${data.employee.army_id}</p>
+                <p class="employee-gate"><i class="fas fa-map-marker-alt"></i> ${escapeHtml(gateLabel)}</p>
             </div>
-            <div>
+            <div class="text-end">
                 <span class="time-badge ${data.type === 'checkout' ? 'checkout' : ''}">
                     <i class="fas fa-clock"></i> ${timeValue}
                 </span>
+                ${lateChip ? `<div class="mt-1">${lateChip}</div>` : ''}
             </div>
         </div>
         <div class="employee-details">
@@ -920,56 +897,9 @@
 
         feed.insertBefore(card, feed.firstChild);
 
-        currentEmployeeCard = card;
-
-        while (feed.children.length > 10) {
+        while (feed.children.length > 15) {
             feed.removeChild(feed.lastChild);
         }
-    }
-
-    function displayWarningCard(data, message) {
-        const feed = document.getElementById('activityFeed');
-
-        if (feed.querySelector('.text-center')) {
-            feed.innerHTML = '';
-        }
-
-        const employeeId = data.employee.army_id;
-        if (lastDisplayedEmployee === employeeId && currentEmployeeCard) {
-            return;
-        }
-
-        lastDisplayedEmployee = employeeId;
-
-        const card = document.createElement('div');
-        card.className = 'employee-card warning';
-        card.dataset.employeeId = employeeId;
-
-        const photoUrl = data.employee.photo || '/static/img/default-avatar.png';
-
-        card.innerHTML = `
-        <div class="employee-card-header">
-            <img src="/${photoUrl}" alt="Photo" class="employee-photo" onerror="this.src='/static/img/default-avatar.png'">
-            <div class="flex-grow-1">
-                <h5 class="employee-name">${data.employee.name}</h5>
-                <p class="employee-id">ID: ${data.employee.army_id}</p>
-            </div>
-        </div>
-        <div class="alert alert-warning mb-0">
-            <i class="fas fa-exclamation-triangle"></i> ${message}
-        </div>
-    `;
-
-        feed.insertBefore(card, feed.firstChild);
-        currentEmployeeCard = card;
-
-        showStatus(`⚠ ${data.employee.name} - ${message}`, 'warning');
-    }
-
-    function clearEmployeeDisplay() {
-        clearCanvas();
-        lastDisplayedEmployee = null;
-        currentEmployeeCard   = null;
     }
 
     function clearActivityFeed() {
@@ -980,28 +910,68 @@
             <p class="mb-0">Waiting for faces...</p>
         </div>
     `;
-        lastDisplayedEmployee = null;
-        currentEmployeeCard   = null;
     }
 
     // ============================================
-    // STATUS FUNCTIONS
+    // EMPLOYEE PROFILE MODAL
     // ============================================
-    function showStatus(text, type) {
-        const indicator  = document.getElementById('statusIndicator');
-        const statusText = document.getElementById('statusText');
+    async function openProfileModal(employeeId) {
+        if (!employeeId) return;
+        const body = document.getElementById('profileModalBody');
+        body.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+        profileModal.show();
 
-        indicator.className = `status-indicator status-${type}`;
-        statusText.textContent = text;
-        indicator.style.display = 'block';
+        try {
+            const res = await fetch(`/registration/employee/${employeeId}/summary`);
+            const data = await res.json();
+
+            if (!data.success) {
+                body.innerHTML = '<p class="text-danger mb-0">Could not load this employee\'s profile.</p>';
+                return;
+            }
+
+            const e = data.employee;
+            const s = data.stats;
+            const historyRows = data.recent_attendance.map(a => `
+                <tr>
+                    <td>${a.date}</td>
+                    <td>${a.check_in || '-'}</td>
+                    <td>${a.check_out || '-'}</td>
+                    <td>${a.status}${a.late_minutes ? ` (${formatLateMinutes(a.late_minutes)} late)` : ''}</td>
+                </tr>
+            `).join('');
+
+            body.innerHTML = `
+                <div class="d-flex align-items-center mb-3">
+                    <img src="/${e.photo}" alt="Photo" class="employee-photo me-3" onerror="this.src='/static/img/default-avatar.png'">
+                    <div>
+                        <h5 class="mb-0">${e.full_name}${e.is_active ? '' : ' <span class="badge bg-secondary">Inactive</span>'}</h5>
+                        <p class="text-muted mb-0">ID: ${e.army_id} • ${e.rank}</p>
+                    </div>
+                </div>
+                <div class="employee-details mb-3">
+                    <div class="detail-item"><i class="fas fa-building"></i> <span><strong>Unit:</strong> ${e.unit}</span></div>
+                    <div class="detail-item"><i class="fas fa-sitemap"></i> <span><strong>Dept:</strong> ${e.department}</span></div>
+                    <div class="detail-item"><i class="fas fa-id-badge"></i> <span><strong>Designation:</strong> ${e.designation}</span></div>
+                    <div class="detail-item"><i class="fas fa-phone"></i> <span><strong>Phone:</strong> ${e.phone}</span></div>
+                    <div class="detail-item"><i class="fas fa-envelope"></i> <span><strong>Email:</strong> ${e.email}</span></div>
+                    <div class="detail-item"><i class="fas fa-calendar"></i> <span><strong>Joined:</strong> ${e.date_of_joining || 'N/A'}</span></div>
+                </div>
+                <p class="mb-2"><strong>Last 30 days:</strong> ${s.present_days}/${s.total_days} days present (${s.attendance_percentage}%)</p>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead><tr><th>Date</th><th>In</th><th>Out</th><th>Status</th></tr></thead>
+                        <tbody>${historyRows || '<tr><td colspan="4" class="text-muted text-center">No recent attendance</td></tr>'}</tbody>
+                    </table>
+                </div>
+            `;
+        } catch (e) {
+            body.innerHTML = '<p class="text-danger mb-0">Failed to load profile.</p>';
+        }
     }
 
-    function hideStatus() {
-        document.getElementById('statusIndicator').style.display = 'none';
-    }
-
     // ============================================
-    // STATS FUNCTIONS
+    // STATS
     // ============================================
     async function loadTodayStats() {
         try {
@@ -1018,7 +988,7 @@
     }
 
     // ============================================
-    // UTILITY FUNCTIONS
+    // UTILITY
     // ============================================
     function playSound(type) {
         try {
@@ -1041,18 +1011,10 @@
     }
 
     // ============================================
-    // CLEANUP ON PAGE UNLOAD
+    // CLEANUP
     // ============================================
     window.addEventListener('beforeunload', function () {
-        if (isRunning) {
-            stopLiveAttendance();
-        }
-    });
-
-    window.addEventListener('resize', function () {
-        if (isRunning) {
-            setupCanvas();
-        }
+        if (isRunning) stopLiveAttendance();
     });
 </script>
 {% endblock %}
