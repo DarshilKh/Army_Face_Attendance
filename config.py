@@ -54,6 +54,13 @@ class Config:
     # Threshold for face matching (lower = stricter)
     FACE_THRESHOLD = float(os.getenv('FACE_THRESHOLD', '0.4'))
 
+    # Similarity above which a NEW registration is rejected as a duplicate of
+    # someone already registered (lower = catches more duplicates but risks
+    # false-blocking two different people who look similar; higher = only
+    # blocks near-exact repeats but may miss a genuine duplicate registered
+    # under different lighting/angle)
+    DUPLICATE_FACE_THRESHOLD = float(os.getenv('DUPLICATE_FACE_THRESHOLD', '0.75'))
+
     # Minimum face size in pixels
     MIN_FACE_SIZE = int(os.getenv('MIN_FACE_SIZE', '40'))
 
@@ -71,6 +78,12 @@ class Config:
     # Multi-angle registration
     MULTI_ANGLE_REGISTRATION = os.getenv('MULTI_ANGLE_REGISTRATION', 'True').lower() == 'true'
     REQUIRED_ANGLES = ['front', 'left', 'right']  # Required photo angles
+
+    # Army ranks, junior to senior (used for the Rank dropdown on registration/edit)
+    RANKS = [
+        'AGV', 'Sep', 'Nk', 'Hav', 'Nb Sub', 'Sub', 'Sub Maj',
+        'Lt', 'Capt', 'Maj', 'Lt Col', 'Col', 'Brig', 'Maj Gen', 'Lt Gen', 'Gen'
+    ]
 
     # ==================== CAMERA CONFIG ====================
     # Default camera index (0 = built-in webcam, used as fallback)
