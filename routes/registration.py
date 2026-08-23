@@ -124,7 +124,46 @@ def index():
         flash('Access denied', 'error')
         return redirect(url_for('auth.dashboard'))
 
-    return render_template('registration.html')
+    return render_template('registration.html', ranks=Config.RANKS)
+
+
+@registration_bp.route('/check_quality', methods=['POST'])
+@login_required
+def check_quality():
+    """
+    Live photo-quality feedback during registration — reuses the same
+    face_engine.get_face_quality_score() that select_best_photo() already
+    uses server-side, just surfaced to the frontend per angle instead of
+    only appearing in the console log.
+    """
+    try:
+        data = request.get_json() or {}
+        image = decode_base64_image(data.get('image', ''))
+
+        if image is None:
+            return jsonify({'success': False, 'message': 'Invalid image data'}), 400
+
+        quality_score, details = face_engine.get_face_quality_score(image)
+
+        if quality_score >= 0.6:
+            tier = 'good'
+        elif quality_score >= MIN_QUALITY_THRESHOLD:
+            tier = 'fair'
+        else:
+            tier = 'poor'
+
+        message = details.get('error') if isinstance(details, dict) else None
+
+        return jsonify({
+            'success': True,
+            'quality_score': round(quality_score, 2),
+            'tier': tier,
+            'message': message
+        })
+
+    except Exception as e:
+        app_logger.error(f"Quality check error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 def _finalize_employee_registration(army_id, full_name, rank, unit, department, designation,
@@ -518,34 +557,44 @@ def list_employees():
         return redirect(url_for('auth.dashboard'))
 
 
+def _get_employee_profile_data(employee_id):
+    """
+    Shared core: employee record + last-30-day attendance history + stats.
+    Used by both the full profile page (view_employee) and the JSON summary
+    endpoint (employee_summary) used by the Mark Attendance profile modal —
+    so both always show the same numbers.
+    """
+    from models.database import Attendance
+    from datetime import date, timedelta
+
+    employee = Employee.query.get_or_404(employee_id)
+
+    thirty_days_ago = date.today() - timedelta(days=30)
+    attendance_history = Attendance.query.filter(
+        Attendance.employee_id == employee_id,
+        Attendance.date >= thirty_days_ago
+    ).order_by(Attendance.date.desc()).all()
+
+    total_days = (date.today() - thirty_days_ago).days
+    present_days = len(attendance_history)
+    attendance_percentage = (present_days / total_days * 100) if total_days > 0 else 0
+
+    stats = {
+        'total_days': total_days,
+        'present_days': present_days,
+        'absent_days': total_days - present_days,
+        'attendance_percentage': round(attendance_percentage, 2)
+    }
+
+    return employee, attendance_history, stats
+
+
 @registration_bp.route('/employee/<int:employee_id>')
 @login_required
 def view_employee(employee_id):
     """View detailed employee profile"""
     try:
-        employee = Employee.query.get_or_404(employee_id)
-
-        # Get attendance history (last 30 days)
-        from models.database import Attendance
-        from datetime import date, timedelta
-
-        thirty_days_ago = date.today() - timedelta(days=30)
-        attendance_history = Attendance.query.filter(
-            Attendance.employee_id == employee_id,
-            Attendance.date >= thirty_days_ago
-        ).order_by(Attendance.date.desc()).all()
-
-        # Calculate attendance stats
-        total_days = (date.today() - thirty_days_ago).days
-        present_days = len(attendance_history)
-        attendance_percentage = (present_days / total_days * 100) if total_days > 0 else 0
-
-        stats = {
-            'total_days': total_days,
-            'present_days': present_days,
-            'absent_days': total_days - present_days,
-            'attendance_percentage': round(attendance_percentage, 2)
-        }
+        employee, attendance_history, stats = _get_employee_profile_data(employee_id)
 
         return render_template(
             'employee_detail.html',
@@ -560,6 +609,62 @@ def view_employee(employee_id):
         return redirect(url_for('registration.list_employees'))
 
 
+@registration_bp.route('/employee/<int:employee_id>/summary')
+@login_required
+def employee_summary(employee_id):
+    """
+    JSON profile summary — powers the profile modal opened by clicking a
+    card in Mark Attendance's Live Activity Feed, without navigating away
+    from the live camera session.
+    """
+    try:
+        from routes.attendance import get_work_start_time
+        from datetime import datetime as dt
+
+        def late_minutes_for(att):
+            """Stored value if we have it; otherwise computed from check_in_time
+            vs. the current work-start setting, for records older than when
+            late_minutes started being tracked."""
+            if att.late_minutes is not None:
+                return att.late_minutes
+            if att.status == 'late' and att.check_in_time:
+                work_start = dt.combine(att.date, get_work_start_time())
+                return max(0, int((att.check_in_time - work_start).total_seconds() / 60))
+            return None
+
+        employee, attendance_history, stats = _get_employee_profile_data(employee_id)
+
+        return jsonify({
+            'success': True,
+            'employee': {
+                'id': employee.id,
+                'army_id': employee.army_id,
+                'full_name': employee.full_name,
+                'rank': employee.rank or 'N/A',
+                'unit': employee.unit or 'N/A',
+                'department': employee.department or 'N/A',
+                'designation': employee.designation or 'N/A',
+                'phone': employee.phone or 'N/A',
+                'email': employee.email or 'N/A',
+                'date_of_joining': employee.date_of_joining.isoformat() if employee.date_of_joining else None,
+                'photo': employee.photo_path or '/static/img/default-avatar.png',
+                'is_active': employee.is_active,
+            },
+            'stats': stats,
+            'recent_attendance': [{
+                'date': att.date.isoformat(),
+                'check_in': att.check_in_time.strftime('%I:%M %p') if att.check_in_time else None,
+                'check_out': att.check_out_time.strftime('%I:%M %p') if att.check_out_time else None,
+                'status': att.status,
+                'late_minutes': late_minutes_for(att),
+            } for att in attendance_history[:10]]
+        })
+
+    except Exception as e:
+        app_logger.error(f"Error building employee summary: {e}")
+        return jsonify({'success': False, 'message': 'Employee not found'}), 404
+
+
 @registration_bp.route('/employee/<int:employee_id>/edit')
 @login_required
 def edit_employee(employee_id):
@@ -567,10 +672,11 @@ def edit_employee(employee_id):
     try:
         employee = Employee.query.get_or_404(employee_id)
 
-        ranks = db.session.query(Employee.rank).distinct().filter(
-            Employee.rank.isnot(None), Employee.rank != ''
-        ).all()
-        ranks = sorted([r[0] for r in ranks if r[0]])
+        ranks = list(Config.RANKS)
+        # Preserve a legacy free-text rank that predates the fixed dropdown,
+        # so editing doesn't silently blank it out.
+        if employee.rank and employee.rank not in ranks:
+            ranks.append(employee.rank)
 
         units = db.session.query(Employee.unit).distinct().filter(
             Employee.unit.isnot(None), Employee.unit != ''
