@@ -343,9 +343,9 @@
 
         .card-header {
             padding: 20px;
-            border-bottom: 1px solid #F3F4F6;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
+            border-bottom: 1px solid #E5E7EB;
+            background: #FAFAFA;
+            color: var(--dark-color);
             border-radius: 12px 12px 0 0;
             font-weight: 600;
         }
@@ -356,29 +356,43 @@
 
         /* Stats Cards */
         .stat-card {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
+            background: white;
+            color: var(--dark-color);
             padding: 25px;
             border-radius: 12px;
-            transition: all 0.3s;
+            border-left: 4px solid var(--primary-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s;
             cursor: pointer;
         }
 
         .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
         }
 
         .stat-card h3 {
             font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 5px;
+            color: var(--dark-color);
         }
 
         .stat-card p {
             margin: 0;
-            opacity: 0.9;
+            opacity: 0.65;
             font-size: 1rem;
+        }
+
+        .stat-icon-badge {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
         }
 
         /* Buttons */
@@ -488,7 +502,19 @@
             }
 
             .topbar {
-                padding: 0 15px;
+                height: auto;
+                min-height: var(--topbar-height);
+                padding: 10px 15px;
+                flex-wrap: wrap;
+                row-gap: 6px;
+            }
+
+            .topbar-left h4 {
+                font-size: 1.1rem;
+            }
+
+            .topbar-time {
+                display: none;
             }
 
             .main-content {
@@ -696,6 +722,7 @@
         }
     </script>
 
+    <script src="{{ url_for('static', filename='js/camera-selector.js') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
