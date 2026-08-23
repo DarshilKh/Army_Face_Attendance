@@ -1,10 +1,11 @@
 """
-Camera Utility - Network Camera with System Webcam Fallback
+Camera Registry - Multi-Camera Support (IP cameras)
 कैमरा उपयोगिता / Camera Utility
 
-Priority:
-  1. Network camera (IP camera) — preferred
-  2. System webcam (fallback if network camera fails)
+Each entry-point site can register any number of IP cameras from Settings.
+'webcam' type cameras are accessed directly by the browser via getUserMedia
+and never touch this module — it only manages IP/RTSP camera sources, keyed
+by their DB row id, so multiple cameras can be open concurrently.
 
 All camera selection decisions and failures are logged.
 """
@@ -13,10 +14,25 @@ import cv2
 import numpy as np
 import requests
 from requests.auth import HTTPBasicAuth, HTTPDigestAuth
+from urllib.parse import urlparse, urlunparse, quote_plus
+from dataclasses import dataclass
 from utils.logger import app_logger
-from config import Config
 import time
 import threading
+
+
+@dataclass
+class CameraConfig:
+    """Plain snapshot of a Camera DB row's fields needed to open a stream.
+    Passed in by callers (routes/camera.py) so this module never has to
+    touch the database or depend on an active Flask app/request context."""
+    id: int
+    url: str
+    username: str = ''
+    password: str = ''
+    width: int = 1280
+    height: int = 720
+    fps: int = 15
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -120,35 +136,66 @@ class RTSPStreamReader:
         app_logger.info(f"🛑 RTSP background reader stopped for {self.url}")
 
 
-class CameraManager:
+class _CameraState:
+    """Runtime state for one IP camera row — availability cache + the
+    background RTSP reader (or HTTP snapshot endpoint) once discovered."""
+
+    def __init__(self):
+        self.network_available = None      # None = not tested yet
+        self.last_check = 0
+        self.check_interval = 30           # Re-check every 30s after failure
+        self.rtsp_reader = None
+        self.snapshot_url = None
+        self.auth_type = None
+        self.auth = None
+
+    def release(self):
+        if self.rtsp_reader is not None:
+            self.rtsp_reader.release()
+            self.rtsp_reader = None
+
+
+def _build_auth_url(cfg: CameraConfig) -> str:
+    """Build an authenticated URL if credentials are provided, matching the
+    single-camera Config.get_camera_source() behavior this replaces."""
+    if cfg.username and cfg.password:
+        parsed = urlparse(cfg.url)
+        return urlunparse((
+            parsed.scheme,
+            f"{quote_plus(cfg.username)}:{quote_plus(cfg.password)}@{parsed.hostname}" +
+            (f":{parsed.port}" if parsed.port else ""),
+            parsed.path, parsed.params, parsed.query, parsed.fragment
+        ))
+    return cfg.url
+
+
+class CameraRegistry:
     """
-    Manages camera sources with network camera priority and system webcam fallback.
+    Manages any number of IP camera sources, keyed by their DB row id, so
+    multiple entry-point cameras can be open and streaming concurrently.
     Logs all camera source decisions and failure reasons.
     """
 
     def __init__(self):
-        self._network_cam_available = None  # None = not tested yet
-        self._last_network_check = 0
-        self._network_check_interval = 30  # Re-check network cam every 30 seconds after failure
-        self._active_source = None  # 'network' or 'system'
-        self._rtsp_reader = None  # RTSPStreamReader instance (background thread)
+        self._states = {}
+        self._lock = threading.Lock()
 
-    def _test_network_camera(self):
-        """
-        Test if the network camera is reachable and responding.
-        Returns True if camera is available, False otherwise.
-        Logs the reason for any failure.
-        """
-        if not Config.CAMERA_URL:
-            app_logger.info("📷 Network camera: Not configured (CAMERA_URL is empty)")
+    def _state(self, camera_id) -> _CameraState:
+        with self._lock:
+            if camera_id not in self._states:
+                self._states[camera_id] = _CameraState()
+            return self._states[camera_id]
+
+    def _test_camera(self, cfg: CameraConfig, state: _CameraState) -> bool:
+        """Test if the IP camera is reachable and responding."""
+        if not cfg.url:
+            app_logger.info(f"📷 Camera {cfg.id}: Not configured (no URL)")
             return False
 
-        camera_url = Config.CAMERA_URL.rstrip('/')
+        camera_url = cfg.url.rstrip('/')
 
-        # RTSP URLs can't be probed via `requests` (HTTP-only lib).  Skip HTTP
-        # snapshot probing entirely and jump straight to OpenCV/FFMPEG.
         if camera_url.lower().startswith('rtsp://'):
-            app_logger.info("📷 Detected RTSP URL — skipping HTTP snapshot probing")
+            app_logger.info(f"📷 Camera {cfg.id}: Detected RTSP URL — skipping HTTP snapshot probing")
             snapshot_urls = []
         else:
             snapshot_urls = [
@@ -164,9 +211,9 @@ class CameraManager:
 
         auth_basic = None
         auth_digest = None
-        if Config.CAMERA_USERNAME and Config.CAMERA_PASSWORD:
-            auth_basic  = HTTPBasicAuth(Config.CAMERA_USERNAME, Config.CAMERA_PASSWORD)
-            auth_digest = HTTPDigestAuth(Config.CAMERA_USERNAME, Config.CAMERA_PASSWORD)
+        if cfg.username and cfg.password:
+            auth_basic = HTTPBasicAuth(cfg.username, cfg.password)
+            auth_digest = HTTPDigestAuth(cfg.username, cfg.password)
 
         for url in snapshot_urls:
             for auth_type, auth in [("Basic", auth_basic), ("Digest", auth_digest), ("None", None)]:
@@ -181,46 +228,35 @@ class CameraManager:
                         or 'multipart' in content_type
                         or 'octet-stream' in content_type
                     ):
-                        app_logger.info(f"✅ Network camera available: {Config.CAMERA_URL}")
+                        app_logger.info(f"✅ Camera {cfg.id} available: {cfg.url}")
                         app_logger.info(f"   Endpoint: {url}")
                         app_logger.info(f"   Auth type: {auth_type}")
-                        app_logger.info(f"   Content-Type: {content_type}")
-                        self._snapshot_url = url
-                        self._auth_type    = auth_type
-                        self._auth         = auth
+                        state.snapshot_url = url
+                        state.auth_type = auth_type
+                        state.auth = auth
                         return True
                     elif response.status_code == 401:
                         app_logger.warning(
-                            f"🔐 Network camera auth failed ({auth_type}): {url} — HTTP 401 Unauthorized"
+                            f"🔐 Camera {cfg.id} auth failed ({auth_type}): {url} — HTTP 401 Unauthorized"
                         )
                     elif response.status_code != 200:
                         app_logger.debug(
-                            f"   Network camera endpoint not found: {url} — HTTP {response.status_code}"
+                            f"   Camera {cfg.id} endpoint not found: {url} — HTTP {response.status_code}"
                         )
                 except requests.exceptions.ConnectionError as e:
-                    app_logger.warning(
-                        f"❌ Network camera connection failed: {Config.CAMERA_URL} — {e}"
-                    )
+                    app_logger.warning(f"❌ Camera {cfg.id} connection failed: {cfg.url} — {e}")
                     return False
                 except requests.exceptions.Timeout:
-                    app_logger.warning(
-                        f"❌ Network camera timeout: {url} — Camera did not respond within 5 seconds"
-                    )
+                    app_logger.warning(f"❌ Camera {cfg.id} timeout: {url} — no response within 5 seconds")
                     return False
                 except requests.exceptions.RequestException as e:
-                    app_logger.warning(
-                        f"❌ Network camera request error: {url} — {type(e).__name__}: {e}"
-                    )
+                    app_logger.warning(f"❌ Camera {cfg.id} request error: {url} — {type(e).__name__}: {e}")
 
-        # OpenCV VideoCapture path (RTSP/MJPEG) — this is where RTSP URLs land
+        # OpenCV VideoCapture path (RTSP/MJPEG)
         try:
-            app_logger.info(f"   Trying OpenCV VideoCapture for network camera: {Config.CAMERA_URL}")
-            cam_source = Config.get_camera_source()
-            source_url = cam_source if isinstance(cam_source, str) else Config.CAMERA_URL
+            app_logger.info(f"   Camera {cfg.id}: Trying OpenCV VideoCapture: {cfg.url}")
+            source_url = _build_auth_url(cfg)
             try:
-                # 5s open + read timeout — without this, an unreachable camera
-                # can hang here effectively indefinitely (OpenCV 4.5.4+ needed
-                # for this constructor form; falls back below on older builds).
                 cap = cv2.VideoCapture(
                     source_url, cv2.CAP_FFMPEG,
                     (cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 5000, cv2.CAP_PROP_READ_TIMEOUT_MSEC, 5000)
@@ -231,201 +267,101 @@ class CameraManager:
                 ret, frame = cap.read()
                 cap.release()
                 if ret and frame is not None:
-                    app_logger.info(f"✅ Network camera available via OpenCV stream: {Config.CAMERA_URL}")
-                    self._snapshot_url = None
-                    self._auth_type    = "OpenCV"
-                    self._auth         = None
+                    app_logger.info(f"✅ Camera {cfg.id} available via OpenCV stream: {cfg.url}")
+                    state.snapshot_url = None
+                    state.auth_type = "OpenCV"
+                    state.auth = None
                     return True
                 else:
-                    app_logger.warning(
-                        f"❌ Network camera: OpenCV connected but failed to read frame from {Config.CAMERA_URL}"
-                    )
+                    app_logger.warning(f"❌ Camera {cfg.id}: OpenCV connected but failed to read frame")
             else:
-                app_logger.warning(f"❌ Network camera: OpenCV could not open stream at {Config.CAMERA_URL}")
-            cap.release()
+                app_logger.warning(f"❌ Camera {cfg.id}: OpenCV could not open stream")
+                cap.release()
         except Exception as e:
-            app_logger.warning(f"❌ Network camera OpenCV error: {type(e).__name__}: {e}")
+            app_logger.warning(f"❌ Camera {cfg.id} OpenCV error: {type(e).__name__}: {e}")
 
-        app_logger.warning(
-            f"❌ Network camera NOT available: {Config.CAMERA_URL} — All connection methods failed"
-        )
+        app_logger.warning(f"❌ Camera {cfg.id} NOT available: {cfg.url} — All connection methods failed")
         return False
 
-    def get_camera_status(self):
+    def get_status(self, cfg: CameraConfig) -> dict:
+        state = self._state(cfg.id)
         now = time.time()
 
-        if self._network_cam_available is None or \
-           (not self._network_cam_available and (now - self._last_network_check) > self._network_check_interval):
-            self._last_network_check = now
-            self._network_cam_available = self._test_network_camera()
-
-            if self._network_cam_available:
-                self._active_source = 'network'
-                app_logger.info("🎥 CAMERA SOURCE: Network camera (PRIORITIZED)")
-                app_logger.info(f"   URL: {Config.CAMERA_URL}")
-            else:
-                self._active_source = 'system'
-                app_logger.info("🎥 CAMERA SOURCE: System webcam (FALLBACK)")
-                app_logger.info(f"   Reason: Network camera at {Config.CAMERA_URL} is not available")
-                app_logger.info(f"   Using system camera index: {Config.DEFAULT_CAMERA_INDEX}")
+        if state.network_available is None or \
+           (not state.network_available and (now - state.last_check) > state.check_interval):
+            state.last_check = now
+            state.network_available = self._test_camera(cfg, state)
 
         return {
-            'source':              self._active_source,
-            'network_available':   self._network_cam_available,
-            'camera_url':          Config.CAMERA_URL if self._active_source == 'network' else None,
-            'use_browser_webcam':  self._active_source == 'system',
+            'id': cfg.id,
+            'available': state.network_available,
         }
 
-    def capture_frame(self):
-        status = self.get_camera_status()
+    def test(self, cfg: CameraConfig) -> dict:
+        """Force an immediate re-check, bypassing the 30s failure-backoff cache.
+        Used by the 'Test' button in Settings > Cameras."""
+        state = self._state(cfg.id)
+        state.network_available = None
+        state.last_check = 0
+        return self.get_status(cfg)
 
-        if status['source'] == 'network':
-            success, frame = self._capture_from_network()
-            if success:
-                return True, frame, 'network'
-            else:
-                app_logger.warning("⚠️ Network camera failed during capture, falling back to system webcam")
-                self._network_cam_available = False
-                self._active_source = 'system'
+    def capture_frame(self, cfg: CameraConfig):
+        """Returns (success, frame_ndarray_or_None)."""
+        status = self.get_status(cfg)
+        if not status['available']:
+            return False, None
 
-                # Release the background reader when abandoning the network camera
-                if self._rtsp_reader is not None:
-                    self._rtsp_reader.release()
-                    self._rtsp_reader = None
-
-        success, frame = self._capture_from_system()
-        if success:
-            return True, frame, 'system'
-
-        app_logger.error("❌ All camera sources failed — no frame captured")
-        return False, None, None
-
-    def _capture_from_network(self):
-        """Capture a frame from the network camera."""
+        state = self._state(cfg.id)
         try:
-            if hasattr(self, '_snapshot_url') and self._snapshot_url:
-                # HTTP snapshot camera — no buffering issues here
-                response = requests.get(self._snapshot_url, auth=self._auth, timeout=5)
+            if state.snapshot_url:
+                response = requests.get(state.snapshot_url, auth=state.auth, timeout=5)
                 if response.status_code == 200:
                     img_array = np.frombuffer(response.content, dtype=np.uint8)
                     frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
                     if frame is not None:
                         return True, frame
-                    app_logger.warning("❌ Network camera: Failed to decode snapshot image")
+                    app_logger.warning(f"❌ Camera {cfg.id}: Failed to decode snapshot image")
                 else:
-                    app_logger.warning(f"❌ Network camera snapshot HTTP {response.status_code}")
+                    app_logger.warning(f"❌ Camera {cfg.id} snapshot HTTP {response.status_code}")
             else:
-                # ── Bug fix ──────────────────────────────────────────────────
-                # Previous approaches (persistent cv2.VideoCapture + CAP_PROP_
-                # BUFFERSIZE=1 + grab-twice-then-retrieve) all failed to keep
-                # up because our detection loop consumes at ~0.66 FPS while the
-                # RTSP camera pushes at ~25–30 FPS.  The FFMPEG buffer fills
-                # up between calls faster than we can drain it, so every read
-                # returns a stale queued frame — producing the "confidence
-                # slowly inches up while the picture looks frozen" symptom.
-                #
-                # Real fix: a background thread that drains the stream at the
-                # camera's native FPS and holds only the newest frame.  When
-                # we ask for a frame, we get whatever's current *right now* —
-                # no queue drain, no decode wait, no lag.
-                #
-                # Startup cost is one-time (spawning the thread + first frame
-                # arriving ~30-100ms later).  Steady-state cost per capture is
-                # a single lock + memory copy.
-                # ────────────────────────────────────────────────────────────
-                if self._rtsp_reader is None or not self._rtsp_reader.is_alive():
-                    if self._rtsp_reader is not None:
-                        # Previous reader died — clean it up before replacing
-                        self._rtsp_reader.release()
-                    cam_source = Config.get_camera_source()
-                    url = cam_source if isinstance(cam_source, str) else Config.CAMERA_URL
-                    self._rtsp_reader = RTSPStreamReader(url)
-                    # Give the thread a moment to grab its first frame
-                    time.sleep(0.3)
+                # Background thread drains the RTSP stream at native FPS and holds
+                # only the newest frame — see RTSPStreamReader docstring for why.
+                if state.rtsp_reader is None or not state.rtsp_reader.is_alive():
+                    if state.rtsp_reader is not None:
+                        state.rtsp_reader.release()
+                    url = _build_auth_url(cfg)
+                    state.rtsp_reader = RTSPStreamReader(url)
+                    time.sleep(0.3)  # give the thread a moment to grab its first frame
 
-                ret, frame = self._rtsp_reader.read()
+                ret, frame = state.rtsp_reader.read()
                 if ret and frame is not None:
                     return True, frame
-                app_logger.warning("❌ Network camera: No frame available yet from background reader")
+                app_logger.warning(f"❌ Camera {cfg.id}: No frame available yet from background reader")
 
         except requests.exceptions.ConnectionError:
-            app_logger.warning(f"❌ Network camera lost connection: {Config.CAMERA_URL}")
+            app_logger.warning(f"❌ Camera {cfg.id} lost connection: {cfg.url}")
         except requests.exceptions.Timeout:
-            app_logger.warning(f"❌ Network camera timeout during capture: {Config.CAMERA_URL}")
+            app_logger.warning(f"❌ Camera {cfg.id} timeout during capture: {cfg.url}")
         except Exception as e:
-            app_logger.warning(f"❌ Network camera capture error: {type(e).__name__}: {e}")
-            if self._rtsp_reader is not None:
-                self._rtsp_reader.release()
-                self._rtsp_reader = None
+            app_logger.warning(f"❌ Camera {cfg.id} capture error: {type(e).__name__}: {e}")
+            state.release()
 
         return False, None
 
-    def _capture_from_system(self):
-        """Capture a frame from the system webcam (kept open across calls)."""
-        try:
-            if getattr(self, '_system_cap', None) is None:
-                self._system_cap = cv2.VideoCapture(Config.DEFAULT_CAMERA_INDEX)
-                # Apply resolution/FPS from Settings — cameras that don't
-                # support the exact requested mode will silently fall back
-                # to their closest native mode, which is standard OpenCV
-                # behavior and not an error.
-                self._system_cap.set(cv2.CAP_PROP_FRAME_WIDTH, Config.CAMERA_WIDTH)
-                self._system_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, Config.CAMERA_HEIGHT)
-                self._system_cap.set(cv2.CAP_PROP_FPS, Config.CAMERA_FPS)
+    def reset(self, camera_id):
+        """Force re-check of one camera's availability (e.g. after editing it)."""
+        with self._lock:
+            state = self._states.pop(camera_id, None)
+        if state:
+            state.release()
+        app_logger.info(f"🔄 Camera {camera_id} reset — will re-check on next request")
 
-            if self._system_cap.isOpened():
-                ret, frame = self._system_cap.read()
-                if ret and frame is not None:
-                    return True, frame
-                else:
-                    app_logger.warning("❌ System webcam: Failed to read frame, resetting camera")
-                    self._system_cap.release()
-                    self._system_cap = None
-            else:
-                app_logger.warning(
-                    f"❌ System webcam: Could not open camera index {Config.DEFAULT_CAMERA_INDEX}"
-                )
-                self._system_cap.release()
-                self._system_cap = None
-        except Exception as e:
-            app_logger.error(f"❌ System webcam error: {type(e).__name__}: {e}")
-            if getattr(self, '_system_cap', None) is not None:
-                self._system_cap.release()
-                self._system_cap = None
-
-        return False, None
-
-    def get_snapshot_url(self):
-        status = self.get_camera_status()
-        if status['source'] == 'network':
-            return '/api/camera/snapshot'
-        return None
-
-    def reset(self):
-        """Force re-check of camera availability."""
-        if getattr(self, '_system_cap', None) is not None:
-            self._system_cap.release()
-            self._system_cap = None
-        if self._rtsp_reader is not None:
-            self._rtsp_reader.release()
-            self._rtsp_reader = None
-        self._network_cam_available = None
-        self._active_source = None
-        app_logger.info("🔄 Camera manager reset — will re-check on next request")
-
-    def __del__(self):
-        """Cleanup resources on shutdown"""
-        if getattr(self, '_system_cap', None) is not None:
-            try:
-                self._system_cap.release()
-            except Exception:
-                pass
-        if getattr(self, '_rtsp_reader', None) is not None:
-            try:
-                self._rtsp_reader.release()
-            except Exception:
-                pass
+    def reset_all(self):
+        with self._lock:
+            ids = list(self._states.keys())
+        for camera_id in ids:
+            self.reset(camera_id)
 
 
 # Singleton instance
-camera_manager = CameraManager()
+camera_manager = CameraRegistry()
