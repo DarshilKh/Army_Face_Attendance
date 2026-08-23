@@ -32,57 +32,104 @@
             <!-- Camera Settings -->
             <div class="tab-pane fade show active" id="camera">
                 <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-camera me-2"></i>Camera Configuration
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span><i class="fas fa-camera me-2"></i>Cameras</span>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="openAddCameraModal()">
+                            <i class="fas fa-plus me-1"></i>Add Camera
+                        </button>
                     </div>
                     <div class="card-body">
-                        <form id="cameraSettingsForm">
+                        <p class="text-muted small">
+                            Add one camera per entry/exit point. <strong>Webcam</strong> cameras are accessed
+                            directly by the browser on whichever device is running Mark Attendance / Registration
+                            at that point. <strong>IP Camera</strong> cameras are proxied through this server, so
+                            any number of them can be added for different entry points.
+                        </p>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Location</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="camerasTableBody">
+                                    <tr><td colspan="5" class="text-center text-muted py-3">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add/Edit Camera Modal -->
+            <div class="modal fade" id="cameraModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="cameraModalTitle">Add Camera</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="cameraId">
                             <div class="mb-3">
-                                <label class="form-label">Camera Source</label>
-                                <select class="form-select" id="cameraSource" name="camera_source">
-                                    <option value="0" {{ 'selected' if settings.camera_source == '0' }}>Built-in Camera (0)</option>
-                                    <option value="1" {{ 'selected' if settings.camera_source == '1' }}>External Camera 1</option>
-                                    <option value="2" {{ 'selected' if settings.camera_source == '2' }}>External Camera 2</option>
-                                    <option value="url" {{ 'selected' if settings.camera_source == 'url' }}>IP Camera (RTSP/HTTP)</option>
+                                <label class="form-label">Name</label>
+                                <input type="text" class="form-control" id="cameraName" placeholder="e.g. Main Gate">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Location / Entry Point</label>
+                                <input type="text" class="form-control" id="cameraLocation" placeholder="e.g. Main Gate">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Type</label>
+                                <select class="form-select" id="cameraType" onchange="toggleCameraIpFields()">
+                                    <option value="webcam">Webcam (local camera on this device)</option>
+                                    <option value="ip">IP Camera</option>
                                 </select>
                             </div>
-
-                            <div class="mb-3" id="cameraUrlGroup" style="display:none;">
-                                <label class="form-label">Camera URL</label>
-                                <input type="text" class="form-control" id="cameraUrl" name="camera_url"
-                                       placeholder="rtsp://192.168.1.100:554/stream" value="{{ settings.camera_url }}">
-                                <small class="text-muted">Example: rtsp://username:password@192.168.1.100:554/stream</small>
+                            <div id="cameraIpFields" style="display:none;">
+                                <div class="mb-3">
+                                    <label class="form-label">Camera URL</label>
+                                    <input type="text" class="form-control" id="cameraUrl" placeholder="rtsp://192.168.1.100:554/stream0">
+                                    <small class="text-muted">RTSP/HTTP stream URL. Credentials below are added automatically — don't put them in the URL.</small>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Username</label>
+                                        <input type="text" class="form-control" id="cameraUsername" autocomplete="off">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Password</label>
+                                        <input type="password" class="form-control" id="cameraPassword" autocomplete="new-password">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Width</label>
+                                        <input type="number" class="form-control" id="cameraWidth" value="1280">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Height</label>
+                                        <input type="number" class="form-control" id="cameraHeight" value="720">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">FPS</label>
+                                        <input type="number" class="form-control" id="cameraFps" value="15" min="1" max="30">
+                                    </div>
+                                </div>
                             </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Resolution</label>
-                                <select class="form-select" name="resolution">
-                                    <option value="640x480" {{ 'selected' if settings.resolution == '640x480' }}>640x480 (VGA)</option>
-                                    <option value="1280x720" {{ 'selected' if settings.resolution == '1280x720' }}>1280x720 (HD)</option>
-                                    <option value="1920x1080" {{ 'selected' if settings.resolution == '1920x1080' }}>1920x1080 (Full HD)</option>
-                                </select>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="cameraActive" checked>
+                                <label class="form-check-label" for="cameraActive">Active (shown in the camera picker)</label>
                             </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Frame Rate (FPS)</label>
-                                <input type="number" class="form-control" name="fps" value="{{ settings.fps }}" min="15" max="60">
-                            </div>
-
-                            <button type="button" class="btn btn-primary me-2" onclick="testCamera()">
-                                <i class="fas fa-play me-2"></i>Test Camera
-                            </button>
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save me-2"></i>Save Settings
-                            </button>
-                        </form>
-
-                        <!-- Camera Preview -->
-                        <div id="cameraPreview" class="mt-4" style="display:none;">
-                            <h6>Camera Preview:</h6>
-                            <video id="previewVideo" width="100%" style="max-width: 640px; border-radius: 10px; border: 2px solid #ddd;" autoplay playsinline></video>
-                            <br>
-                            <button class="btn btn-danger mt-2" onclick="stopPreview()">
-                                <i class="fas fa-stop me-2"></i>Stop Preview
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" onclick="saveCameraModal()">
+                                <i class="fas fa-save me-2"></i>Save
                             </button>
                         </div>
                     </div>
@@ -106,6 +153,23 @@
                                     <small id="thresholdValue">{{ settings.threshold }}</small>
                                     <small>Relaxed (1.0)</small>
                                 </div>
+                                <small class="text-muted">How closely a face must match during check-in/check-out to be recognized.</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Duplicate Registration Sensitivity (0.3 - 0.95)</label>
+                                <input type="range" class="form-range" id="duplicate_threshold" name="duplicate_threshold"
+                                       min="0.3" max="0.95" step="0.05" value="{{ settings.duplicate_threshold }}">
+                                <div class="d-flex justify-content-between">
+                                    <small>Catches more duplicates (0.3)</small>
+                                    <small id="duplicateThresholdValue">{{ settings.duplicate_threshold }}</small>
+                                    <small>Only near-exact repeats (0.95)</small>
+                                </div>
+                                <small class="text-muted">
+                                    When registering a new employee, block it if their face is at least this
+                                    similar to someone already registered. Lower catches more accidental
+                                    re-registrations but risks flagging two different people who look alike.
+                                </small>
                             </div>
 
                             <div class="mb-3">
@@ -115,7 +179,7 @@
 
                             <div class="mb-3">
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="livenessDetection" {{ 'checked' if settings.liveness_detection == 'true' }}>
+                                    <input class="form-check-input" type="checkbox" id="livenessDetection" {{ 'checked' if settings.liveness_detection|lower == 'true' }}>
                                     <label class="form-check-label" for="livenessDetection">
                                         Enable Liveness Detection (Anti-Spoofing)
                                     </label>
@@ -260,92 +324,224 @@
 
 {% block extra_js %}
 <script>
-// Camera source change
-document.getElementById('cameraSource').addEventListener('change', function() {
-    const urlGroup = document.getElementById('cameraUrlGroup');
-    if (this.value === 'url') {
-        urlGroup.style.display = 'block';
-    } else {
-        urlGroup.style.display = 'none';
-    }
+// ============================================
+// CAMERA MANAGEMENT (Cameras tab)
+// ============================================
+let camerasCache = [];
+let cameraModalInstance = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+    cameraModalInstance = new bootstrap.Modal(document.getElementById('cameraModal'));
+    loadCameras();
 });
+
+async function loadCameras() {
+    const tbody = document.getElementById('camerasTableBody');
+    try {
+        const res = await fetch('/api/cameras?active_only=0');
+        const data = await res.json();
+        camerasCache = data.success ? data.cameras : [];
+        renderCamerasTable();
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-3">Failed to load cameras</td></tr>';
+    }
+}
+
+function renderCamerasTable() {
+    const tbody = document.getElementById('camerasTableBody');
+    if (!camerasCache.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No cameras added yet</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = camerasCache.map(cam => {
+        const typeLabel = cam.camera_type === 'ip' ? 'IP Camera' : 'Webcam';
+        const statusBadge = !cam.is_active
+            ? '<span class="badge bg-secondary">Inactive</span>'
+            : (cam.camera_type === 'webcam'
+                ? '<span class="badge bg-info">Local device</span>'
+                : `<span class="badge bg-secondary" id="cam-status-${cam.id}">Unknown</span>`);
+        const testBtn = cam.camera_type === 'ip'
+            ? `<button class="btn btn-sm btn-outline-secondary" id="cam-test-btn-${cam.id}" onclick="testCameraRow(${cam.id})" title="Test connection">
+                   <i class="fas fa-satellite-dish"></i>
+               </button>`
+            : '';
+
+        return `
+        <tr>
+            <td>${escapeHtml(cam.name)}</td>
+            <td>${escapeHtml(cam.location || '-')}</td>
+            <td>${typeLabel}</td>
+            <td>${statusBadge}</td>
+            <td class="text-end">
+                <div class="btn-group">
+                    ${testBtn}
+                    <button class="btn btn-sm btn-outline-primary" onclick="openEditCameraModal(${cam.id})" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCameraRow(${cam.id}, '${escapeHtml(cam.name).replace(/'/g, "\\'")}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
+
+    // Fire off a status check for each active IP camera row (non-blocking)
+    camerasCache.filter(c => c.camera_type === 'ip' && c.is_active).forEach(c => refreshCameraStatus(c.id));
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+}
+
+async function refreshCameraStatus(cameraId) {
+    const badge = document.getElementById(`cam-status-${cameraId}`);
+    if (!badge) return;
+    try {
+        const res = await fetch(`/api/camera/${cameraId}/status`);
+        const data = await res.json();
+        badge.className = 'badge ' + (data.available ? 'bg-success' : 'bg-danger');
+        badge.textContent = data.available ? 'Online' : 'Offline';
+    } catch (e) {
+        badge.className = 'badge bg-danger';
+        badge.textContent = 'Offline';
+    }
+}
+
+function openAddCameraModal() {
+    document.getElementById('cameraModalTitle').textContent = 'Add Camera';
+    document.getElementById('cameraId').value = '';
+    document.getElementById('cameraName').value = '';
+    document.getElementById('cameraLocation').value = '';
+    document.getElementById('cameraType').value = 'webcam';
+    document.getElementById('cameraUrl').value = '';
+    document.getElementById('cameraUsername').value = '';
+    document.getElementById('cameraPassword').value = '';
+    document.getElementById('cameraWidth').value = 1280;
+    document.getElementById('cameraHeight').value = 720;
+    document.getElementById('cameraFps').value = 15;
+    document.getElementById('cameraActive').checked = true;
+    toggleCameraIpFields();
+    cameraModalInstance.show();
+}
+
+async function openEditCameraModal(cameraId) {
+    try {
+        const res = await fetch(`/api/cameras/${cameraId}`);
+        const data = await res.json();
+        if (!data.success) { alert('✗ Could not load camera'); return; }
+        const cam = data.camera;
+
+        document.getElementById('cameraModalTitle').textContent = 'Edit Camera';
+        document.getElementById('cameraId').value = cam.id;
+        document.getElementById('cameraName').value = cam.name || '';
+        document.getElementById('cameraLocation').value = cam.location || '';
+        document.getElementById('cameraType').value = cam.camera_type;
+        document.getElementById('cameraUrl').value = cam.url || '';
+        document.getElementById('cameraUsername').value = cam.username || '';
+        document.getElementById('cameraPassword').value = cam.password || '';
+        document.getElementById('cameraWidth').value = cam.width || 1280;
+        document.getElementById('cameraHeight').value = cam.height || 720;
+        document.getElementById('cameraFps').value = cam.fps || 15;
+        document.getElementById('cameraActive').checked = !!cam.is_active;
+        toggleCameraIpFields();
+        cameraModalInstance.show();
+    } catch (e) {
+        alert('✗ Failed to load camera: ' + e.message);
+    }
+}
+
+function toggleCameraIpFields() {
+    const isIp = document.getElementById('cameraType').value === 'ip';
+    document.getElementById('cameraIpFields').style.display = isIp ? 'block' : 'none';
+}
+
+async function saveCameraModal() {
+    const id = document.getElementById('cameraId').value;
+    const type = document.getElementById('cameraType').value;
+
+    const payload = {
+        name: document.getElementById('cameraName').value.trim(),
+        location: document.getElementById('cameraLocation').value.trim(),
+        camera_type: type,
+        is_active: document.getElementById('cameraActive').checked
+    };
+
+    if (type === 'ip') {
+        payload.url = document.getElementById('cameraUrl').value.trim();
+        payload.username = document.getElementById('cameraUsername').value.trim();
+        payload.password = document.getElementById('cameraPassword').value;
+        payload.width = parseInt(document.getElementById('cameraWidth').value, 10) || 1280;
+        payload.height = parseInt(document.getElementById('cameraHeight').value, 10) || 720;
+        payload.fps = parseInt(document.getElementById('cameraFps').value, 10) || 15;
+    }
+
+    if (!payload.name) { alert('Camera name is required'); return; }
+    if (type === 'ip' && !payload.url) { alert('URL is required for an IP camera'); return; }
+
+    try {
+        const url = id ? `/api/cameras/${id}` : '/api/cameras';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            cameraModalInstance.hide();
+            loadCameras();
+        } else {
+            alert('✗ ' + data.message);
+        }
+    } catch (e) {
+        alert('✗ Failed to save camera: ' + e.message);
+    }
+}
+
+async function testCameraRow(cameraId) {
+    const btn = document.getElementById(`cam-test-btn-${cameraId}`);
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    try {
+        const res = await fetch(`/api/cameras/${cameraId}/test`, { method: 'POST' });
+        const data = await res.json();
+        refreshCameraStatus(cameraId);
+        alert((data.available ? '✓ ' : '✗ ') + data.message);
+    } catch (e) {
+        alert('✗ Test failed: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+}
+
+async function deleteCameraRow(cameraId, name) {
+    if (!confirm(`Delete camera "${name}"? This cannot be undone.`)) return;
+    try {
+        const res = await fetch(`/api/cameras/${cameraId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) loadCameras();
+        else alert('✗ ' + data.message);
+    } catch (e) {
+        alert('✗ Failed to delete camera: ' + e.message);
+    }
+}
 
 // Threshold slider
 document.getElementById('threshold').addEventListener('input', function() {
     document.getElementById('thresholdValue').textContent = this.value;
 });
 
-// ─── FIXED: testCamera ────────────────────────────────────────────────────────
-// The old version passed the dropdown's string value ("0", "1", "2") directly
-// as deviceId.exact, which is wrong — deviceId must be a real browser device ID
-// string (e.g. "abc123..."), not an integer index.
-//
-// The fix enumerates actual video devices and picks the one at the requested
-// position in the list, then passes that device's real deviceId to getUserMedia.
-async function testCamera() {
-    showLoading('Testing camera...');
-    const cameraSource = document.getElementById('cameraSource').value;
-
-    try {
-        let constraints;
-
-        if (cameraSource === 'url') {
-            // IP/RTSP cameras cannot be accessed via getUserMedia in the browser.
-            // Fall back to any available camera just to verify the browser stack works.
-            constraints = { video: true };
-        } else {
-            // ── Key fix ──────────────────────────────────────────────────────
-            // 1. Enumerate every media device the browser can see.
-            // 2. Filter down to video inputs only.
-            // 3. Treat the dropdown value ("0", "1", "2") as a positional index
-            //    into that filtered list.
-            // 4. Grab the real deviceId from the matched entry and pass THAT
-            //    to getUserMedia instead of the raw index string.
-            // ─────────────────────────────────────────────────────────────────
-            const devices      = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(d => d.kind === 'videoinput');
-            const index        = parseInt(cameraSource, 10);
-
-            if (videoDevices.length === 0) {
-                throw new Error('No camera devices found on this system.');
-            }
-
-            // If the requested index is out of range, fall back to the first device.
-            const targetDevice = videoDevices[index] || videoDevices[0];
-
-            constraints = {
-                video: {
-                    deviceId: { exact: targetDevice.deviceId },
-                    width:  { ideal: 1280 },
-                    height: { ideal: 720  }
-                }
-            };
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        const video  = document.getElementById('previewVideo');
-        video.srcObject = stream;
-
-        document.getElementById('cameraPreview').style.display = 'block';
-        hideLoading();
-        alert('✓ Camera test successful!');
-
-    } catch (error) {
-        hideLoading();
-        alert('✗ Camera test failed: ' + error.message);
-    }
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Stop Preview
-function stopPreview() {
-    const video = document.getElementById('previewVideo');
-    if (video.srcObject) {
-        video.srcObject.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-    }
-    document.getElementById('cameraPreview').style.display = 'none';
-}
+// Duplicate-registration sensitivity slider
+document.getElementById('duplicate_threshold').addEventListener('input', function() {
+    document.getElementById('duplicateThresholdValue').textContent = this.value;
+});
 
 // Save Settings Forms — REAL API CALLS
 document.querySelectorAll('form').forEach(form => {
