@@ -3,70 +3,233 @@
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard Overview{% endblock %}
 
+{% block extra_css %}
+<style>
+    .main-content {
+        padding-top: 20px !important;
+        padding-bottom: 20px !important;
+    }
+
+    .stat-card {
+        padding: 18px 20px !important;
+    }
+
+    .stat-card h3 {
+        font-size: 1.85rem !important;
+        margin-bottom: 2px !important;
+    }
+
+    .stat-card p {
+        font-size: 0.88rem !important;
+    }
+
+    .stat-icon-badge {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.1rem !important;
+    }
+
+    .rate-card .card-body {
+        padding: 14px 18px;
+    }
+
+    .rate-card h6 {
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: #1F2937;
+    }
+
+    .rate-progress {
+        height: 10px;
+        border-radius: 999px;
+        background: #F3F4F6;
+        overflow: hidden;
+    }
+
+    .rate-progress .progress-bar {
+        background: #10B981 !important;
+        border-radius: 999px;
+        font-size: 0;
+    }
+
+    .rate-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 8px;
+        font-size: 0.82rem;
+        color: #6B7280;
+        font-weight: 600;
+    }
+
+    .dash-card .card-header {
+        padding: 12px 16px;
+        font-size: 0.92rem;
+    }
+
+    .dash-card .card-body {
+        padding: 12px 16px;
+    }
+
+    .dash-table {
+        margin-bottom: 0;
+        font-size: 0.88rem;
+    }
+
+    .dash-table thead th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #6B7280;
+        border-bottom-width: 1px;
+        white-space: nowrap;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    .dash-table tbody td {
+        padding-top: 8px;
+        padding-bottom: 8px;
+        vertical-align: middle;
+    }
+
+    /* Quiet action buttons — no rainbow */
+    .qa-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        border: 1px solid #E5E7EB;
+        background: #fff;
+        color: #1F2937;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: all 0.15s ease;
+    }
+
+    .qa-btn:hover {
+        background: #F9FAFB;
+        border-color: #D1D5DB;
+        color: #111827;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .qa-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 0.9rem;
+    }
+
+    .qa-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .status-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        font-size: 0.88rem;
+        color: #374151;
+    }
+
+    .status-row + .status-row {
+        border-top: 1px solid #F3F4F6;
+    }
+
+    .empty-row td {
+        text-align: center;
+        color: #9CA3AF;
+        padding: 18px !important;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Statistics Cards -->
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-3">
     <div class="col-lg-3 col-md-6">
-        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="stat-card" style="border-left-color:#4F46E5;">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h3 class="mb-1">{{ stats.total_employees }}</h3>
-                    <p class="mb-0"><i class="fas fa-users me-2"></i>Total Employees</p>
+                    <p class="mb-0">Total Employees</p>
                 </div>
-                <i class="fas fa-users fa-3x" style="opacity: 0.3;"></i>
+                <div class="stat-icon-badge" style="background:#EEF2FF; color:#4F46E5;">
+                    <i class="fas fa-users"></i>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="col-lg-3 col-md-6">
-        <div class="stat-card" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+        <div class="stat-card" style="border-left-color:#10B981;">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h3 class="mb-1">{{ stats.today_present }}</h3>
-                    <p class="mb-0"><i class="fas fa-check-circle me-2"></i>Present Today</p>
+                    <p class="mb-0">Present Today</p>
                 </div>
-                <i class="fas fa-check-circle fa-3x" style="opacity: 0.3;"></i>
+                <div class="stat-icon-badge" style="background:#ECFDF5; color:#10B981;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="col-lg-3 col-md-6">
-        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+        <div class="stat-card" style="border-left-color:#F59E0B;">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h3 class="mb-1">{{ stats.today_late }}</h3>
-                    <p class="mb-0"><i class="fas fa-clock me-2"></i>Late Arrivals</p>
+                    <p class="mb-0">Late Arrivals</p>
                 </div>
-                <i class="fas fa-clock fa-3x" style="opacity: 0.3;"></i>
+                <div class="stat-icon-badge" style="background:#FFFBEB; color:#F59E0B;">
+                    <i class="fas fa-clock"></i>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="col-lg-3 col-md-6">
-        <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+        <div class="stat-card" style="border-left-color:#EF4444;">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h3 class="mb-1">{{ stats.today_absent }}</h3>
-                    <p class="mb-0"><i class="fas fa-times-circle me-2"></i>Absent Today</p>
+                    <p class="mb-0">Absent Today</p>
                 </div>
-                <i class="fas fa-times-circle fa-3x" style="opacity: 0.3;"></i>
+                <div class="stat-icon-badge" style="background:#FEF2F2; color:#EF4444;">
+                    <i class="fas fa-times-circle"></i>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Attendance Rate -->
-<div class="row mb-4">
+<!-- Attendance Rate (slim) -->
+<div class="row mb-3">
     <div class="col-12">
-        <div class="card">
+        <div class="card rate-card">
             <div class="card-body">
-                <h5 class="mb-3"><i class="fas fa-chart-line me-2"></i>Today's Attendance Rate</h5>
-                <div class="progress" style="height: 30px; border-radius: 10px;">
-                    <div class="progress-bar bg-success" role="progressbar"
+                <h6><i class="fas fa-chart-line me-2 text-success"></i>Today's Attendance Rate</h6>
+                <div class="progress rate-progress">
+                    <div class="progress-bar" role="progressbar"
                          style="width: {{ stats.attendance_rate }}%;"
-                         aria-valuenow="{{ stats.attendance_rate }}" aria-valuemin="0" aria-valuemax="100">
-                        <strong>{{ stats.attendance_rate }}%</strong>
-                    </div>
+                         aria-valuenow="{{ stats.attendance_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="rate-meta">
+                    <span>Attendance today</span>
+                    <span>{{ stats.attendance_rate }}%</span>
                 </div>
             </div>
         </div>
@@ -74,31 +237,30 @@
 </div>
 
 <!-- Recent Attendance & Quick Actions -->
-<div class="row">
-    <!-- Recent Attendance -->
+<div class="row g-3">
     <div class="col-lg-8">
-        <div class="card">
+        <div class="card dash-card">
             <div class="card-header">
                 <i class="fas fa-history me-2"></i>Recent Attendance
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                    <table class="table table-hover align-middle dash-table mb-0">
                         <thead>
                             <tr>
-                                <th>Time</th>
+                                <th class="ps-3">Time</th>
                                 <th>Employee ID</th>
                                 <th>Name</th>
                                 <th>Rank</th>
                                 <th>Unit</th>
                                 <th>Status</th>
-                                <th>Type</th>
+                                <th class="pe-3">Type</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for attendance, employee in recent_attendance %}
                             <tr>
-                                <td><strong>{{ attendance.check_in_time.strftime('%I:%M %p') }}</strong></td>
+                                <td class="ps-3"><strong>{{ attendance.check_in_time.strftime('%I:%M %p') }}</strong></td>
                                 <td><span class="badge bg-secondary">{{ employee.army_id }}</span></td>
                                 <td>{{ employee.full_name }}</td>
                                 <td>{{ employee.rank or '-' }}</td>
@@ -107,14 +269,18 @@
                                     {% if attendance.status == 'present' %}
                                         <span class="badge bg-success"><i class="fas fa-check"></i> Present</span>
                                     {% elif attendance.status == 'late' %}
-                                        <span class="badge bg-warning"><i class="fas fa-clock"></i> Late</span>
+                                        <span class="badge bg-warning text-dark"><i class="fas fa-clock"></i> Late</span>
                                     {% else %}
                                         <span class="badge bg-info">{{ attendance.status }}</span>
                                     {% endif %}
                                 </td>
-                                <td>
-                                    <span class="badge bg-primary">Check-in</span>
+                                <td class="pe-3">
+                                    <span class="badge bg-light text-dark border">Check-in</span>
                                 </td>
+                            </tr>
+                            {% else %}
+                            <tr class="empty-row">
+                                <td colspan="7">No recent attendance records</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -124,61 +290,44 @@
         </div>
     </div>
 
-    <!-- Quick Actions -->
     <div class="col-lg-4">
-        <div class="card">
+        <div class="card dash-card">
             <div class="card-header">
                 <i class="fas fa-bolt me-2"></i>Quick Actions
             </div>
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('attendance.index') }}" class="btn btn-lg btn-primary">
-                        <i class="fas fa-camera me-2"></i>Mark Attendance
+                <div class="qa-list">
+                    <a href="{{ url_for('attendance.index') }}" class="qa-btn">
+                        <span class="qa-icon" style="background:#EEF2FF;color:#4F46E5;"><i class="fas fa-camera"></i></span>
+                        Mark Attendance
                     </a>
 
                     {% if current_user.role in ['admin', 'officer'] %}
-                    <a href="{{ url_for('registration.index') }}" class="btn btn-lg btn-success">
-                        <i class="fas fa-user-plus me-2"></i>Register Employee
+                    <a href="{{ url_for('registration.index') }}" class="qa-btn">
+                        <span class="qa-icon" style="background:#ECFDF5;color:#059669;"><i class="fas fa-user-plus"></i></span>
+                        Register Employee
                     </a>
                     {% endif %}
 
-                    <a href="{{ url_for('attendance.view_attendance') }}" class="btn btn-lg btn-info text-white">
-                        <i class="fas fa-list me-2"></i>View Records
+                    <a href="{{ url_for('attendance.view_attendance') }}" class="qa-btn">
+                        <span class="qa-icon" style="background:#EFF6FF;color:#2563EB;"><i class="fas fa-list"></i></span>
+                        View Records
                     </a>
 
-                    <a href="{{ url_for('reports.index') }}" class="btn btn-lg btn-warning text-white">
-                        <i class="fas fa-download me-2"></i>Download Reports
+                    <a href="{{ url_for('reports.index') }}" class="qa-btn">
+                        <span class="qa-icon" style="background:#FFFBEB;color:#D97706;"><i class="fas fa-download"></i></span>
+                        Download Reports
                     </a>
 
                     {% if current_user.role == 'admin' %}
-                    <a href="{{ url_for('auth.settings') }}" class="btn btn-lg btn-secondary">
-                        <i class="fas fa-cog me-2"></i>System Settings
+                    <a href="{{ url_for('auth.settings') }}" class="qa-btn">
+                        <span class="qa-icon" style="background:#F3F4F6;color:#4B5563;"><i class="fas fa-cog"></i></span>
+                        System Settings
                     </a>
                     {% endif %}
                 </div>
             </div>
-        </div>
-
-        <!-- System Status -->
-        <div class="card mt-3">
-            <div class="card-header">
-                <i class="fas fa-info-circle me-2"></i>System Status
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Face Recognition:</span>
-                    <span class="badge bg-success">Active</span>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span>Database:</span>
-                    <span class="badge bg-success">Connected</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span>Camera:</span>
-                    <span class="badge bg-success">Ready</span>
-                </div>
-            </div>
-        </div>
+        </div>        
     </div>
 </div>
 {% endblock %}
