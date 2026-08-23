@@ -41,13 +41,12 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label class="font-weight-bold">Rank</label>
-                                    <input type="text" class="form-control" name="rank"
-                                           value="{{ employee.rank or '' }}" list="rankList">
-                                    <datalist id="rankList">
+                                    <select class="form-control" name="rank">
+                                        <option value="">Select Rank</option>
                                         {% for rank in ranks %}
-                                        <option value="{{ rank }}">
+                                        <option value="{{ rank }}" {{ 'selected' if employee.rank == rank }}>{{ rank }}</option>
                                         {% endfor %}
-                                    </datalist>
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
