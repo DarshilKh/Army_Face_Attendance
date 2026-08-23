@@ -3,120 +3,175 @@
 {% block title %}Reports{% endblock %}
 {% block page_title %}Reports & Analytics{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Format Selection Radio Buttons styling */
+    .format-selection {
+        display: flex;
+        gap: 15px;
+    }
+    .format-selection .form-check {
+        padding-left: 0;
+        margin-bottom: 0;
+        flex: 1;
+    }
+    .format-selection .form-check-input {
+        display: none;
+    }
+    .format-selection .form-check-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        border: 2px solid #E5E7EB;
+        border-radius: 10px;
+        padding: 12px 20px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: #fff;
+        color: var(--dark-color);
+        font-weight: 600;
+        width: 100%;
+        margin: 0;
+    }
+    .format-selection .form-check-label:hover {
+        border-color: #D1D5DB;
+        background: #F9FAFB;
+    }
+    .format-selection .form-check-input:checked + .form-check-label {
+        border-color: var(--primary-color);
+        background: #EEF2FF;
+        color: var(--primary-color);
+    }
+    .format-selection .form-check-input:checked + .form-check-label i {
+        transform: scale(1.1);
+        transition: transform 0.2s;
+    }
+
+    /* Form Enhancements */
+    .custom-form-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #4B5563;
+        margin-bottom: 8px;
+    }
+    .report-card {
+        border: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .report-card-header {
+        background: #fff;
+        padding: 30px 35px 10px;
+        border-bottom: none;
+    }
+    .report-icon-wrapper {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        background: #EEF2FF;
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-12">
-        <h2 class="text-dark">
-            <i class="fas fa-chart-bar"></i> Reports & Analytics
-        </h2>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Generate Report -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-file-download"></i> Generate Attendance Report
+<div class="row justify-content-center">
+    <div class="col-xl-8 col-lg-10">
+        <div class="card report-card">
+            <!-- Custom Header -->
+            <div class="report-card-header">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="report-icon-wrapper">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-1 fw-bold text-dark">Generate Attendance Report</h4>
+                        <p class="text-muted mb-0" style="font-size: 0.95rem;">
+                            Select your filters and configure parameters to download historical data.
+                        </p>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
+
+            <div class="card-body p-4 p-md-5 pt-4">
                 <form id="reportForm">
-                    <div class="mb-3">
-                        <label class="form-label">Report Type</label>
-                        <select class="form-select" name="report_type">
-                            <option value="daily">Daily Report</option>
-                            <option value="weekly">Weekly Report</option>
-                            <option value="monthly" selected>Monthly Report</option>
-                            <option value="custom">Custom Range</option>
-                        </select>
-                    </div>
-
-                    <div class="row">
+                    <!-- Top Row: Type & Unit -->
+                    <div class="row g-4 mb-4">
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Start Date</label>
-                                <input type="date" class="form-control" name="start_date"
-                                       value="{{ (get_current_date() - timedelta(days=30)).isoformat() }}"
-                                       required>
-                            </div>
+                            <label class="custom-form-label">Report Type</label>
+                            <select class="form-select form-select-lg fs-6" name="report_type">
+                                <option value="daily">Daily Report</option>
+                                <option value="weekly">Weekly Report</option>
+                                <option value="monthly" selected>Monthly Report</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
                         </div>
                         <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">End Date</label>
-                                <input type="date" class="form-control" name="end_date"
-                                       value="{{ get_current_date().isoformat() }}"
-                                       required>
-                            </div>
+                            <label class="custom-form-label">Unit Filter (Optional)</label>
+                            <select class="form-select form-select-lg fs-6" name="unit">
+                                <option value="">All Units</option>
+                                {% for u in units %}
+                                <option value="{{ u }}">{{ u }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Unit (Optional)</label>
-                        <select class="form-select" name="unit">
-                            <option value="">All Units</option>
-                            {% for u in units %}
-                            <option value="{{ u }}">{{ u }}</option>
-                            {% endfor %}
-                        </select>
+                    <!-- Second Row: Dates -->
+                    <div class="row g-4 mb-5">
+                        <div class="col-md-6">
+                            <label class="custom-form-label">Start Date</label>
+                            <input type="date" class="form-control form-control-lg fs-6" name="start_date"
+                                   value="{{ (get_current_date() - timedelta(days=30)).isoformat() }}"
+                                   required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="custom-form-label">End Date</label>
+                            <input type="date" class="form-control form-control-lg fs-6" name="end_date"
+                                   value="{{ get_current_date().isoformat() }}"
+                                   required>
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Format</label>
-                        <select class="form-select" name="format">
-                            <option value="excel">Excel (.xlsx)</option>
-                            <option value="pdf">PDF</option>
-                        </select>
-                    </div>
+                    <!-- Divider -->
+                    <hr class="border-light opacity-75 my-4" style="border-color: #E5E7EB !important;">
 
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-download"></i> Generate & Download Report
-                    </button>
+                    <!-- Bottom Row: Format & Submit -->
+                    <div class="row align-items-center g-4">
+                        <div class="col-md-7">
+                            <label class="custom-form-label">Export Format</label>
+                            <div class="format-selection">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="format" id="formatExcel" value="excel" checked>
+                                    <label class="form-check-label" for="formatExcel">
+                                        <i class="fas fa-file-excel fs-5 text-success"></i> Excel (.xlsx)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="format" id="formatPdf" value="pdf">
+                                    <label class="form-check-label" for="formatPdf">
+                                        <i class="fas fa-file-pdf fs-5 text-danger"></i> PDF Document
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-5 mt-4 mt-md-0">
+                            <!-- Invisible label to align the button vertically with the format boxes -->
+                            <label class="custom-form-label d-none d-md-block">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm" 
+                                    style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); border: none; padding: 13px 20px; border-radius: 10px;">
+                                <i class="fas fa-cloud-download-alt me-2"></i> Download Report
+                            </button>
+                        </div>
+                    </div>
                 </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-tachometer-alt"></i> Quick Statistics
-            </div>
-            <div class="card-body">
-                <div class="list-group">
-                    <a href="{{ url_for('reports.analytics') }}"
-                       class="list-group-item list-group-item-action">
-                        <i class="fas fa-chart-line"></i> Advanced Analytics
-                        <span class="float-end"><i class="fas fa-arrow-right"></i></span>
-                    </a>
-                    <a href="{{ url_for('attendance.view_attendance') }}"
-                       class="list-group-item list-group-item-action">
-                        <i class="fas fa-calendar-day"></i> Today's Attendance
-                        <span class="float-end"><i class="fas fa-arrow-right"></i></span>
-                    </a>
-                    {% if current_user.role == 'admin' %}
-                    <a href="{{ url_for('reports.audit_logs') }}"
-                       class="list-group-item list-group-item-action">
-                        <i class="fas fa-history"></i> Audit Logs
-                        <span class="float-end"><i class="fas fa-arrow-right"></i></span>
-                    </a>
-                    {% endif %}
-                </div>
-
-                <div class="mt-4">
-                    <h6>Report Templates</h6>
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-outline-primary" onclick="quickReport('today')">
-                            <i class="fas fa-file-alt"></i> Today's Report
-                        </button>
-                        <button class="btn btn-outline-primary" onclick="quickReport('week')">
-                            <i class="fas fa-file-alt"></i> This Week
-                        </button>
-                        <button class="btn btn-outline-primary" onclick="quickReport('month')">
-                            <i class="fas fa-file-alt"></i> This Month
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -147,10 +202,6 @@
         .then(blob => {
             hideLoading();
 
-            // ── Bug fix: map the format dropdown value to the real file
-            //    extension.  The old code used data.format directly, so
-            //    choosing "excel" produced a file called
-            //    "Attendance_Report.excel" instead of ".xlsx".
             const extensionMap = { excel: 'xlsx', pdf: 'pdf' };
             const extension    = extensionMap[data.format] || data.format;
 
@@ -162,7 +213,7 @@
             document.body.appendChild(a);
             a.click();
             a.remove();
-            window.URL.revokeObjectURL(url);   // free memory
+            window.URL.revokeObjectURL(url); 
 
             alert('Report downloaded successfully!');
         })
@@ -171,27 +222,5 @@
             alert('Error: ' + error.message);
         });
     });
-
-    function quickReport(type) {
-        const today = new Date();
-        let startDate, endDate;
-
-        if (type === 'today') {
-            startDate = endDate = today.toISOString().split('T')[0];
-        } else if (type === 'week') {
-            const weekAgo = new Date(today);
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            startDate = weekAgo.toISOString().split('T')[0];
-            endDate   = today.toISOString().split('T')[0];
-        } else if (type === 'month') {
-            const monthAgo = new Date(today);
-            monthAgo.setMonth(monthAgo.getMonth() - 1);
-            startDate = monthAgo.toISOString().split('T')[0];
-            endDate   = today.toISOString().split('T')[0];
-        }
-
-        document.querySelector('[name="start_date"]').value = startDate;
-        document.querySelector('[name="end_date"]').value   = endDate;
-    }
 </script>
 {% endblock %}
