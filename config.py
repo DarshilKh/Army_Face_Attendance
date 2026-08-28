@@ -58,14 +58,26 @@ class Config:
     # someone already registered (lower = catches more duplicates but risks
     # false-blocking two different people who look similar; higher = only
     # blocks near-exact repeats but may miss a genuine duplicate registered
-    # under different lighting/angle)
-    DUPLICATE_FACE_THRESHOLD = float(os.getenv('DUPLICATE_FACE_THRESHOLD', '0.75'))
+    # under different lighting/angle).
+    #
+    # 0.6, not the old 0.75: FACE_THRESHOLD above is actually a max-DISTANCE
+    # bound (models/face_recognition.py compares `1 - similarity` against
+    # it), so its real same-person bar is `similarity >= 1 - FACE_THRESHOLD`
+    # = 0.6 — the number this exact system already relies on every day to
+    # recognize a returning employee at attendance time. Registration's
+    # duplicate check compares raw similarity directly (no 1-minus), so
+    # leaving it at 0.75 meant a photo good enough to match your own
+    # profile at check-in could still slip under the duplicate-block bar
+    # at registration. 0.6 makes the two checks consistent.
+    DUPLICATE_FACE_THRESHOLD = float(os.getenv('DUPLICATE_FACE_THRESHOLD', '0.6'))
 
     # Minimum face size in pixels
     MIN_FACE_SIZE = int(os.getenv('MIN_FACE_SIZE', '40'))
 
-    # Face quality minimum score
-    MIN_FACE_QUALITY = float(os.getenv('MIN_FACE_QUALITY', '0.35'))
+    # Face quality minimum score — the one source of truth for the
+    # registration quality gate (previously duplicated as hardcoded 0.3
+    # literals in routes/registration.py and models/face_recognition.py).
+    MIN_FACE_QUALITY = float(os.getenv('MIN_FACE_QUALITY', '0.3'))
 
     # Liveness detection
     LIVENESS_REQUIRED = os.getenv('LIVENESS_REQUIRED', 'True').lower() == 'true'
@@ -83,6 +95,12 @@ class Config:
     RANKS = [
         'AGV', 'Sep', 'Nk', 'Hav', 'Nb Sub', 'Sub', 'Sub Maj',
         'Lt', 'Capt', 'Maj', 'Lt Col', 'Col', 'Brig', 'Maj Gen', 'Lt Gen', 'Gen'
+    ]
+
+    # Reasons for the Person Movement (leave/out-in) dropdown
+    MOVEMENT_REASONS = [
+        'Sick Leave', 'Family Emergency', 'Personal Work',
+        'Official Duty', 'Casual Leave', 'Other'
     ]
 
     # ==================== CAMERA CONFIG ====================
@@ -166,7 +184,6 @@ class Config:
     ITEMS_PER_PAGE = int(os.getenv('ITEMS_PER_PAGE', '25'))
 
     # ==================== REPORT CONFIG ====================
-    REPORT_LOGO = 'static/images/army_logo.png'
     REPORT_HEADER = 'भारतीय सेना उपस्थिति प्रणाली / Indian Army Attendance System'
 
     # ==================== BACKUP CONFIG ====================
@@ -215,6 +232,34 @@ class Config:
 
 # Initialize folders on import
 Config.init_folders()
+
+# Snapshot of every Settings-page-overridable Config attribute, captured
+# once here (before any DB-saved setting can mutate Config via
+# routes/auth.py's _apply_settings_to_config). "Reset to Default Settings"
+# restores from this dict instead of re-reading os.getenv() a second time
+# (which would be a second, driftable source of truth) or reload()ing this
+# module (which doesn't update the `from config import Config` bindings
+# already held by every other module).
+SETTINGS_DEFAULTS = {
+    'FACE_THRESHOLD':           Config.FACE_THRESHOLD,
+    'DUPLICATE_FACE_THRESHOLD': Config.DUPLICATE_FACE_THRESHOLD,
+    'MIN_FACE_SIZE':            Config.MIN_FACE_SIZE,
+    'LIVENESS_REQUIRED':        Config.LIVENESS_REQUIRED,
+    'WORK_START_TIME':          Config.WORK_START_TIME,
+    'WORK_END_TIME':            Config.WORK_END_TIME,
+    'LATE_THRESHOLD_MINUTES':   Config.LATE_THRESHOLD_MINUTES,
+    'HALF_DAY_HOURS':           Config.HALF_DAY_HOURS,
+    'FULL_DAY_HOURS':           Config.FULL_DAY_HOURS,
+    'SESSION_TIMEOUT':          Config.SESSION_TIMEOUT,
+    'MAX_LOGIN_ATTEMPTS':       Config.MAX_LOGIN_ATTEMPTS,
+    'LOG_LEVEL':                Config.LOG_LEVEL,
+    'MULTI_ANGLE_REGISTRATION': Config.MULTI_ANGLE_REGISTRATION,
+    'AUTO_BACKUP_ENABLED':      Config.AUTO_BACKUP_ENABLED,
+    'BACKUP_INTERVAL_HOURS':    Config.BACKUP_INTERVAL_HOURS,
+    'BACKUP_RETENTION_DAYS':    Config.BACKUP_RETENTION_DAYS,
+    'AUTO_CHECKOUT_ENABLED':    Config.AUTO_CHECKOUT_ENABLED,
+    'AUTO_CHECKOUT_TIME':       Config.AUTO_CHECKOUT_TIME,
+}
 
 # Debug function
 if __name__ == '__main__':

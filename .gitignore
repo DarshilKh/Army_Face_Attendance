@@ -5,4 +5,6 @@ __pycache__/
 logs
 static/uploads/attendance
 static/uploads/employees
+static/uploads/movement
+backups/
 *.pkl

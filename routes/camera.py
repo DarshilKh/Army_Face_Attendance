@@ -151,6 +151,31 @@ def delete_camera(camera_id):
     return jsonify({'success': True, 'message': f'{name} deleted'})
 
 
+@camera_bp.route('/cameras/<int:camera_id>/toggle', methods=['POST'])
+@login_required
+def toggle_camera_active(camera_id):
+    """
+    Quick enable/disable — flips is_active without touching any other field
+    (name/URL/credentials/etc), so it doesn't need the full edit form. A
+    disabled camera stops showing up in the picker on Mark Attendance /
+    Registration on their next load (both fetch active_only=1).
+    """
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': 'Admin only'}), 403
+
+    camera = Camera.query.get_or_404(camera_id)
+    camera.is_active = not camera.is_active
+    db.session.commit()
+
+    if not camera.is_active:
+        camera_manager.reset(camera_id)
+
+    app_logger.info(
+        f"Camera {'enabled' if camera.is_active else 'disabled'} by {current_user.username}: {camera.name}"
+    )
+    return jsonify({'success': True, 'is_active': camera.is_active, 'message': f'{camera.name} {"enabled" if camera.is_active else "disabled"}'})
+
+
 @camera_bp.route('/cameras/<int:camera_id>/test', methods=['POST'])
 @login_required
 def test_camera(camera_id):

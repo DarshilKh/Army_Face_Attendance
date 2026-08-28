@@ -86,6 +86,18 @@ class FaceRecognitionEngine:
                 self.embeddings_file = 'face_embeddings/embeddings.pkl'
                 self.embeddings_db = self._load_embeddings()
 
+                # Guards self.embeddings_array/self.employee_ids being read and
+                # reassigned together — matters once a bulk import's background
+                # thread can be rebuilding these (via _precompute_embeddings_array,
+                # once per registered employee) for many minutes at a time while
+                # live attendance marking is concurrently reading them. Readers
+                # snapshot both references under the lock, then do the actual
+                # (unlocked) numpy work against that consistent pair — so a
+                # concurrent rebuild can never hand back an index into a
+                # differently-ordered/differently-sized list than the one the
+                # similarity search actually ran against.
+                self._embeddings_lock = threading.Lock()
+
                 # ============================================
                 # INSTANT DETECTION OPTIMIZATION
                 # ============================================
@@ -218,13 +230,18 @@ class FaceRecognitionEngine:
 
     def _precompute_embeddings_array(self):
         """
-        Pre-compute embeddings as numpy array for ULTRA FAST similarity
+        Pre-compute embeddings as numpy array for ULTRA FAST similarity.
+        Builds the new array/id-lists locally first, then swaps all three
+        instance attributes together under the lock — so a concurrent
+        reader (see _embeddings_lock above) can never observe the array
+        and employee_ids from two different versions of this rebuild.
         """
         try:
             if len(self.embeddings_db) == 0:
-                self.embeddings_array = None
-                self.embeddings_ids = []
-                self.employee_ids = []
+                with self._embeddings_lock:
+                    self.embeddings_array = None
+                    self.embeddings_ids = []
+                    self.employee_ids = []
                 app_logger.warning("⚠️ No embeddings to pre-compute")
                 return
 
@@ -238,9 +255,12 @@ class FaceRecognitionEngine:
                 ids_list.append(emb_id)
                 employee_ids_list.append(data['employee_id'])
 
-            self.embeddings_array = np.array(embeddings_list)
-            self.embeddings_ids = ids_list
-            self.employee_ids = employee_ids_list
+            new_array = np.array(embeddings_list)
+
+            with self._embeddings_lock:
+                self.embeddings_array = new_array
+                self.embeddings_ids = ids_list
+                self.employee_ids = employee_ids_list
 
             app_logger.info(f"✓ Pre-computed {len(self.embeddings_array)} embeddings")
 
@@ -385,11 +405,19 @@ class FaceRecognitionEngine:
             employee_id = cached['employee_id']
             confidence = cached['confidence']
         else:
-            if self.embeddings_array is None or len(self.embeddings_array) == 0:
+            # Snapshot both references together so a concurrent
+            # _precompute_embeddings_array() rebuild (e.g. mid bulk-import)
+            # can't hand back an array and an employee_ids list that came
+            # from two different rebuilds.
+            with self._embeddings_lock:
+                array_snapshot = self.embeddings_array
+                ids_snapshot = self.employee_ids
+
+            if array_snapshot is None or len(array_snapshot) == 0:
                 return (None, 0.0, face, "NO_MATCH")
 
             # ⚡ VECTORIZED RECOGNITION - ULTRA FAST
-            similarities = cosine_similarity([embedding], self.embeddings_array)[0]
+            similarities = cosine_similarity([embedding], array_snapshot)[0]
 
             best_idx = np.argmax(similarities)
             best_similarity = similarities[best_idx]
@@ -398,7 +426,7 @@ class FaceRecognitionEngine:
             if distance > self.face_threshold:
                 return (None, 0.0, face, "NO_MATCH")
 
-            employee_id = self.employee_ids[best_idx]
+            employee_id = ids_snapshot[best_idx]
             confidence = best_similarity * det_confidence
 
             self._update_cache(face_hash, employee_id, confidence, face)
@@ -535,21 +563,44 @@ class FaceRecognitionEngine:
             if embedding is None:
                 return False, "No face detected in image", None
 
-            if confidence < 0.3:
+            if confidence < Config.MIN_FACE_QUALITY:
                 return False, f"Face quality too low ({confidence:.0%}). Use better lighting.", None
 
-            # Check duplicates (Bug #13 fix: exclude same employee)
-            if self.embeddings_array is not None and len(self.embeddings_array) > 0:
+            # Check duplicates (Bug #13 fix: exclude same employee).
+            # array_snapshot/ids_snapshot are read together under the lock
+            # (see _embeddings_lock) so they can't be a mismatched pair from
+            # two different _precompute_embeddings_array() rebuilds — matters
+            # once a bulk import can be rebuilding this for many minutes
+            # while another registration runs concurrently.
+            with self._embeddings_lock:
+                array_snapshot = self.embeddings_array
+                ids_snapshot = self.employee_ids
+
+            if array_snapshot is not None and len(array_snapshot) > 0:
                 # Find indices of embeddings NOT belonging to this employee
                 other_indices = [
-                    i for i, emp_id in enumerate(self.employee_ids)
+                    i for i, emp_id in enumerate(ids_snapshot)
                     if emp_id != employee_id
                 ]
 
                 if other_indices:
-                    other_embeddings = self.embeddings_array[other_indices]
+                    other_embeddings = array_snapshot[other_indices]
                     similarities = cosine_similarity([embedding], other_embeddings)[0]
-                    max_similarity = np.max(similarities)
+                    best_idx = int(np.argmax(similarities))
+                    max_similarity = similarities[best_idx]
+                    closest_employee_id = ids_snapshot[other_indices[best_idx]]
+
+                    # Logged unconditionally (not just when it blocks) so a
+                    # registration that goes through still leaves a record of
+                    # how close it actually was — previously this score was
+                    # silently discarded whenever it didn't trigger a block,
+                    # making "was this really under the bar, or is something
+                    # broken" impossible to answer after the fact.
+                    app_logger.info(
+                        f"Duplicate check for {employee_id}: closest existing match is "
+                        f"{closest_employee_id} at {max_similarity:.2%} similarity "
+                        f"(block threshold {self.duplicate_threshold:.0%})"
+                    )
 
                     if max_similarity > self.duplicate_threshold:
                         return False, f"Face already registered to someone else ({max_similarity:.0%} similar)", None

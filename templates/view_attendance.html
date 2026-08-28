@@ -317,9 +317,9 @@
                     <tr>
                         <td>{{ loop.index }}</td>
                         <td>
-                            <img src="/{{ employee.photo_path }}" alt="{{ employee.full_name }}"
+                            <img src="/{{ employee.photo_path or 'static/img/default-avatar.png' }}" alt="{{ employee.full_name }}"
                                  class="att-photo"
-                                 onerror="this.src='https://ui-avatars.com/api/?name={{ employee.full_name | urlencode }}&background=EEF2FF&color=4F46E5'">
+                                 onerror="this.src='/static/img/default-avatar.png'">
                         </td>
                         <td><span class="id-pill">{{ employee.army_id }}</span></td>
                         <td class="fw-semibold">{{ employee.full_name }}</td>

@@ -105,7 +105,7 @@
                     <div class="row g-4 mb-4">
                         <div class="col-md-6">
                             <label class="custom-form-label">Report Type</label>
-                            <select class="form-select form-select-lg fs-6" name="report_type">
+                            <select class="form-select form-select-lg fs-6" name="report_type" id="reportType" onchange="applyReportTypeDateRange()">
                                 <option value="daily">Daily Report</option>
                                 <option value="weekly">Weekly Report</option>
                                 <option value="monthly" selected>Monthly Report</option>
@@ -127,13 +127,13 @@
                     <div class="row g-4 mb-5">
                         <div class="col-md-6">
                             <label class="custom-form-label">Start Date</label>
-                            <input type="date" class="form-control form-control-lg fs-6" name="start_date"
-                                   value="{{ (get_current_date() - timedelta(days=30)).isoformat() }}"
+                            <input type="date" class="form-control form-control-lg fs-6" name="start_date" id="reportStartDate"
+                                   value="{{ (get_current_date().replace(day=1)).isoformat() }}"
                                    required>
                         </div>
                         <div class="col-md-6">
                             <label class="custom-form-label">End Date</label>
-                            <input type="date" class="form-control form-control-lg fs-6" name="end_date"
+                            <input type="date" class="form-control form-control-lg fs-6" name="end_date" id="reportEndDate"
                                    value="{{ get_current_date().isoformat() }}"
                                    required>
                         </div>
@@ -180,6 +180,41 @@
 
 {% block extra_js %}
 <script>
+    // toISOString() converts to UTC first, which shifts the date backward a
+    // day for any timezone ahead of UTC — format from local date parts instead.
+    function formatLocalDate(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    function applyReportTypeDateRange() {
+        const type = document.getElementById('reportType').value;
+        const startInput = document.getElementById('reportStartDate');
+        const endInput = document.getElementById('reportEndDate');
+        const today = new Date();
+
+        if (type === 'custom') {
+            return; // leave whatever dates are already there for the user to pick freely
+        }
+
+        endInput.value = formatLocalDate(today);
+
+        if (type === 'daily') {
+            startInput.value = formatLocalDate(today);
+        } else if (type === 'weekly') {
+            const start = new Date(today);
+            start.setDate(start.getDate() - 6); // 7-day window inclusive of today
+            startInput.value = formatLocalDate(start);
+        } else if (type === 'monthly') {
+            const start = new Date(today.getFullYear(), today.getMonth(), 1);
+            startInput.value = formatLocalDate(start);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', applyReportTypeDateRange);
+
     document.getElementById('reportForm').addEventListener('submit', function(e) {
         e.preventDefault();
 

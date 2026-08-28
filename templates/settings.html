@@ -106,20 +106,6 @@
                                         <input type="password" class="form-control" id="cameraPassword" autocomplete="new-password">
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">Width</label>
-                                        <input type="number" class="form-control" id="cameraWidth" value="1280">
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">Height</label>
-                                        <input type="number" class="form-control" id="cameraHeight" value="720">
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">FPS</label>
-                                        <input type="number" class="form-control" id="cameraFps" value="15" min="1" max="30">
-                                    </div>
-                                </div>
                             </div>
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="cameraActive" checked>
@@ -188,7 +174,7 @@
 
                             <div class="mb-3">
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="multiAngle" checked>
+                                    <input class="form-check-input" type="checkbox" id="multiAngle" {{ 'checked' if settings.multi_angle_registration|lower == 'true' }}>
                                     <label class="form-check-label" for="multiAngle">
                                         Multi-Angle Registration (3 photos: Front, Left, Right)
                                     </label>
@@ -241,12 +227,13 @@
 
                             <div class="mb-3">
                                 <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="autoCheckout">
+                                    <input class="form-check-input" type="checkbox" id="autoCheckout" {{ 'checked' if settings.auto_checkout == 'true' }}>
                                     <label class="form-check-label" for="autoCheckout">
                                         Enable Auto Check-out at
                                     </label>
-                                    <input type="time" class="form-control mt-2" name="auto_checkout_time" value="18:00">
+                                    <input type="time" class="form-control mt-2" name="auto_checkout_time" value="{{ settings.auto_checkout_time }}">
                                 </div>
+                                <small class="text-muted">Anyone still checked in after this time is automatically checked out (checked every ~5 min by the server)</small>
                             </div>
 
                             <button type="submit" class="btn btn-success">
@@ -265,54 +252,74 @@
                     </div>
                     <div class="card-body">
                         <form id="systemSettingsForm">
-                            <div class="mb-3">
-                                <label class="form-label">Session Timeout (seconds)</label>
-                                <input type="number" class="form-control" name="session_timeout" value="{{ settings.session_timeout }}" min="300" max="7200">
-                                <small class="text-muted">Users will be logged out after this period of inactivity</small>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Maximum Login Attempts</label>
-                                <input type="number" class="form-control" name="max_login_attempts" value="{{ settings.max_login_attempts }}" min="1" max="10">
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="autoBackup" checked>
-                                    <label class="form-check-label" for="autoBackup">
-                                        Enable Auto Database Backup (Daily)
-                                    </label>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1">Session Timeout (seconds)</label>
+                                    <input type="number" class="form-control" name="session_timeout" value="{{ settings.session_timeout }}" min="300" max="7200">
+                                    <small class="text-muted">Logs users out after this period of inactivity</small>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1">Maximum Login Attempts</label>
+                                    <input type="number" class="form-control" name="max_login_attempts" value="{{ settings.max_login_attempts }}" min="1" max="10">
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Log Level</label>
-                                <select class="form-select" name="log_level">
-                                    <option value="DEBUG" {{ 'selected' if settings.log_level == 'DEBUG' }}>DEBUG (Detailed)</option>
-                                    <option value="INFO" {{ 'selected' if settings.log_level == 'INFO' }}>INFO (Standard)</option>
-                                    <option value="WARNING" {{ 'selected' if settings.log_level == 'WARNING' }}>WARNING (Important Only)</option>
-                                    <option value="ERROR" {{ 'selected' if settings.log_level == 'ERROR' }}>ERROR (Errors Only)</option>
-                                </select>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1">Log Level</label>
+                                    <select class="form-select" name="log_level">
+                                        <option value="DEBUG" {{ 'selected' if settings.log_level == 'DEBUG' }}>DEBUG (Detailed)</option>
+                                        <option value="INFO" {{ 'selected' if settings.log_level == 'INFO' }}>INFO (Standard)</option>
+                                        <option value="WARNING" {{ 'selected' if settings.log_level == 'WARNING' }}>WARNING (Important Only)</option>
+                                        <option value="ERROR" {{ 'selected' if settings.log_level == 'ERROR' }}>ERROR (Errors Only)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-2 d-flex align-items-end">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" id="autoBackup" {{ 'checked' if settings.auto_backup == 'true' }}>
+                                        <label class="form-check-label" for="autoBackup">
+                                            Enable Auto Database Backup
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
 
-                            <button type="submit" class="btn btn-success">
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1">Backup Interval (hours)</label>
+                                    <input type="number" class="form-control" name="backup_interval" value="{{ settings.backup_interval }}" min="1" max="168">
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1">Backup Retention (days)</label>
+                                    <input type="number" class="form-control" name="backup_retention" value="{{ settings.backup_retention }}" min="1" max="365">
+                                    <small class="text-muted">Older backups are deleted automatically</small>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success mt-1">
                                 <i class="fas fa-save me-2"></i>Save Settings
                             </button>
                         </form>
 
-                        <hr>
+                        <hr class="my-2">
 
-                        <h6 class="mt-4">System Actions</h6>
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-warning" onclick="clearCache()">
-                                <i class="fas fa-broom me-2"></i>Clear Cache
-                            </button>
-                            <button class="btn btn-info text-white" onclick="backupDatabase()" style="display:none;">
-                                <i class="fas fa-database me-2"></i>Backup Database Now
-                            </button>
-                            <button class="btn btn-danger" onclick="resetSystem()" style="display:none;">
-                                <i class="fas fa-exclamation-triangle me-2"></i>Reset to Default Settings
-                            </button>
+                        <h6 class="mb-2">System Actions</h6>
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <button class="btn btn-warning w-100" onclick="clearCache()">
+                                    <i class="fas fa-broom me-2"></i>Clear Cache
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-info text-white w-100" onclick="backupDatabase()">
+                                    <i class="fas fa-database me-2"></i>Backup Now
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-danger w-100" onclick="resetSystem()">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Reset Defaults
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -361,14 +368,26 @@ function renderCamerasTable() {
             : (cam.camera_type === 'webcam'
                 ? '<span class="badge bg-info">Local device</span>'
                 : `<span class="badge bg-secondary" id="cam-status-${cam.id}">Unknown</span>`);
-        const testBtn = cam.camera_type === 'ip'
+        const testBtn = (cam.camera_type === 'ip' && cam.is_active)
             ? `<button class="btn btn-sm btn-outline-secondary" id="cam-test-btn-${cam.id}" onclick="testCameraRow(${cam.id})" title="Test connection">
                    <i class="fas fa-satellite-dish"></i>
                </button>`
             : '';
+        const resetBtn = (cam.camera_type === 'ip' && cam.is_active)
+            ? `<button class="btn btn-sm btn-outline-secondary" onclick="resetCameraRow(${cam.id})" title="Force reconnect">
+                   <i class="fas fa-rotate"></i>
+               </button>`
+            : '';
+        const toggleBtn = cam.is_active
+            ? `<button class="btn btn-sm btn-outline-secondary" onclick="toggleCameraActive(${cam.id})" title="Disable camera">
+                   <i class="fas fa-toggle-on"></i>
+               </button>`
+            : `<button class="btn btn-sm btn-outline-success" onclick="toggleCameraActive(${cam.id})" title="Enable camera">
+                   <i class="fas fa-toggle-off"></i>
+               </button>`;
 
         return `
-        <tr>
+        <tr class="${cam.is_active ? '' : 'opacity-50'}">
             <td>${escapeHtml(cam.name)}</td>
             <td>${escapeHtml(cam.location || '-')}</td>
             <td>${typeLabel}</td>
@@ -376,6 +395,8 @@ function renderCamerasTable() {
             <td class="text-end">
                 <div class="btn-group">
                     ${testBtn}
+                    ${resetBtn}
+                    ${toggleBtn}
                     <button class="btn btn-sm btn-outline-primary" onclick="openEditCameraModal(${cam.id})" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>
@@ -420,9 +441,6 @@ function openAddCameraModal() {
     document.getElementById('cameraUrl').value = '';
     document.getElementById('cameraUsername').value = '';
     document.getElementById('cameraPassword').value = '';
-    document.getElementById('cameraWidth').value = 1280;
-    document.getElementById('cameraHeight').value = 720;
-    document.getElementById('cameraFps').value = 15;
     document.getElementById('cameraActive').checked = true;
     toggleCameraIpFields();
     cameraModalInstance.show();
@@ -443,9 +461,6 @@ async function openEditCameraModal(cameraId) {
         document.getElementById('cameraUrl').value = cam.url || '';
         document.getElementById('cameraUsername').value = cam.username || '';
         document.getElementById('cameraPassword').value = cam.password || '';
-        document.getElementById('cameraWidth').value = cam.width || 1280;
-        document.getElementById('cameraHeight').value = cam.height || 720;
-        document.getElementById('cameraFps').value = cam.fps || 15;
         document.getElementById('cameraActive').checked = !!cam.is_active;
         toggleCameraIpFields();
         cameraModalInstance.show();
@@ -474,9 +489,6 @@ async function saveCameraModal() {
         payload.url = document.getElementById('cameraUrl').value.trim();
         payload.username = document.getElementById('cameraUsername').value.trim();
         payload.password = document.getElementById('cameraPassword').value;
-        payload.width = parseInt(document.getElementById('cameraWidth').value, 10) || 1280;
-        payload.height = parseInt(document.getElementById('cameraHeight').value, 10) || 720;
-        payload.fps = parseInt(document.getElementById('cameraFps').value, 10) || 15;
     }
 
     if (!payload.name) { alert('Camera name is required'); return; }
@@ -521,6 +533,35 @@ async function testCameraRow(cameraId) {
     }
 }
 
+async function resetCameraRow(cameraId) {
+    try {
+        const res = await fetch(`/api/camera/${cameraId}/reset`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            refreshCameraStatus(cameraId);
+            alert('✓ ' + data.message + ' — try Test again in a moment.');
+        } else {
+            alert('✗ ' + data.message);
+        }
+    } catch (e) {
+        alert('✗ Failed to reset camera: ' + e.message);
+    }
+}
+
+async function toggleCameraActive(cameraId) {
+    try {
+        const res = await fetch(`/api/cameras/${cameraId}/toggle`, { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            loadCameras();
+        } else {
+            alert('✗ ' + data.message);
+        }
+    } catch (e) {
+        alert('✗ Failed to toggle camera: ' + e.message);
+    }
+}
+
 async function deleteCameraRow(cameraId, name) {
     if (!confirm(`Delete camera "${name}"? This cannot be undone.`)) return;
     try {
@@ -559,6 +600,7 @@ document.querySelectorAll('form').forEach(form => {
             if (cb.id === 'livenessDetection') data['liveness_detection'] = cb.checked;
             if (cb.id === 'autoBackup')         data['auto_backup']        = cb.checked;
             if (cb.id === 'autoCheckout')       data['auto_checkout']      = cb.checked;
+            if (cb.id === 'multiAngle')         data['multi_angle_registration'] = cb.checked;
         });
 
         try {
@@ -597,23 +639,36 @@ async function clearCache() {
     }
 }
 
-function backupDatabase() {
-    if (confirm('Start database backup now?')) {
-        showLoading('Creating backup...');
-        setTimeout(() => {
-            hideLoading();
-            alert('⚠ Database backup feature not yet implemented on backend.');
-        }, 1000);
+async function backupDatabase() {
+    if (!confirm('Start database backup now?')) return;
+    showLoading('Creating backup...');
+    try {
+        const response = await fetch('/settings/backup_now', { method: 'POST' });
+        const result = await response.json();
+        hideLoading();
+        alert(result.success ? '✓ ' + result.message : '✗ ' + result.message);
+    } catch (error) {
+        hideLoading();
+        alert('✗ Failed to create backup: ' + error.message);
     }
 }
 
-function resetSystem() {
-    if (confirm('⚠️ This will reset all settings to default. Continue?')) {
-        showLoading('Resetting settings...');
-        setTimeout(() => {
-            hideLoading();
-            alert('⚠ Reset to defaults feature not yet implemented.');
-        }, 1000);
+async function resetSystem() {
+    if (!confirm('⚠️ This will reset ALL settings to their defaults. Continue?')) return;
+    showLoading('Resetting settings...');
+    try {
+        const response = await fetch('/settings/reset', { method: 'POST' });
+        const result = await response.json();
+        hideLoading();
+        if (result.success) {
+            alert('✓ ' + result.message);
+            location.reload();
+        } else {
+            alert('✗ ' + result.message);
+        }
+    } catch (error) {
+        hideLoading();
+        alert('✗ Failed to reset settings: ' + error.message);
     }
 }
 </script>

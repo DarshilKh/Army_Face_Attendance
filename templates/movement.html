@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+
+{% block title %}Person Movement{% endblock %}
+{% block page_title %}Person Movement{% endblock %}
+
+{% block extra_css %}
+<style>
+    .movement-container {
+        max-width: 1300px;
+        margin: 0 auto;
+    }
+
+    .video-container {
+        position: relative;
+        width: 100%;
+        background: #0B1220;
+        border-radius: 12px;
+        overflow: hidden;
+        height: 320px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #cameraFeed, #networkFeed {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .form-label {
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: #334155;
+        margin-bottom: 6px;
+    }
+
+    .result-employee-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #F3F4F6;
+    }
+
+    .result-employee-header img {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #10B981;
+    }
+
+    .status-pill {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .status-pill.out { background: #FEE2E2; color: #991B1B; }
+    .status-pill.in  { background: #D1FAE5; color: #065F46; }
+
+    .out-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-bottom: 1px solid #F1F5F9;
+    }
+
+    .out-row:last-child { border-bottom: none; }
+
+    .out-row img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .out-row-name { font-weight: 700; font-size: 0.88rem; margin: 0; }
+    .out-row-meta { font-size: 0.76rem; color: #6B7280; margin: 0; }
+
+    .currently-out-list {
+        max-height: 520px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="movement-container">
+    <div class="row g-3">
+        <!-- Scan Column -->
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0"><i class="fas fa-camera me-1"></i> Scan Face</h5>
+                    <a href="{{ url_for('movement.records') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-history me-1"></i> View History
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                        <select id="cameraPicker" class="form-select form-select-sm" style="width:auto; min-width:160px;"></select>
+                        <button id="startCameraBtn" class="btn btn-success btn-sm" onclick="startCamera()">
+                            <i class="fas fa-play me-1"></i> Start Camera
+                        </button>
+                        <button id="scanBtn" class="btn btn-primary btn-sm" onclick="scanFace()" style="display:none;">
+                            <i class="fas fa-search me-1"></i> Scan Face
+                        </button>
+                        <button id="stopCameraBtn" class="btn btn-danger btn-sm" onclick="stopCamera()" style="display:none;">
+                            <i class="fas fa-stop me-1"></i> Stop
+                        </button>
+                    </div>
+
+                    <div class="video-container">
+                        <video id="cameraFeed" autoplay playsinline muted></video>
+                        <img id="networkFeed" style="display:none;" alt="Camera Feed">
+                        <canvas id="captureCanvas" style="display:none;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recognition result + Out/In form -->
+            <div id="resultCard" class="card mt-3" style="display:none;">
+                <div class="card-body">
+                    <div class="result-employee-header">
+                        <img id="resultPhoto" alt="Photo" onerror="this.src='/static/img/default-avatar.png'">
+                        <div class="flex-grow-1">
+                            <h5 class="mb-0" id="resultName">-</h5>
+                            <p class="text-muted mb-0 small" id="resultMeta">-</p>
+                        </div>
+                        <span id="resultStatusPill" class="status-pill in">IN</span>
+                    </div>
+
+                    <!-- Shown when employee has no active out record -->
+                    <div id="markOutForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Reason</label>
+                                <select class="form-select" id="movementReason">
+                                    <option value="">Select reason</option>
+                                    {% for reason in reasons %}
+                                    <option value="{{ reason }}">{{ reason }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Days</label>
+                                <select class="form-select" id="movementDays" onchange="recalcEndDate()">
+                                    <option value="1">1 day</option>
+                                    <option value="2">2 days</option>
+                                    <option value="3">3 days</option>
+                                    <option value="5">5 days</option>
+                                    <option value="7">1 week</option>
+                                    <option value="10">10 days</option>
+                                    <option value="14">2 weeks</option>
+                                    <option value="21">3 weeks</option>
+                                    <option value="30">1 month</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">From</label>
+                                <input type="date" class="form-control" id="movementStartDate" onchange="recalcEndDate()">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">To</label>
+                                <input type="date" class="form-control" id="movementEndDate">
+                            </div>
+                        </div>
+                        <button class="btn btn-danger w-100 mt-3" onclick="markOut()">
+                            <i class="fas fa-right-from-bracket me-1"></i> Mark OUT
+                        </button>
+                    </div>
+
+                    <!-- Shown when employee currently has an open out record -->
+                    <div id="markInPanel" style="display:none;">
+                        <div class="alert alert-warning mb-3">
+                            <strong id="openRecordReason">-</strong><br>
+                            <span id="openRecordDates" class="small"></span><br>
+                            <span class="small text-muted">Out since <span id="openRecordSince"></span></span>
+                        </div>
+                        <button class="btn btn-success w-100" onclick="markIn()">
+                            <i class="fas fa-right-to-bracket me-1"></i> Mark IN — Back from leave
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Currently Out Column -->
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-door-open me-1"></i> Currently Out (<span id="outCount">0</span>)</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="currentlyOutList" class="currently-out-list">
+                        <p class="text-muted text-center py-4 mb-0">Loading…</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let cameraStream = null;
+    let usingNetworkCamera = false;
+    let currentCamera = null;
+    let currentEmployee = null;
+    let currentCapturedImage = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        CameraSelector.populate(document.getElementById('cameraPicker'));
+        loadCurrentlyOut();
+        setInterval(loadCurrentlyOut, 30000);
+
+        document.getElementById('movementStartDate').value = formatLocalDate(new Date());
+        recalcEndDate();
+    });
+
+    // toISOString() converts to UTC first, which shifts the date backward by
+    // a day for any timezone ahead of UTC (e.g. IST) — format from local
+    // date parts instead so "today"/date-math always matches the browser's
+    // own calendar day.
+    function formatLocalDate(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    function recalcEndDate() {
+        const startVal = document.getElementById('movementStartDate').value;
+        const days = parseInt(document.getElementById('movementDays').value, 10) || 1;
+        if (!startVal) return;
+        const start = new Date(startVal + 'T00:00:00');
+        const end = new Date(start);
+        end.setDate(end.getDate() + (days - 1));
+        document.getElementById('movementEndDate').value = formatLocalDate(end);
+    }
+
+    async function startCamera() {
+        const picker = document.getElementById('cameraPicker');
+        currentCamera = CameraSelector.selected(picker);
+        if (!currentCamera) {
+            alert('No camera configured. Add one in Settings > Cameras first.');
+            return;
+        }
+
+        usingNetworkCamera = (currentCamera.type === 'ip');
+
+        try {
+            if (usingNetworkCamera) {
+                const testResponse = await fetch(`/api/camera/${currentCamera.id}/snapshot`);
+                if (!testResponse.ok) throw new Error(`status ${testResponse.status}`);
+                document.getElementById('cameraFeed').style.display = 'none';
+                const networkFeed = document.getElementById('networkFeed');
+                networkFeed.style.display = 'block';
+                networkFeed.src = `/api/camera/${currentCamera.id}/stream?` + Date.now();
+            } else {
+                document.getElementById('networkFeed').style.display = 'none';
+                document.getElementById('cameraFeed').style.display = 'block';
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+                });
+                const video = document.getElementById('cameraFeed');
+                video.srcObject = cameraStream;
+                await video.play();
+            }
+
+            CameraSelector.remember(currentCamera.id);
+            picker.disabled = true;
+            document.getElementById('startCameraBtn').style.display = 'none';
+            document.getElementById('scanBtn').style.display = 'inline-block';
+            document.getElementById('stopCameraBtn').style.display = 'inline-block';
+        } catch (e) {
+            alert(`Could not start "${currentCamera.label}": ${e.message}`);
+        }
+    }
+
+    function stopCamera() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(t => t.stop());
+            document.getElementById('cameraFeed').srcObject = null;
+            cameraStream = null;
+        }
+        const networkFeed = document.getElementById('networkFeed');
+        networkFeed.src = '';
+        networkFeed.style.display = 'none';
+        usingNetworkCamera = false;
+
+        document.getElementById('cameraPicker').disabled = false;
+        document.getElementById('startCameraBtn').style.display = 'inline-block';
+        document.getElementById('scanBtn').style.display = 'none';
+        document.getElementById('stopCameraBtn').style.display = 'none';
+        document.getElementById('resultCard').style.display = 'none';
+    }
+
+    async function captureImage() {
+        if (usingNetworkCamera) {
+            const res = await fetch(`/api/camera/${currentCamera.id}/snapshot?` + Date.now());
+            if (!res.ok) throw new Error('Failed to grab snapshot');
+            const blob = await res.blob();
+            return await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+            });
+        }
+        const video = document.getElementById('cameraFeed');
+        const canvas = document.getElementById('captureCanvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        return canvas.toDataURL('image/jpeg', 0.9);
+    }
+
+    async function scanFace() {
+        const btn = document.getElementById('scanBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Scanning…';
+
+        try {
+            const imageData = await captureImage();
+            currentCapturedImage = imageData;
+
+            const res = await fetch('{{ url_for("movement.scan") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            });
+            const data = await res.json();
+
+            if (!data.success) {
+                alert('✗ ' + data.message);
+                document.getElementById('resultCard').style.display = 'none';
+                return;
+            }
+
+            currentEmployee = data.employee;
+            showResult(data);
+        } catch (e) {
+            alert('✗ Scan failed: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search me-1"></i> Scan Face';
+        }
+    }
+
+    function showResult(data) {
+        const e = data.employee;
+        document.getElementById('resultPhoto').src = '/' + e.photo;
+        document.getElementById('resultName').textContent = `${e.name} (${e.rank})`;
+        document.getElementById('resultMeta').textContent = `ID: ${e.army_id} • Unit: ${e.unit} • Match: ${data.confidence}%`;
+
+        const pill = document.getElementById('resultStatusPill');
+        if (data.currently_out) {
+            pill.textContent = 'OUT';
+            pill.className = 'status-pill out';
+            document.getElementById('markOutForm').style.display = 'none';
+            document.getElementById('markInPanel').style.display = 'block';
+
+            const rec = data.open_record;
+            document.getElementById('openRecordReason').textContent = rec.reason;
+            document.getElementById('openRecordDates').textContent = `${rec.start_date} to ${rec.end_date}`;
+            document.getElementById('openRecordSince').textContent = rec.out_time;
+        } else {
+            pill.textContent = 'IN';
+            pill.className = 'status-pill in';
+            document.getElementById('markOutForm').style.display = 'block';
+            document.getElementById('markInPanel').style.display = 'none';
+        }
+
+        document.getElementById('resultCard').style.display = 'block';
+    }
+
+    async function markOut() {
+        const reason = document.getElementById('movementReason').value;
+        const startDate = document.getElementById('movementStartDate').value;
+        const endDate = document.getElementById('movementEndDate').value;
+
+        if (!reason) { alert('Please select a reason'); return; }
+        if (!startDate || !endDate) { alert('Please select the date range'); return; }
+
+        try {
+            const res = await fetch('{{ url_for("movement.mark_out") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    employee_id: currentEmployee.id,
+                    reason, start_date: startDate, end_date: endDate,
+                    image: currentCapturedImage
+                })
+            });
+            const data = await res.json();
+            alert((data.success ? '✓ ' : '✗ ') + data.message);
+            if (data.success) {
+                document.getElementById('resultCard').style.display = 'none';
+                loadCurrentlyOut();
+            }
+        } catch (e) {
+            alert('✗ Failed: ' + e.message);
+        }
+    }
+
+    async function markIn() {
+        try {
+            const res = await fetch('{{ url_for("movement.mark_in") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employee_id: currentEmployee.id, image: currentCapturedImage })
+            });
+            const data = await res.json();
+            alert((data.success ? '✓ ' : '✗ ') + data.message);
+            if (data.success) {
+                document.getElementById('resultCard').style.display = 'none';
+                loadCurrentlyOut();
+            }
+        } catch (e) {
+            alert('✗ Failed: ' + e.message);
+        }
+    }
+
+    async function loadCurrentlyOut() {
+        try {
+            const res = await fetch('{{ url_for("movement.currently_out") }}');
+            const data = await res.json();
+            const list = document.getElementById('currentlyOutList');
+            document.getElementById('outCount').textContent = data.records.length;
+
+            if (!data.records.length) {
+                list.innerHTML = '<p class="text-muted text-center py-4 mb-0">Nobody is currently out.</p>';
+                return;
+            }
+
+            list.innerHTML = data.records.map(r => `
+                <div class="out-row">
+                    <img src="/${r.photo}" alt="" onerror="this.src='/static/img/default-avatar.png'">
+                    <div class="flex-grow-1">
+                        <p class="out-row-name">${r.name} <span class="text-muted fw-normal">(${r.rank})</span></p>
+                        <p class="out-row-meta">${r.reason} • ${r.start_date} to ${r.end_date}</p>
+                        <p class="out-row-meta">Out since ${r.out_time}</p>
+                    </div>
+                </div>
+            `).join('');
+        } catch (e) {
+            console.error('Failed to load currently-out list:', e);
+        }
+    }
+
+    window.addEventListener('beforeunload', function () {
+        if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+    });
+</script>
+{% endblock %}

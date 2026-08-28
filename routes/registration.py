@@ -3,7 +3,7 @@ Employee Registration Routes - Professional Grade
 Handles multi-angle photo capture and face registration
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, current_app
 from flask_login import login_required, current_user
 from models import db
 from models.database import Employee, AuditLog
@@ -20,6 +20,8 @@ import io
 import zipfile
 import tempfile
 import shutil
+import threading
+import uuid
 from datetime import datetime
 from typing import Optional, Tuple, List
 from config import Config
@@ -28,7 +30,6 @@ registration_bp = Blueprint('registration', __name__, url_prefix='/registration'
 
 # Constants
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-MIN_QUALITY_THRESHOLD = 0.3
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 
@@ -56,35 +57,6 @@ def decode_base64_image(base64_string: str) -> Optional[np.ndarray]:
     except Exception as e:
         app_logger.error(f"Base64 decode error: {e}")
         return None
-
-
-def save_image_from_base64(base64_data: str, save_path: str) -> bool:
-    """
-    Save base64 image to disk
-
-    Args:
-        base64_data: Base64 encoded image
-        save_path: Path to save image
-
-    Returns:
-        True if successful, False otherwise
-    """
-    try:
-        image = decode_base64_image(base64_data)
-        if image is None:
-            return False
-
-        # Create directory if not exists
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-        # Save image
-        cv2.imwrite(save_path, image)
-        app_logger.info(f"Image saved: {save_path}")
-        return True
-
-    except Exception as e:
-        app_logger.error(f"Failed to save image: {e}")
-        return False
 
 
 def select_best_photo(photos: List[Tuple[str, np.ndarray]]) -> Tuple[str, np.ndarray, float]:
@@ -124,7 +96,8 @@ def index():
         flash('Access denied', 'error')
         return redirect(url_for('auth.dashboard'))
 
-    return render_template('registration.html', ranks=Config.RANKS)
+    return render_template('registration.html', ranks=Config.RANKS,
+                           multi_angle_required=Config.MULTI_ANGLE_REGISTRATION)
 
 
 @registration_bp.route('/check_quality', methods=['POST'])
@@ -147,7 +120,7 @@ def check_quality():
 
         if quality_score >= 0.6:
             tier = 'good'
-        elif quality_score >= MIN_QUALITY_THRESHOLD:
+        elif quality_score >= Config.MIN_FACE_QUALITY:
             tier = 'fair'
         else:
             tier = 'poor'
@@ -168,7 +141,7 @@ def check_quality():
 
 def _finalize_employee_registration(army_id, full_name, rank, unit, department, designation,
                                      phone, email, date_of_joining, photos_data, photo_paths,
-                                     created_by):
+                                     created_by, ip_address):
     """
     Shared core: given decoded photos_data/photo_paths and validated metadata,
     picks the best photo, checks quality, enhances, registers the face
@@ -177,6 +150,11 @@ def _finalize_employee_registration(army_id, full_name, rank, unit, department, 
     Used by both single-employee registration (camera capture or manual
     upload) and bulk import, so every registration path gets identical
     quality/validation behavior.
+
+    ip_address is passed in explicitly (rather than read from the `request`
+    proxy internally) because bulk import runs each row from a background
+    thread with no active request context — the single-registration caller
+    just passes `request.remote_addr` through.
 
     Returns a dict: {success, message, employee_id?, army_id?, quality_score?, best_angle?}
     """
@@ -198,7 +176,7 @@ def _finalize_employee_registration(army_id, full_name, rank, unit, department, 
             app_logger.info(f"Single photo quality: {quality_score:.2f}")
 
         # Check quality threshold
-        if quality_score < MIN_QUALITY_THRESHOLD:
+        if quality_score < Config.MIN_FACE_QUALITY:
             for path in photo_paths.values():
                 try:
                     os.remove(path)
@@ -265,7 +243,7 @@ def _finalize_employee_registration(army_id, full_name, rank, unit, department, 
             table_name='employees',
             record_id=employee.id,
             new_value=f"ID: {army_id}, Name: {full_name}, Quality: {quality_score:.2f}, Photos: {len(photos_data)}",
-            ip_address=request.remote_addr
+            ip_address=ip_address
         )
         db.session.add(audit)
         db.session.commit()
@@ -352,7 +330,10 @@ def register_employee():
         if 'photo_front' in request.form:
             app_logger.info("Processing base64 multi-angle photos...")
 
-            angles = ['front', 'left', 'right']
+            # Left/right are only required when Multi-Angle Registration is
+            # enabled in Settings — front alone is enough otherwise, same as
+            # the file-upload path already allows.
+            angles = ['front', 'left', 'right'] if Config.MULTI_ANGLE_REGISTRATION else ['front']
             for angle in angles:
                 photo_key = f'photo_{angle}'
 
@@ -470,7 +451,7 @@ def register_employee():
         result = _finalize_employee_registration(
             army_id, full_name, rank, unit, department, designation,
             phone, email, date_of_joining, photos_data, photo_paths,
-            current_user.id
+            current_user.id, request.remote_addr
         )
         return jsonify(result), (200 if result.get('success') else 400)
 
@@ -502,7 +483,7 @@ def list_employees():
         unit = request.args.get('unit', '').strip()
         status = request.args.get('status', 'active')
         page = request.args.get('page', 1, type=int)
-        per_page = 50
+        per_page = Config.ITEMS_PER_PAGE
 
         query = Employee.query
 
@@ -803,7 +784,7 @@ def update_employee(employee_id):
                 }), 400
 
             quality_score, _ = face_engine.get_face_quality_score(image)
-            if quality_score < MIN_QUALITY_THRESHOLD:
+            if quality_score < Config.MIN_FACE_QUALITY:
                 os.remove(new_photo_path)
                 return jsonify({
                     'success': False,
@@ -1092,11 +1073,148 @@ def bulk_import_template():
     )
 
 
+
+# In-memory bulk-import job tracker. A batch of ~2000 employees means real
+# GPU face-detection work per photo (multiple angles each) that can easily
+# run 20-40+ minutes — doing that synchronously inside one HTTP request
+# risks a browser/proxy timeout and gives zero feedback while it's running.
+# So the actual per-row processing runs in a background daemon thread (same
+# pattern as app.py's camera-check/maintenance threads) and the route just
+# hands back a job_id immediately; the frontend polls bulk_import_status()
+# for live progress. The job keeps running even if the browser tab closes.
+bulk_import_jobs = {}
+bulk_import_jobs_lock = threading.Lock()
+MAX_TRACKED_BULK_JOBS = 5  # oldest finished jobs are dropped beyond this, to bound memory on a long-lived server
+
+
+def _prune_old_bulk_jobs():
+    """Caller must hold bulk_import_jobs_lock."""
+    finished = [jid for jid, j in bulk_import_jobs.items() if j['status'] != 'running']
+    if len(finished) > MAX_TRACKED_BULK_JOBS:
+        finished.sort(key=lambda jid: bulk_import_jobs[jid]['started_at'])
+        for jid in finished[:len(finished) - MAX_TRACKED_BULK_JOBS]:
+            del bulk_import_jobs[jid]
+
+
+def _run_bulk_import_job(job_id, app, rows, extract_dir, created_by, ip_address):
+    """
+    Background worker: the exact same per-row logic bulk_import_employees()
+    used to run inline, just moved off the request thread. Deliberately
+    processes rows one at a time rather than in parallel — this shares the
+    same GPU face-recognition engine that live attendance marking uses, and
+    running many rows concurrently would only fight itself for the same GPU
+    instead of finishing any faster.
+    """
+    results = []
+    try:
+        with app.app_context():
+            # Index every image file in the extracted archive once (searched
+            # recursively in case photos are organized into subfolders).
+            all_files = []
+            for root, _, files in os.walk(extract_dir):
+                for f in files:
+                    if '.' in f and f.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
+                        all_files.append(os.path.join(root, f))
+
+            def find_angle_photo(army_id_lower, angle):
+                """Find a photo file whose name contains both the army_id and the angle."""
+                for path in all_files:
+                    name = os.path.basename(path).lower()
+                    if army_id_lower in name and angle in name:
+                        return path
+                return None
+
+            for i, row in enumerate(rows, start=1):
+                army_id = (row.get('army_id') or '').strip()
+                full_name = (row.get('full_name') or '').strip()
+
+                if not army_id or not full_name:
+                    results.append({
+                        'row': i, 'army_id': army_id or '(blank)', 'success': False,
+                        'message': 'Missing army_id or full_name'
+                    })
+                elif Employee.query.filter_by(army_id=army_id).first():
+                    results.append({
+                        'row': i, 'army_id': army_id, 'success': False,
+                        'message': f'Employee ID {army_id} already exists'
+                    })
+                else:
+                    army_id_lower = army_id.lower()
+                    photos_data = []
+                    photo_paths = {}
+                    upload_folder = os.path.join(Config.UPLOAD_FOLDER, army_id)
+                    os.makedirs(upload_folder, exist_ok=True)
+
+                    for angle in ('front', 'left', 'right'):
+                        src_path = find_angle_photo(army_id_lower, angle)
+                        if not src_path:
+                            continue
+                        image = cv2.imread(src_path)
+                        if image is None:
+                            continue
+                        dest_filename = f"{army_id}_{angle}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+                        dest_path = os.path.join(upload_folder, dest_filename)
+                        cv2.imwrite(dest_path, image)
+                        photos_data.append((angle, image))
+                        photo_paths[angle] = dest_path
+
+                    if not photos_data:
+                        results.append({
+                            'row': i, 'army_id': army_id, 'success': False,
+                            'message': f'No matching photos found in ZIP (expected filenames containing '
+                                       f'"{army_id}" and "front"/"left"/"right")'
+                        })
+                    else:
+                        outcome = _finalize_employee_registration(
+                            army_id, full_name,
+                            (row.get('rank') or '').strip(),
+                            (row.get('unit') or '').strip(),
+                            (row.get('department') or '').strip(),
+                            (row.get('designation') or '').strip(),
+                            (row.get('phone') or '').strip(),
+                            (row.get('email') or '').strip(),
+                            (row.get('date_of_joining') or '').strip(),
+                            photos_data, photo_paths, created_by, ip_address
+                        )
+                        results.append({'row': i, 'army_id': army_id, **outcome})
+
+                succeeded = sum(1 for r in results if r.get('success'))
+                with bulk_import_jobs_lock:
+                    job = bulk_import_jobs[job_id]
+                    job['processed'] = i
+                    job['succeeded'] = succeeded
+                    job['failed'] = i - succeeded
+                    job['results'] = results
+
+            succeeded = sum(1 for r in results if r.get('success'))
+            failed = len(results) - succeeded
+            app_logger.info(f"Bulk import {job_id} complete: {succeeded} succeeded, {failed} failed out of {len(results)}")
+
+            with bulk_import_jobs_lock:
+                bulk_import_jobs[job_id]['status'] = 'done'
+                bulk_import_jobs[job_id]['finished_at'] = datetime.now().isoformat()
+                _prune_old_bulk_jobs()
+
+    except Exception as e:
+        app_logger.error(f"Bulk import {job_id} failed: {e}", exc_info=True)
+        with bulk_import_jobs_lock:
+            bulk_import_jobs[job_id]['status'] = 'error'
+            bulk_import_jobs[job_id]['message'] = str(e)
+            bulk_import_jobs[job_id]['finished_at'] = datetime.now().isoformat()
+
+    finally:
+        shutil.rmtree(extract_dir, ignore_errors=True)
+
+
 @registration_bp.route('/bulk-import', methods=['POST'])
 @login_required
 def bulk_import_employees():
     """
-    Bulk-register employees from a CSV of employee details + a ZIP of photos.
+    Kick off a bulk employee import from a CSV of employee details + a ZIP
+    of photos — validates both files up front (fails fast with a clear
+    error if either is malformed) then hands the actual per-row processing
+    to a background thread and returns a job_id immediately. Poll
+    GET /registration/bulk-import/status/<job_id> for live progress.
 
     CSV columns required: army_id, full_name (rank/unit/department/designation/
     phone/email/date_of_joining are optional, same fields as the manual form).
@@ -1128,10 +1246,8 @@ def bulk_import_employees():
         return jsonify({'success': False, 'message': 'Photos file must be a .zip archive'}), 400
 
     extract_dir = tempfile.mkdtemp(prefix='bulk_import_')
-    results = []
 
     try:
-        # Parse CSV
         try:
             csv_text = csv_file.read().decode('utf-8-sig')
         except UnicodeDecodeError:
@@ -1150,103 +1266,51 @@ def bulk_import_employees():
         if not rows:
             return jsonify({'success': False, 'message': 'CSV file has no employee rows'}), 400
 
-        # Extract ZIP
         try:
             with zipfile.ZipFile(zip_file, 'r') as zf:
                 zf.extractall(extract_dir)
         except zipfile.BadZipFile:
             return jsonify({'success': False, 'message': 'Photos file is not a valid ZIP archive'}), 400
 
-        # Index every image file in the extracted archive (searched recursively
-        # in case photos are organized into subfolders)
-        all_files = []
-        for root, _, files in os.walk(extract_dir):
-            for f in files:
-                if '.' in f and f.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
-                    all_files.append(os.path.join(root, f))
+        job_id = uuid.uuid4().hex
+        with bulk_import_jobs_lock:
+            bulk_import_jobs[job_id] = {
+                'status': 'running',
+                'total': len(rows),
+                'processed': 0,
+                'succeeded': 0,
+                'failed': 0,
+                'results': [],
+                'started_at': datetime.now().isoformat(),
+                'finished_at': None,
+            }
 
-        def find_angle_photo(army_id_lower, angle):
-            """Find a photo file whose name contains both the army_id and the angle."""
-            for path in all_files:
-                name = os.path.basename(path).lower()
-                if army_id_lower in name and angle in name:
-                    return path
-            return None
+        app_obj = current_app._get_current_object()
+        threading.Thread(
+            target=_run_bulk_import_job,
+            args=(job_id, app_obj, rows, extract_dir, current_user.id, request.remote_addr),
+            daemon=True
+        ).start()
 
-        for i, row in enumerate(rows, start=1):
-            army_id = (row.get('army_id') or '').strip()
-            full_name = (row.get('full_name') or '').strip()
+        app_logger.info(f"Bulk import {job_id} started: {len(rows)} row(s), by {current_user.username}")
 
-            if not army_id or not full_name:
-                results.append({
-                    'row': i, 'army_id': army_id or '(blank)', 'success': False,
-                    'message': 'Missing army_id or full_name'
-                })
-                continue
-
-            if Employee.query.filter_by(army_id=army_id).first():
-                results.append({
-                    'row': i, 'army_id': army_id, 'success': False,
-                    'message': f'Employee ID {army_id} already exists'
-                })
-                continue
-
-            army_id_lower = army_id.lower()
-            photos_data = []
-            photo_paths = {}
-            upload_folder = os.path.join(Config.UPLOAD_FOLDER, army_id)
-            os.makedirs(upload_folder, exist_ok=True)
-
-            for angle in ('front', 'left', 'right'):
-                src_path = find_angle_photo(army_id_lower, angle)
-                if not src_path:
-                    continue
-                image = cv2.imread(src_path)
-                if image is None:
-                    continue
-                dest_filename = f"{army_id}_{angle}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-                dest_path = os.path.join(upload_folder, dest_filename)
-                cv2.imwrite(dest_path, image)
-                photos_data.append((angle, image))
-                photo_paths[angle] = dest_path
-
-            if not photos_data:
-                results.append({
-                    'row': i, 'army_id': army_id, 'success': False,
-                    'message': f'No matching photos found in ZIP (expected filenames containing '
-                               f'"{army_id}" and "front"/"left"/"right")'
-                })
-                continue
-
-            outcome = _finalize_employee_registration(
-                army_id, full_name,
-                (row.get('rank') or '').strip(),
-                (row.get('unit') or '').strip(),
-                (row.get('department') or '').strip(),
-                (row.get('designation') or '').strip(),
-                (row.get('phone') or '').strip(),
-                (row.get('email') or '').strip(),
-                (row.get('date_of_joining') or '').strip(),
-                photos_data, photo_paths, current_user.id
-            )
-            results.append({'row': i, 'army_id': army_id, **outcome})
-
-        succeeded = sum(1 for r in results if r.get('success'))
-        failed = len(results) - succeeded
-
-        app_logger.info(f"Bulk import complete: {succeeded} succeeded, {failed} failed out of {len(results)}")
-
-        return jsonify({
-            'success': True,
-            'total': len(results),
-            'succeeded': succeeded,
-            'failed': failed,
-            'results': results
-        }), 200
+        return jsonify({'success': True, 'job_id': job_id, 'total': len(rows)}), 200
 
     except Exception as e:
-        app_logger.error(f"Bulk import error: {e}", exc_info=True)
+        shutil.rmtree(extract_dir, ignore_errors=True)
+        app_logger.error(f"Bulk import setup error: {e}", exc_info=True)
         return jsonify({'success': False, 'message': f'Bulk import error: {str(e)}'}), 500
 
-    finally:
-        shutil.rmtree(extract_dir, ignore_errors=True)
+
+@registration_bp.route('/bulk-import/status/<job_id>')
+@login_required
+def bulk_import_status(job_id):
+    """Poll target for a running/finished bulk-import job's progress."""
+    if current_user.role not in ['admin', 'officer']:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    with bulk_import_jobs_lock:
+        job = bulk_import_jobs.get(job_id)
+        if not job:
+            return jsonify({'success': False, 'message': 'Unknown or expired job_id'}), 404
+        return jsonify({'success': True, **job})

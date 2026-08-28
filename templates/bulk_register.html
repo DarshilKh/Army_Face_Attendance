@@ -242,6 +242,27 @@
         </div>
     </div>
 
+    <!-- Progress (large batches run in the background — this keeps updating
+         even though the import itself can take a long time) -->
+    <div class="step-card" id="progressCard" style="display:none;">
+        <div class="step-header">
+            <span class="step-badge" style="background:#4F46E5;"><i class="fas fa-spinner fa-spin"></i></span>
+            <h5 class="step-title">Import in progress</h5>
+        </div>
+        <div class="step-body">
+            <div class="progress mb-2" style="height: 22px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="progressBar"
+                     role="progressbar" style="width: 0%;">0%</div>
+            </div>
+            <div id="progressStats" class="text-muted small mb-2">Starting…</div>
+            <div class="tip">
+                <i class="fas fa-info-circle"></i>
+                This keeps running on the server even if you close this tab — large batches (thousands of
+                employees) can take a while since each photo goes through real face-detection.
+            </div>
+        </div>
+    </div>
+
     <!-- Results -->
     <div class="step-card" id="resultsCard" style="display:none;">
         <div class="step-header">
@@ -271,6 +292,8 @@
 
 {% block extra_js %}
 <script>
+let pollTimer = null;
+
 document.getElementById('bulkImportForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
@@ -284,7 +307,8 @@ document.getElementById('bulkImportForm').addEventListener('submit', async funct
 
     const btn = document.getElementById('bulkImportBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Importing... this may take a while for large batches';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Starting…';
+    document.getElementById('resultsCard').style.display = 'none';
 
     const formData = new FormData();
     formData.append('csv_file', csvFile);
@@ -295,17 +319,77 @@ document.getElementById('bulkImportForm').addEventListener('submit', async funct
             method: 'POST',
             body: formData
         });
-
         const result = await response.json();
-        showResults(result);
+
+        if (!result.success) {
+            alert('✗ ' + (result.message || 'Import failed to start'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-upload me-2"></i>Import Employees';
+            return;
+        }
+
+        document.getElementById('progressCard').style.display = 'block';
+        document.getElementById('progressCard').scrollIntoView({ behavior: 'smooth' });
+        pollJobStatus(result.job_id);
 
     } catch (error) {
         alert('✗ Import failed: ' + error.message);
-    } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-upload me-2"></i>Import Employees';
     }
 });
+
+function pollJobStatus(jobId) {
+    if (pollTimer) clearInterval(pollTimer);
+
+    pollTimer = setInterval(async () => {
+        try {
+            const res = await fetch(`/registration/bulk-import/status/${jobId}`);
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const job = await res.json();
+            if (!job.success) throw new Error(job.message || 'Lost track of the job');
+
+            updateProgress(job);
+
+            if (job.status === 'done' || job.status === 'error') {
+                clearInterval(pollTimer);
+                pollTimer = null;
+
+                const btn = document.getElementById('bulkImportBtn');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-upload me-2"></i>Import Employees';
+                document.getElementById('progressCard').style.display = 'none';
+
+                if (job.status === 'error') {
+                    alert('✗ Import failed partway through: ' + (job.message || 'unknown error'));
+                }
+                showResults({
+                    success: true,
+                    total: job.total,
+                    succeeded: job.succeeded,
+                    failed: job.failed,
+                    results: job.results
+                });
+            }
+        } catch (error) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            alert('✗ Lost connection while tracking import progress: ' + error.message);
+            const btn = document.getElementById('bulkImportBtn');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-upload me-2"></i>Import Employees';
+        }
+    }, 1500);
+}
+
+function updateProgress(job) {
+    const pct = job.total ? Math.round((job.processed / job.total) * 100) : 0;
+    const bar = document.getElementById('progressBar');
+    bar.style.width = pct + '%';
+    bar.textContent = pct + '%';
+    document.getElementById('progressStats').textContent =
+        `${job.processed} / ${job.total} processed — ${job.succeeded} succeeded, ${job.failed} failed`;
+}
 
 function showResults(result) {
     const resultsCard = document.getElementById('resultsCard');

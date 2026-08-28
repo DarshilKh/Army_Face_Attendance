@@ -466,6 +466,7 @@
                                         <label class="form-label">Front Face (Required)</label>
                                         <input type="file" class="form-control" id="uploadFrontInput" accept=".png,.jpg,.jpeg" onchange="handlePhotoUpload('front', this.files[0])">
                                     </div>
+                                    {% if multi_angle_required %}
                                     <div>
                                         <label class="form-label">Left Profile</label>
                                         <input type="file" class="form-control" id="uploadLeftInput" accept=".png,.jpg,.jpeg" onchange="handlePhotoUpload('left', this.files[0])">
@@ -474,6 +475,7 @@
                                         <label class="form-label">Right Profile</label>
                                         <input type="file" class="form-control" id="uploadRightInput" accept=".png,.jpg,.jpeg" onchange="handlePhotoUpload('right', this.files[0])">
                                     </div>
+                                    {% endif %}
                                 </div>
                             </div>
 
@@ -491,6 +493,7 @@
                                     <div class="angle-preview-label">Front Face</div>
                                     <div class="quality-badge" id="frontQuality"></div>
                                 </div>
+                                {% if multi_angle_required %}
                                 <div class="angle-preview" id="leftPreview">
                                     <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23F1F5F9' width='100' height='100'/%3E%3Ctext fill='%2394A3B8' x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='13' font-weight='700'%3ELeft%3C/text%3E%3C/svg%3E" id="leftImg" alt="Left">
                                     <div class="angle-preview-label">Left Profile</div>
@@ -501,6 +504,7 @@
                                     <div class="angle-preview-label">Right Profile</div>
                                     <div class="quality-badge" id="rightQuality"></div>
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -591,6 +595,7 @@
                                     <img id="reviewFront" src="" alt="Front">
                                     <div class="small text-muted fw-semibold mt-1">Front</div>
                                 </div>
+                                {% if multi_angle_required %}
                                 <div>
                                     <img id="reviewLeft" src="" alt="Left">
                                     <div class="small text-muted fw-semibold mt-1">Left</div>
@@ -599,6 +604,7 @@
                                     <img id="reviewRight" src="" alt="Right">
                                     <div class="small text-muted fw-semibold mt-1">Right</div>
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -628,6 +634,8 @@ let currentCamera = null;
 let capturedPhotos = { front: null, left: null, right: null };
 let photoMode = 'camera';
 let uploadedPhotos = { front: null, left: null, right: null };
+const multiAngleRequired = {{ 'true' if multi_angle_required else 'false' }};
+const REQUIRED_ANGLES = multiAngleRequired ? ['front', 'left', 'right'] : ['front'];
 
 document.addEventListener('DOMContentLoaded', function () {
     CameraSelector.populate(document.getElementById('cameraPicker'));
@@ -642,7 +650,7 @@ function setPhotoMode(mode) {
 
     capturedPhotos = { front: null, left: null, right: null };
     uploadedPhotos = { front: null, left: null, right: null };
-    ['front', 'left', 'right'].forEach(angle => {
+    REQUIRED_ANGLES.forEach(angle => {
         document.getElementById(`${angle}Preview`).classList.remove('captured');
         const badge = document.getElementById(`${angle}Quality`);
         badge.className = 'quality-badge';
@@ -738,8 +746,8 @@ function validateStep(step) {
                 alert('Please upload at least the Front photo');
                 return false;
             }
-        } else if (!capturedPhotos.front || !capturedPhotos.left || !capturedPhotos.right) {
-            alert('Please capture all 3 photos (Front, Left, Right)');
+        } else if (!REQUIRED_ANGLES.every(a => capturedPhotos[a])) {
+            alert(multiAngleRequired ? 'Please capture all 3 photos (Front, Left, Right)' : 'Please capture the Front photo');
             return false;
         }
     }
@@ -855,7 +863,11 @@ async function capturePhoto(angle) {
 
     if (angle === 'front') {
         document.getElementById('captureFrontBtn').style.display = 'none';
-        document.getElementById('captureLeftBtn').style.display = 'inline-block';
+        if (multiAngleRequired) {
+            document.getElementById('captureLeftBtn').style.display = 'inline-block';
+        } else {
+            document.getElementById('step2NextBtn').disabled = false;
+        }
     } else if (angle === 'left') {
         document.getElementById('captureLeftBtn').style.display = 'none';
         document.getElementById('captureRightBtn').style.display = 'inline-block';
@@ -864,7 +876,7 @@ async function capturePhoto(angle) {
         document.getElementById('step2NextBtn').disabled = false;
     }
 
-    if (capturedPhotos.front && capturedPhotos.left && capturedPhotos.right) {
+    if (REQUIRED_ANGLES.every(a => capturedPhotos[a])) {
         setTimeout(stopCamera, 800);
     }
 }
@@ -878,8 +890,10 @@ function populateReview() {
     document.getElementById('reviewPhone').textContent = formData.get('phone') || '-';
     document.getElementById('reviewEmail').textContent = formData.get('email') || '-';
     document.getElementById('reviewFront').src = document.getElementById('frontImg').src;
-    document.getElementById('reviewLeft').src = document.getElementById('leftImg').src;
-    document.getElementById('reviewRight').src = document.getElementById('rightImg').src;
+    if (multiAngleRequired) {
+        document.getElementById('reviewLeft').src = document.getElementById('leftImg').src;
+        document.getElementById('reviewRight').src = document.getElementById('rightImg').src;
+    }
 }
 
 document.getElementById('registrationForm').addEventListener('submit', async function(e) {
@@ -892,9 +906,7 @@ document.getElementById('registrationForm').addEventListener('submit', async fun
         if (uploadedPhotos.left)  formData.append('photo_left', uploadedPhotos.left);
         if (uploadedPhotos.right) formData.append('photo_right', uploadedPhotos.right);
     } else {
-        formData.append('photo_front', capturedPhotos.front);
-        formData.append('photo_left', capturedPhotos.left);
-        formData.append('photo_right', capturedPhotos.right);
+        REQUIRED_ANGLES.forEach(angle => formData.append(`photo_${angle}`, capturedPhotos[angle]));
     }
 
     try {

@@ -298,6 +298,67 @@ def determine_attendance_status(work_hours: float, late_minutes: int = 0) -> str
         return 'half_day'
 
 
+def run_auto_checkout_sweep() -> int:
+    """
+    Force-checkout any attendance record still open (no check_out_time) once
+    that record's date has passed Config.AUTO_CHECKOUT_TIME. Catches both
+    today's stragglers and any record left open from a previous day (e.g.
+    the server was down at the scheduled time) — each is closed out at ITS
+    OWN date's cutoff time, not "whenever the sweep happened to run", so
+    work_hours/status stay accurate regardless of thread timing/jitter.
+
+    Called periodically by the background maintenance thread in app.py.
+    Safe to call repeatedly: already-closed records are never re-touched.
+    """
+    if not Config.AUTO_CHECKOUT_ENABLED:
+        return 0
+
+    try:
+        cutoff_time = datetime.strptime(Config.AUTO_CHECKOUT_TIME, '%H:%M:%S').time()
+    except ValueError:
+        cutoff_time = DEFAULT_WORK_START
+
+    now = datetime.now()
+    swept = 0
+
+    try:
+        open_records = Attendance.query.filter(Attendance.check_out_time.is_(None)).all()
+        for record in open_records:
+            cutoff_dt = datetime.combine(record.date, cutoff_time)
+            if now < cutoff_dt:
+                continue
+            # A same-day check-in after the cutoff (e.g. cutoff 18:00, checked
+            # in at 18:23) would otherwise produce a checkout before the
+            # check-in and a negative work_hours — clamp to check-in time.
+            cutoff_dt = max(cutoff_dt, record.check_in_time)
+
+            work_hours = calculate_work_hours(record.check_in_time, cutoff_dt)
+            record.check_out_time = cutoff_dt
+            record.work_hours = work_hours
+            record.status = determine_attendance_status(work_hours, record.late_minutes or 0)
+            record.remarks = (f'{record.remarks} | ' if record.remarks else '') + 'Auto checked-out by system'
+            invalidate_attendance_cache(record.employee_id)
+            swept += 1
+
+        if swept:
+            db.session.commit()
+            audit = AuditLog(
+                action='AUTO_CHECKOUT',
+                table_name='attendance',
+                new_value=f'{swept} record(s) auto-checked-out at {Config.AUTO_CHECKOUT_TIME}',
+                ip_address='system'
+            )
+            db.session.add(audit)
+            db.session.commit()
+            app_logger.info(f"Auto-checkout: swept {swept} open attendance record(s)")
+
+    except Exception as e:
+        db.session.rollback()
+        app_logger.error(f"Auto-checkout sweep failed: {e}", exc_info=True)
+
+    return swept
+
+
 # ============================================
 # RESPONSE BUILDERS - CLEAN & CONSISTENT
 # ============================================

@@ -80,6 +80,34 @@ def create_app():
     import threading
     threading.Thread(target=_check_cameras_in_background, daemon=True).start()
 
+    # Periodic maintenance: auto-checkout stragglers and auto-backup the
+    # database, both gated behind their own Settings-page toggle and both
+    # re-read from live Config on every pass, so a Settings change (or a
+    # server restart, via apply_db_settings_on_startup) takes effect within
+    # one cycle without needing its own dedicated thread per feature.
+    def _run_maintenance_loop():
+        MAINTENANCE_INTERVAL_SECONDS = 300
+        while True:
+            time.sleep(MAINTENANCE_INTERVAL_SECONDS)
+            try:
+                with app.app_context():
+                    from routes.attendance import run_auto_checkout_sweep
+                    run_auto_checkout_sweep()
+
+                    if Config.AUTO_BACKUP_ENABLED:
+                        from utils.backup import run_database_backup, prune_old_backups, last_backup_age_hours
+                        age = last_backup_age_hours()
+                        if age is None or age >= Config.BACKUP_INTERVAL_HOURS:
+                            success, result = run_database_backup()
+                            if success:
+                                prune_old_backups()
+                            else:
+                                app_logger.warning(f"Auto-backup skipped: {result}")
+            except Exception as e:
+                app_logger.error(f"Maintenance loop error: {e}")
+
+    threading.Thread(target=_run_maintenance_loop, daemon=True).start()
+
     # ==================== CACHE BUSTING ====================
     # Prevent browser from caching old files
     @app.context_processor

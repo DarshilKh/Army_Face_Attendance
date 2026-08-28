@@ -5,6 +5,7 @@ from models.database import User, AuditLog
 from utils.logger import app_logger
 from datetime import datetime
 import re
+import os
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -111,8 +112,7 @@ def logout():
 def dashboard():
     """Main dashboard"""
     from models.database import Employee, Attendance
-    from sqlalchemy import func
-    from datetime import date, timedelta
+    from datetime import date
 
     # Get statistics
     total_employees = Employee.query.filter_by(is_active=True).count()
@@ -122,16 +122,6 @@ def dashboard():
     today_present    = Attendance.query.filter_by(date=today, status='present').count()
     today_late       = Attendance.query.filter_by(date=today, status='late').count()
     today_absent     = total_employees - today_attendance
-
-    # Monthly statistics
-    first_day = today.replace(day=1)
-    monthly_attendance = db.session.query(
-        func.date(Attendance.date).label('date'),
-        func.count(Attendance.id).label('count')
-    ).filter(
-        Attendance.date >= first_day,
-        Attendance.date <= today
-    ).group_by(func.date(Attendance.date)).all()
 
     # ── Bug fix: recent attendance was showing deleted/deactivated employees
     #    The original query joined Employee but never filtered on is_active,
@@ -145,13 +135,6 @@ def dashboard():
         Employee.is_active == True          # ← exclude deactivated employees
     ).order_by(Attendance.check_in_time.desc()).limit(10).all()
 
-    # Get units for filter
-    units = db.session.query(Employee.unit).distinct().filter(
-        Employee.unit.isnot(None),
-        Employee.is_active == True
-    ).all()
-    units = [u[0] for u in units if u[0]]
-
     stats = {
         'total_employees':  total_employees,
         'today_attendance': today_attendance,
@@ -161,13 +144,11 @@ def dashboard():
         'attendance_rate':  round(
             (today_attendance / total_employees * 100) if total_employees > 0 else 0, 1
         ),
-        'monthly_data': [{'date': str(m.date), 'count': m.count} for m in monthly_attendance]
     }
 
     return render_template('dashboard.html',
                            stats=stats,
-                           recent_attendance=recent_attendance,
-                           units=units)
+                           recent_attendance=recent_attendance)
 
 
 @auth_bp.route('/settings')
@@ -200,6 +181,12 @@ def _load_settings():
         'session_timeout':     str(Config.SESSION_TIMEOUT),
         'max_login_attempts':  str(Config.MAX_LOGIN_ATTEMPTS),
         'log_level':           Config.LOG_LEVEL,
+        'multi_angle_registration': str(Config.MULTI_ANGLE_REGISTRATION).lower(),
+        'auto_backup':         str(Config.AUTO_BACKUP_ENABLED).lower(),
+        'backup_interval':     str(Config.BACKUP_INTERVAL_HOURS),
+        'backup_retention':    str(Config.BACKUP_RETENTION_DAYS),
+        'auto_checkout':       str(Config.AUTO_CHECKOUT_ENABLED).lower(),
+        'auto_checkout_time':  Config.AUTO_CHECKOUT_TIME[:5],  # HH:MM for the <input type="time">
     }
 
     # Override with any values from the database
@@ -298,11 +285,19 @@ def _apply_settings_to_config(data):
     if 'log_level' in data:
         set_log_level(data['log_level'])
 
+    def to_bool(v):
+        return str(v).lower() in ('true', '1', 'on')
+
+    def to_hms(v):
+        """Normalize an <input type="time"> value ('HH:MM') to 'HH:MM:SS'."""
+        v = str(v)
+        return v if v.count(':') == 2 else f'{v}:00'
+
     config_map = {
         'threshold':           ('FACE_THRESHOLD',        float),
         'duplicate_threshold':  ('DUPLICATE_FACE_THRESHOLD', float),
         'min_face_size':       ('MIN_FACE_SIZE',         int),
-        'liveness_detection':  ('LIVENESS_REQUIRED',     lambda v: str(v).lower() in ('true', '1', 'on')),
+        'liveness_detection':  ('LIVENESS_REQUIRED',     to_bool),
         'work_start':          ('WORK_START_TIME',       str),
         'work_end':            ('WORK_END_TIME',         str),
         'late_threshold':      ('LATE_THRESHOLD_MINUTES', int),
@@ -311,6 +306,12 @@ def _apply_settings_to_config(data):
         'session_timeout':     ('SESSION_TIMEOUT',       int),
         'max_login_attempts':  ('MAX_LOGIN_ATTEMPTS',    int),
         'log_level':           ('LOG_LEVEL',             str),
+        'multi_angle_registration': ('MULTI_ANGLE_REGISTRATION', to_bool),
+        'auto_backup':         ('AUTO_BACKUP_ENABLED',   to_bool),
+        'backup_interval':     ('BACKUP_INTERVAL_HOURS', int),
+        'backup_retention':    ('BACKUP_RETENTION_DAYS', int),
+        'auto_checkout':       ('AUTO_CHECKOUT_ENABLED', to_bool),
+        'auto_checkout_time':  ('AUTO_CHECKOUT_TIME',    to_hms),
     }
 
     for key, value in data.items():
@@ -327,11 +328,74 @@ def _apply_settings_to_config(data):
     # `cameras` table.
 
 
+@auth_bp.route('/settings/backup_now', methods=['POST'])
+@login_required
+def backup_now():
+    """Trigger an immediate mysqldump backup — the real implementation
+    behind the Settings > System Actions 'Backup Database Now' button
+    (previously a stub alert('not yet implemented'))."""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': 'Admin only'}), 403
+
+    from utils.backup import run_database_backup, prune_old_backups
+
+    success, result = run_database_backup()
+    if success:
+        prune_old_backups()
+
+    audit = AuditLog(
+        user_id=current_user.id,
+        action='MANUAL_BACKUP',
+        table_name='system',
+        new_value=result if success else f'FAILED: {result}',
+        ip_address=request.remote_addr
+    )
+    db.session.add(audit)
+    db.session.commit()
+
+    if success:
+        return jsonify({'success': True, 'message': f'Backup created: {os.path.basename(result)}'})
+    return jsonify({'success': False, 'message': f'Backup failed: {result}'}), 500
+
+
+@auth_bp.route('/settings/reset', methods=['POST'])
+@login_required
+def reset_settings():
+    """Wipe every saved Settings-page override and restore live Config to
+    its true startup defaults (config.SETTINGS_DEFAULTS) — the real
+    implementation behind 'Reset to Default Settings' (previously a stub)."""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': 'Admin only'}), 403
+
+    from models.database import SystemSetting
+    from config import Config, SETTINGS_DEFAULTS
+
+    SystemSetting.query.delete()
+
+    for attr_name, default_value in SETTINGS_DEFAULTS.items():
+        setattr(Config, attr_name, default_value)
+
+    audit = AuditLog(
+        user_id=current_user.id,
+        action='SETTINGS_RESET',
+        table_name='system_settings',
+        new_value='All settings reset to defaults',
+        ip_address=request.remote_addr
+    )
+    db.session.add(audit)
+    db.session.commit()
+
+    app_logger.info(f"Settings reset to defaults by {current_user.username}")
+    return jsonify({'success': True, 'message': 'Settings reset to defaults'})
+
+
 @auth_bp.route('/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():
     """Change password"""
     if request.method == 'POST':
+        from config import Config
+
         current_password = request.form.get('current_password')
         new_password     = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
@@ -344,8 +408,8 @@ def change_password():
             flash('New passwords do not match', 'error')
             return redirect(url_for('auth.change_password'))
 
-        if len(new_password) < 8:
-            flash('Password must be at least 8 characters', 'error')
+        if len(new_password) < Config.MIN_PASSWORD_LENGTH:
+            flash(f'Password must be at least {Config.MIN_PASSWORD_LENGTH} characters', 'error')
             return redirect(url_for('auth.change_password'))
 
         # Password strength check
@@ -353,6 +417,10 @@ def change_password():
                 or not re.search(r'[a-z]', new_password)
                 or not re.search(r'[0-9]', new_password)):
             flash('Password must contain uppercase, lowercase, and numbers', 'error')
+            return redirect(url_for('auth.change_password'))
+
+        if Config.REQUIRE_SPECIAL_CHAR and not re.search(r'[^A-Za-z0-9]', new_password):
+            flash('Password must contain at least one special character', 'error')
             return redirect(url_for('auth.change_password'))
 
         current_user.set_password(new_password)

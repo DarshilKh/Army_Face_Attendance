@@ -12,6 +12,7 @@ All camera selection decisions and failures are logged.
 
 import cv2
 import numpy as np
+import os
 import requests
 from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 from urllib.parse import urlparse, urlunparse, quote_plus
@@ -19,6 +20,21 @@ from dataclasses import dataclass
 from utils.logger import app_logger
 import time
 import threading
+
+# Process-wide FFMPEG options for every cv2.VideoCapture(..., cv2.CAP_FFMPEG)
+# call in this module — set once at import time so it's guaranteed to be in
+# effect before ANY capture is opened, including _test_camera()'s OpenCV
+# fallback path (which previously relied on RTSPStreamReader having already
+# run once to set this, an ordering gap for the very first Test-button click).
+#
+#   rtsp_transport;tcp — UDP drops packets under any network load and
+#     produces stuttery/torn frames.
+#   tls_verify;0 — some cameras (e.g. CP PLUS models with a hardened/secure
+#     firmware posture) run RTSP over TLS (rtsps://) with a self-signed
+#     certificate. This only takes effect when ffmpeg actually attempts a
+#     TLS handshake, i.e. only for rtsps:// URLs — a plain rtsp:// camera
+#     never touches this code path, so it's inert for them.
+os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp|tls_verify;0'
 
 
 @dataclass
@@ -56,10 +72,8 @@ class CameraConfig:
 class RTSPStreamReader:
     def __init__(self, url):
         self.url = url
-        # Force TCP transport for RTSP — UDP drops packets under any network
-        # load and produces stuttery/torn frames.  Must be set BEFORE opening.
-        import os
-        os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp'
+        # OPENCV_FFMPEG_CAPTURE_OPTIONS is set once at module import (see top
+        # of file) — no need to set it again here.
         try:
             self.cap = cv2.VideoCapture(
                 url, cv2.CAP_FFMPEG,
@@ -194,7 +208,7 @@ class CameraRegistry:
 
         camera_url = cfg.url.rstrip('/')
 
-        if camera_url.lower().startswith('rtsp://'):
+        if camera_url.lower().startswith(('rtsp://', 'rtsps://')):
             app_logger.info(f"📷 Camera {cfg.id}: Detected RTSP URL — skipping HTTP snapshot probing")
             snapshot_urls = []
         else:

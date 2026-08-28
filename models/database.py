@@ -76,6 +76,32 @@ class Attendance(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class MovementRecord(db.Model):
+    """Leave/movement tracking — an officer marks OUT (with reason + planned
+    return window) when leaving, and IN when they're back. Same out/in
+    check-in-style pattern as Attendance, but for multi-day leave rather
+    than daily presence, and deliberately kept separate from Attendance so
+    a leave record never interferes with day-to-day attendance status."""
+    __tablename__ = 'movement_records'
+
+    id = db.Column(db.Integer, primary_key=True)
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'), nullable=False)
+    reason = db.Column(db.String(50), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    out_time = db.Column(db.DateTime, nullable=False)
+    out_photo = db.Column(db.String(255))
+    in_time = db.Column(db.DateTime)
+    in_photo = db.Column(db.String(255))
+    status = db.Column(db.Enum('out', 'returned'), default='out')
+    remarks = db.Column(db.Text)
+    verified_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    employee = db.relationship('Employee', backref='movement_records')
+
+
 class AuditLog(db.Model):
     __tablename__ = 'audit_logs'
 

@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request, jsonify, send_file
 from flask_login import login_required, current_user
-from models.database import db, Employee, Attendance, User
+from models.database import db, Employee, Attendance
 from datetime import datetime, timedelta, date as dt_date
 from utils.logger import app_logger
+from config import Config
 import io
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
@@ -52,26 +53,6 @@ def index():
     except Exception as e:
         app_logger.error(f"Error loading reports page: {e}", exc_info=True)
         return render_template('error.html', error_message=str(e)), 500
-
-
-@reports_bp.route('/analytics')
-@login_required
-def analytics():
-    """Advanced analytics page (placeholder)"""
-    units = db.session.query(Employee.unit).distinct().filter(
-        Employee.unit.isnot(None), Employee.unit != ''
-    ).all()
-    units = sorted([u[0] for u in units if u[0]])
-    return render_template('reports.html', units=units)
-
-
-@reports_bp.route('/audit-logs')
-@login_required
-def audit_logs():
-    """Audit logs page"""
-    from models.database import AuditLog
-    logs = AuditLog.query.order_by(AuditLog.created_at.desc()).limit(100).all()
-    return render_template('reports.html', audit_logs=logs)
 
 
 @reports_bp.route('/generate', methods=['POST'])
@@ -418,8 +399,25 @@ def download_daily_pdf(date_str, end_date_str=None, unit=None, range_label='cust
             alignment=TA_CENTER,
             fontSize=10
         )
+        header_style = ParagraphStyle(
+            'OrgHeaderStyle',
+            parent=styles['Normal'],
+            alignment=TA_CENTER,
+            fontSize=12,
+            textColor=colors.HexColor('#1F4788')
+        )
 
         elements = []
+
+        # Config.REPORT_HEADER may include a Devanagari half (e.g. "... / Indian
+        # Army Attendance System") — ReportLab's built-in fonts only support
+        # Latin-1, so only the ASCII portion is rendered here to avoid a
+        # glyph-encoding crash; the Devanagari half would need a bundled
+        # Unicode TTF registered via pdfmetrics to render safely.
+        org_header = Config.REPORT_HEADER.split('/')[-1].strip()
+        if org_header:
+            elements.append(Paragraph(org_header, header_style))
+            elements.append(Spacer(1, 6))
 
         if is_single_day:
             title_text = f'{range_label.title()} Attendance Report - {start_date.strftime("%d %B %Y")}'

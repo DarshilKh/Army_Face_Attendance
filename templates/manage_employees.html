@@ -68,10 +68,11 @@
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
-                <img src="/{{ employee.photo_path }}"
+                <img src="/{{ employee.photo_path or 'static/img/default-avatar.png' }}"
                      alt="{{ employee.full_name }}"
                      class="img-thumbnail mb-3"
-                     style="width: 150px; height: 150px; object-fit: cover;">
+                     style="width: 150px; height: 150px; object-fit: cover;"
+                     onerror="this.src='/static/img/default-avatar.png'">
 
                 <h5 class="mb-1">{{ employee.full_name }}</h5>
                 <p class="text-muted mb-1">{{ employee.rank or 'N/A' }}</p>

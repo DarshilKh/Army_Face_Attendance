@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Movement History{% endblock %}
+{% block page_title %}Person Movement — History{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-content {
+        padding-top: 20px !important;
+        padding-bottom: 20px !important;
+    }
+
+    .stat-card {
+        padding: 16px 18px !important;
+    }
+
+    .stat-card h3 {
+        font-size: 1.75rem !important;
+        margin-bottom: 4px !important;
+        font-weight: 700;
+    }
+
+    .stat-card p {
+        margin: 0 !important;
+        font-size: 0.88rem !important;
+        opacity: 0.7;
+    }
+
+    .filter-card .card-body {
+        padding: 14px 16px;
+    }
+
+    .filter-card .form-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #6B7280;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .records-card .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 16px;
+        font-size: 0.92rem;
+        font-weight: 600;
+    }
+
+    .records-card .card-body {
+        padding: 0;
+    }
+
+    .mv-table {
+        margin-bottom: 0;
+        font-size: 0.86rem;
+    }
+
+    .mv-table thead th {
+        background: #F9FAFB;
+        color: #6B7280;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        border-bottom: 1px solid #E5E7EB;
+        white-space: nowrap;
+        padding: 10px 12px;
+        position: sticky;
+        top: 0;
+    }
+
+    .mv-table tbody td {
+        padding: 10px 12px;
+        vertical-align: middle;
+        border-color: #F3F4F6;
+        color: #374151;
+    }
+
+    .mv-table tbody tr:hover {
+        background: #F9FAFB;
+    }
+
+    .mv-photo {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #E5E7EB;
+    }
+
+    .id-pill {
+        background: #F3F4F6;
+        color: #374151;
+        border-radius: 6px;
+        padding: 3px 8px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .empty-state {
+        text-align: center;
+        color: #9CA3AF;
+        padding: 28px 12px !important;
+    }
+
+    .btn-export {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #D1FAE5;
+        background: #ECFDF5;
+        color: #059669;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transition: all 0.15s ease;
+    }
+
+    .btn-export:hover {
+        background: #D1FAE5;
+        color: #047857;
+    }
+
+    .btn-view {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: 1px solid #E0E7FF;
+        background: #EEF2FF;
+        color: #4F46E5;
+        text-decoration: none;
+        transition: all 0.15s ease;
+    }
+
+    .btn-view:hover {
+        background: #E0E7FF;
+        color: #4338CA;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left-color:#EF4444;">
+            <h3>{{ currently_out_count }}</h3>
+            <p><i class="fas fa-door-open" style="color:#EF4444;"></i> Currently Out</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left-color:#10B981;">
+            <h3>{{ records|length - currently_out_count }}</h3>
+            <p><i class="fas fa-door-closed" style="color:#10B981;"></i> Returned</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left-color:#4F46E5;">
+            <h3>{{ records|length }}</h3>
+            <p><i class="fas fa-list" style="color:#4F46E5;"></i> Total Records</p>
+        </div>
+    </div>
+</div>
+
+<div class="card filter-card mb-3">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('movement.records') }}" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status" onchange="this.form.submit()">
+                    <option value="">All</option>
+                    <option value="out" {% if status_filter == 'out' %}selected{% endif %}>Out</option>
+                    <option value="returned" {% if status_filter == 'returned' %}selected{% endif %}>Returned</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" name="search"
+                           placeholder="Army ID / Name" value="{{ search }}">
+                    <button class="btn btn-outline-secondary" type="submit" title="Search">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <a href="{{ url_for('movement.index') }}" class="btn btn-primary w-100">
+                    <i class="fas fa-camera me-1"></i> Scan
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card records-card">
+    <div class="card-header">
+        <span><i class="fas fa-history me-1"></i> Movement Records</span>
+        <button class="btn-export" onclick="exportToExcel()">
+            <i class="fas fa-file-excel"></i> Export to Excel
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive" style="max-height: 65vh;">
+            <table class="table mv-table" id="movementTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Photo</th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Reason</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Out Time</th>
+                        <th>In Time</th>
+                        <th>Status</th>
+                        <th class="text-end">View</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record, employee in records %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <img class="mv-photo" src="/{{ employee.photo_path or 'static/img/default-avatar.png' }}"
+                                 alt="" onerror="this.src='/static/img/default-avatar.png'">
+                        </td>
+                        <td><span class="id-pill">{{ employee.army_id }}</span></td>
+                        <td>{{ employee.full_name }}</td>
+                        <td>{{ record.reason }}</td>
+                        <td>{{ record.start_date.strftime('%d %b %Y') }}</td>
+                        <td>{{ record.end_date.strftime('%d %b %Y') }}</td>
+                        <td>{{ record.out_time.strftime('%d %b, %I:%M %p') }}</td>
+                        <td>{{ record.in_time.strftime('%d %b, %I:%M %p') if record.in_time else '-' }}</td>
+                        <td>
+                            {% if record.status == 'out' %}
+                                <span class="badge bg-danger">Out</span>
+                            {% else %}
+                                <span class="badge bg-success">Returned</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a class="btn-view" href="{{ url_for('registration.view_employee', employee_id=employee.id) }}" title="View employee">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="11" class="empty-state">
+                            <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                            No movement records found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+    function exportToExcel() {
+        const table = document.getElementById('movementTable');
+        const wb = XLSX.utils.table_to_book(table, { sheet: "Movement Records" });
+        XLSX.writeFile(wb, 'Movement_Records_{{ get_current_date().isoformat() }}.xlsx');
+    }
+</script>
+{% endblock %}

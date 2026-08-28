@@ -132,8 +132,9 @@
                             <!-- Current Photo -->
                             <div class="text-center mb-4 p-3 bg-light rounded">
                                 <h6 class="text-muted mb-3">Current Photo:</h6>
-                                <img src="/{{ employee.photo_path }}" alt="Current Photo"
-                                     class="img-thumbnail shadow" style="max-width: 250px;">
+                                <img src="/{{ employee.photo_path or 'static/img/default-avatar.png' }}" alt="Current Photo"
+                                     class="img-thumbnail shadow" style="max-width: 250px;"
+                                     onerror="this.src='/static/img/default-avatar.png'">
                             </div>
 
                             <!-- Upload New Photo -->

@@ -582,6 +582,12 @@
                 </a>
             </li>
             <li>
+                <a href="{{ url_for('movement.index') }}" class="{{ 'active' if 'movement' in request.endpoint }}">
+                    <i class="fas fa-person-walking-arrow-right"></i>
+                    <span>Person Movement</span>
+                </a>
+            </li>
+            <li>
                 <a href="{{ url_for('reports.index') }}" class="{{ 'active' if 'reports' in request.endpoint }}">
                     <i class="fas fa-chart-bar"></i>
                     <span>Reports</span>
