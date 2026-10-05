@@ -234,7 +234,12 @@
                         </td>
                         <td><span class="id-pill">{{ employee.army_id }}</span></td>
                         <td>{{ employee.full_name }}</td>
-                        <td>{{ record.reason }}</td>
+                        <td>
+                            {{ record.reason }}
+                            {% if record.remarks %}
+                            <br><span class="text-muted small">"{{ record.remarks }}"</span>
+                            {% endif %}
+                        </td>
                         <td>{{ record.start_date.strftime('%d %b %Y') }}</td>
                         <td>{{ record.end_date.strftime('%d %b %Y') }}</td>
                         <td>{{ record.out_time.strftime('%d %b, %I:%M %p') }}</td>
