@@ -193,6 +193,72 @@
             display: none;
         }
 
+        .sidebar-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-logo img {
+            height: 22px;
+            width: auto;
+            max-width: 100%;
+            display: block;
+        }
+
+        .sidebar.collapsed .sidebar-logo {
+            display: none;
+        }
+
+        /* Small company-logo badge, fixed to the corner on every page */
+        .app-footer-logo {
+            position: fixed;
+            bottom: 14px;
+            right: 14px;
+            z-index: 500;
+            background: #fff;
+            border-radius: 8px;
+            padding: 6px 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            opacity: 0.9;
+            transition: opacity 0.2s ease;
+        }
+
+        .app-footer-logo:hover {
+            opacity: 1;
+        }
+
+        .app-footer-logo img {
+            height: 16px;
+            width: auto;
+            display: block;
+        }
+
+        @media (max-width: 576px) and (min-width: 481px) {
+            .app-footer-logo {
+                bottom: 8px;
+                right: 8px;
+                padding: 5px 8px;
+            }
+            .app-footer-logo img {
+                height: 13px;
+            }
+        }
+
+        /* Hidden on phone-width screens — a persistent fixed corner badge is
+           more likely to sit over real (scrolling) table content there than
+           it's worth for a decorative logo; the sidebar-logo copy still
+           shows once the mobile menu is opened. */
+        @media (max-width: 480px) {
+            .app-footer-logo {
+                display: none;
+            }
+        }
+
         /* ============================================
            MAIN CONTENT AREA
         ============================================ */
@@ -604,12 +670,20 @@
         </ul>
 
         <div class="sidebar-footer">
+            <div class="sidebar-logo">
+                <img src="{{ url_for('static', filename='images/company_logo.png') }}" alt="Network Toll Solution">
+            </div>
             <a href="{{ url_for('auth.logout') }}">
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Logout</span>
             </a>
         </div>
     </aside>
+
+    <!-- Small company logo, fixed to the bottom-right corner on every page -->
+    <div class="app-footer-logo">
+        <img src="{{ url_for('static', filename='images/company_logo.png') }}" alt="Network Toll Solution">
+    </div>
 
     <!-- Main Wrapper -->
     <div class="main-wrapper">

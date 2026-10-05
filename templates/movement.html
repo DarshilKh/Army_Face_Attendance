@@ -172,6 +172,11 @@
                                 <label class="form-label">To</label>
                                 <input type="date" class="form-control" id="movementEndDate">
                             </div>
+                            <div class="col-12">
+                                <label class="form-label">Comments <span class="text-muted">(optional)</span></label>
+                                <textarea class="form-control" id="movementRemarks" rows="2"
+                                          placeholder="Add details if the reason needs more explanation, e.g. for &quot;Other&quot;"></textarea>
+                            </div>
                         </div>
                         <button class="btn btn-danger w-100 mt-3" onclick="markOut()">
                             <i class="fas fa-right-from-bracket me-1"></i> Mark OUT
@@ -184,6 +189,7 @@
                             <strong id="openRecordReason">-</strong><br>
                             <span id="openRecordDates" class="small"></span><br>
                             <span class="small text-muted">Out since <span id="openRecordSince"></span></span>
+                            <div id="openRecordRemarks" class="small fst-italic mt-1" style="display:none;"></div>
                         </div>
                         <button class="btn btn-success w-100" onclick="markIn()">
                             <i class="fas fa-right-to-bracket me-1"></i> Mark IN — Back from leave
@@ -373,6 +379,13 @@
             document.getElementById('openRecordReason').textContent = rec.reason;
             document.getElementById('openRecordDates').textContent = `${rec.start_date} to ${rec.end_date}`;
             document.getElementById('openRecordSince').textContent = rec.out_time;
+            const remarksEl = document.getElementById('openRecordRemarks');
+            if (rec.remarks) {
+                remarksEl.textContent = `"${rec.remarks}"`;
+                remarksEl.style.display = 'block';
+            } else {
+                remarksEl.style.display = 'none';
+            }
         } else {
             pill.textContent = 'IN';
             pill.className = 'status-pill in';
@@ -387,6 +400,7 @@
         const reason = document.getElementById('movementReason').value;
         const startDate = document.getElementById('movementStartDate').value;
         const endDate = document.getElementById('movementEndDate').value;
+        const remarks = document.getElementById('movementRemarks').value.trim();
 
         if (!reason) { alert('Please select a reason'); return; }
         if (!startDate || !endDate) { alert('Please select the date range'); return; }
@@ -397,13 +411,14 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     employee_id: currentEmployee.id,
-                    reason, start_date: startDate, end_date: endDate,
+                    reason, start_date: startDate, end_date: endDate, remarks,
                     image: currentCapturedImage
                 })
             });
             const data = await res.json();
             alert((data.success ? '✓ ' : '✗ ') + data.message);
             if (data.success) {
+                document.getElementById('movementRemarks').value = '';
                 document.getElementById('resultCard').style.display = 'none';
                 loadCurrentlyOut();
             }
@@ -449,12 +464,19 @@
                         <p class="out-row-name">${r.name} <span class="text-muted fw-normal">(${r.rank})</span></p>
                         <p class="out-row-meta">${r.reason} • ${r.start_date} to ${r.end_date}</p>
                         <p class="out-row-meta">Out since ${r.out_time}</p>
+                        ${r.remarks ? `<p class="out-row-meta fst-italic">"${escapeHtml(r.remarks)}"</p>` : ''}
                     </div>
                 </div>
             `).join('');
         } catch (e) {
             console.error('Failed to load currently-out list:', e);
         }
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
     }
 
     window.addEventListener('beforeunload', function () {
