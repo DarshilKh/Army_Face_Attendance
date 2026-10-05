@@ -92,6 +92,7 @@ def scan():
             'open_record': ({
                 'id': open_record.id,
                 'reason': open_record.reason,
+                'remarks': open_record.remarks or '',
                 'start_date': open_record.start_date.isoformat(),
                 'end_date': open_record.end_date.isoformat(),
                 'out_time': open_record.out_time.strftime('%d %b %Y, %I:%M %p'),
@@ -114,6 +115,7 @@ def mark_out():
         reason = (data.get('reason') or '').strip()
         start_date_str = data.get('start_date')
         end_date_str = data.get('end_date')
+        remarks = (data.get('remarks') or '').strip()
 
         if not employee_id or not reason or not start_date_str or not end_date_str:
             return jsonify({'success': False, 'message': 'Employee, reason, and date range are all required'}), 400
@@ -157,17 +159,22 @@ def mark_out():
             out_time=datetime.now(),
             out_photo=out_photo,
             status='out',
+            remarks=remarks or None,
             verified_by=current_user.id,
         )
         db.session.add(record)
         db.session.flush()
+
+        audit_note = f"{employee.army_id} OUT — {reason}, {start_date} to {end_date}"
+        if remarks:
+            audit_note += f" — \"{remarks}\""
 
         audit = AuditLog(
             user_id=current_user.id,
             action='MOVEMENT_OUT',
             table_name='movement_records',
             record_id=record.id,
-            new_value=f"{employee.army_id} OUT — {reason}, {start_date} to {end_date}",
+            new_value=audit_note,
             ip_address=request.remote_addr,
         )
         db.session.add(audit)
@@ -250,6 +257,7 @@ def currently_out():
             'name': e.full_name,
             'rank': e.rank or 'N/A',
             'reason': r.reason,
+            'remarks': r.remarks or '',
             'start_date': r.start_date.isoformat(),
             'end_date': r.end_date.isoformat(),
             'out_time': r.out_time.strftime('%d %b, %I:%M %p'),
